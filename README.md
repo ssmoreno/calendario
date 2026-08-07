@@ -1,16 +1,16 @@
 # Calendario
 
-Calendario is a personal, offline-first calendar that shows only occupied dates. Empty stretches collapse into explicit quiet-day markers, so the agenda stays compact without losing the shape of time.
+Calendario is a personal, offline-first Week and Month calendar with a minimal, full-viewport workspace.
 
 The current milestone is a functional local prototype. It includes:
 
-- Bidirectional event-only agenda with Today and quiet-time orientation.
+- Monday-first Week and Month views with Today navigation and 24-hour time.
 - Timed, all-day, overnight, multi-day, and repeating events.
 - Create, edit, delete, recurrence mutation scopes, and deletion undo.
-- Locale-aware date navigation, search, system/light/dark themes, and responsive editor states.
+- Chronological search, system/light/dark themes, and responsive calendar/editor states.
 - Versioned browser persistence, corrupt-data recovery, tab synchronization, and JSON import/export.
 
-See [DESIGN.md](./DESIGN.md) for the Chromatic Almanac visual system.
+See [DESIGN.md](./DESIGN.md) for the visual system and responsive behaviour.
 
 ## Development
 
@@ -37,9 +37,9 @@ The Playwright suite runs both desktop Chromium and a 390px-class mobile viewpor
 ## Architecture
 
 - `src/app/page.tsx` remains a Server Component shell.
-- `src/components/agenda/` owns the browser interaction boundary and design composition.
-- `src/calendar/` owns event contracts, recurrence, timezone conversion, agenda grouping, validation, and the local `CalendarService` implementation.
-- The UI talks to `CalendarService`, leaving cloud persistence and messaging adapters replaceable without rewriting the agenda.
+- `src/components/calendar/` owns the browser interaction boundary and Week/Month composition.
+- `src/calendar/` owns event contracts, recurrence, timezone conversion, calendar layout data, validation, and the local `CalendarService` implementation.
+- The UI talks to `CalendarService`, leaving cloud persistence and messaging adapters replaceable without rewriting the calendar.
 
 ## Roadmap
 

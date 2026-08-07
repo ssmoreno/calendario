@@ -10,6 +10,8 @@ import type { EventTiming } from "./types";
 
 const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
+export const CALENDAR_LOCALE = "en-GB";
+
 export function isDateKey(value: string): boolean {
   if (!DATE_KEY_PATTERN.test(value)) return false;
   try {
@@ -82,6 +84,10 @@ export function addDays(dateKey: string, days: number): string {
   return parseDate(dateKey).add({ days }).toString();
 }
 
+export function addMonths(dateKey: string, months: number): string {
+  return parseDate(dateKey).add({ months }).toString();
+}
+
 export function daysBetween(from: string, to: string): number {
   const [fromYear, fromMonth, fromDay] = from.split("-").map(Number);
   const [toYear, toMonth, toDay] = to.split("-").map(Number);
@@ -111,6 +117,30 @@ export function monthRange(dateKey: string): { from: string; to: string } {
   const from = `${dateKey.slice(0, 7)}-01`;
   const nextMonth = parseDate(from).add({ months: 1 }).toString();
   return { from, to: addDays(nextMonth, -1) };
+}
+
+export function startOfWeek(dateKey: string): string {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const sundayBasedDay = new Date(Date.UTC(year, month - 1, day, 12)).getUTCDay();
+  const mondayBasedDay = (sundayBasedDay + 6) % 7;
+  return addDays(dateKey, -mondayBasedDay);
+}
+
+export function weekRange(dateKey: string): { from: string; to: string } {
+  const from = startOfWeek(dateKey);
+  return { from, to: addDays(from, 6) };
+}
+
+export function monthGridRange(dateKey: string): { from: string; to: string } {
+  const month = monthRange(dateKey);
+  return {
+    from: startOfWeek(month.from),
+    to: addDays(startOfWeek(month.to), 6),
+  };
+}
+
+export function inclusiveDateRange(from: string, to: string): string[] {
+  return dateRange(from, addDays(to, 1));
 }
 
 export function timingDateKeys(
@@ -155,6 +185,18 @@ export function formatTime(
     minute: "2-digit",
     timeZone: viewerTimeZone,
   }).format(zonedTimestampToDate(startsAt));
+}
+
+export function minuteOfDayInTimeZone(date: Date, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+    timeZone,
+  }).formatToParts(date);
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find((part) => part.type === type)?.value ?? 0);
+  return value("hour") * 60 + value("minute");
 }
 
 export function formatDuration(minutes: number): string {

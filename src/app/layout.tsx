@@ -1,19 +1,10 @@
 import type { Metadata } from "next";
-import {
-  Fraunces,
-  IBM_Plex_Mono,
-  Instrument_Sans,
-} from "next/font/google";
+import { IBM_Plex_Mono, Instrument_Sans } from "next/font/google";
 
 import "./globals.css";
 
 const instrumentSans = Instrument_Sans({
   variable: "--font-ui",
-  subsets: ["latin"],
-});
-
-const fraunces = Fraunces({
-  variable: "--font-display",
   subsets: ["latin"],
 });
 
@@ -24,9 +15,8 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Calendario — only the days that matter",
-  description:
-    "A personal event-only calendar that compresses quiet days into a focused agenda.",
+  title: "Calendario",
+  description: "A focused week and month calendar.",
 };
 
 const themeScript = `
@@ -53,7 +43,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${instrumentSans.variable} ${fraunces.variable} ${ibmPlexMono.variable}`}
+      className={`${instrumentSans.variable} ${ibmPlexMono.variable}`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />

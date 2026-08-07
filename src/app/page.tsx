@@ -1,5 +1,5 @@
-import { AgendaApp } from "@/components/agenda/agenda-app";
+import { CalendarApp } from "@/components/calendar/calendar-app";
 
 export default function Home() {
-  return <AgendaApp />;
+  return <CalendarApp />;
 }

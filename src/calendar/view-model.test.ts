@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  buildTimeline,
   filterOccurrences,
   groupOccupiedDates,
-} from "./agenda";
-import { addDays } from "./date-time";
+  layoutTimedEvents,
+} from "./view-model";
+import { addDays, monthGridRange, startOfWeek, weekRange } from "./date-time";
 import type { EventRecord, Occurrence } from "./types";
 
 function occurrence(
@@ -59,7 +59,23 @@ function occurrence(
   };
 }
 
-describe("occupied date agenda", () => {
+describe("calendar view model", () => {
+  it("builds Monday-first week and month ranges", () => {
+    expect(startOfWeek("2026-08-09")).toBe("2026-08-03");
+    expect(weekRange("2026-08-09")).toEqual({
+      from: "2026-08-03",
+      to: "2026-08-09",
+    });
+    expect(monthGridRange("2026-08-15")).toEqual({
+      from: "2026-07-27",
+      to: "2026-09-06",
+    });
+    expect(weekRange("2027-01-01")).toEqual({
+      from: "2026-12-28",
+      to: "2027-01-03",
+    });
+  });
+
   it("groups only occupied dates and sorts all-day events before timed events", () => {
     const groups = groupOccupiedDates([
       occurrence("late", "Late", ["2026-08-10"], {
@@ -109,43 +125,52 @@ describe("occupied date agenda", () => {
     ]);
   });
 
-  it("omits dividers for consecutive dates and reports exact quiet ranges", () => {
+  it("lays overlapping timed events into reusable columns", () => {
     const groups = groupOccupiedDates([
-      occurrence("one", "One", ["2026-08-01"]),
-      occurrence("two", "Two", ["2026-08-02"]),
-      occurrence("three", "Three", ["2026-08-10"]),
+      occurrence("early", "Early", ["2026-08-10"], {
+        startsAt: "2026-08-10T09:00:00+00:00[UTC]",
+        durationMinutes: 120,
+      }),
+      occurrence("overlap", "Overlap", ["2026-08-10"], {
+        startsAt: "2026-08-10T09:30:00+00:00[UTC]",
+        durationMinutes: 30,
+      }),
+      occurrence("later", "Later", ["2026-08-10"], {
+        startsAt: "2026-08-10T10:00:00+00:00[UTC]",
+        durationMinutes: 30,
+      }),
     ]);
-    const timeline = buildTimeline(groups, "2026-08-01");
 
-    expect(timeline.map((item) => item.kind)).toEqual([
-      "date",
-      "date",
-      "quiet",
-      "date",
+    expect(
+      layoutTimedEvents(groups[0].segments, "UTC").map((item) => ({
+        id: item.segment.occurrence.eventId,
+        start: item.startMinute,
+        end: item.endMinute,
+        column: item.column,
+        columnCount: item.columnCount,
+      })),
+    ).toEqual([
+      { id: "early", start: 540, end: 660, column: 0, columnCount: 2 },
+      { id: "overlap", start: 570, end: 600, column: 1, columnCount: 2 },
+      { id: "later", start: 600, end: 630, column: 1, columnCount: 2 },
     ]);
-    expect(timeline[2]).toMatchObject({
-      count: 7,
-      from: "2026-08-03",
-      to: "2026-08-09",
-    });
   });
 
-  it("splits a quiet interval around an empty Today", () => {
-    const groups = groupOccupiedDates([
-      occurrence("past", "Past", ["2026-08-01"]),
-      occurrence("future", "Future", ["2026-08-10"]),
+  it("segments overnight events and excludes all-day events from timed layout", () => {
+    const [firstDay, secondDay] = groupOccupiedDates([
+      occurrence("overnight", "Overnight", ["2026-08-10", "2026-08-11"], {
+        startsAt: "2026-08-10T23:30:00+00:00[UTC]",
+        durationMinutes: 120,
+      }),
+      occurrence("all-day", "All day", ["2026-08-10"], { allDay: true }),
     ]);
-    const timeline = buildTimeline(groups, "2026-08-06");
 
-    expect(timeline.map((item) => item.kind)).toEqual([
-      "date",
-      "quiet",
-      "today",
-      "quiet",
-      "date",
+    expect(layoutTimedEvents(firstDay.segments, "UTC")).toMatchObject([
+      { startMinute: 1_410, endMinute: 1_440 },
     ]);
-    expect(timeline[1]).toMatchObject({ count: 4, from: "2026-08-02", to: "2026-08-05" });
-    expect(timeline[3]).toMatchObject({ count: 3, from: "2026-08-07", to: "2026-08-09" });
+    expect(layoutTimedEvents(secondDay.segments, "UTC")).toMatchObject([
+      { startMinute: 0, endMinute: 90 },
+    ]);
   });
 
   it("returns one next match for a recurring series when searching", () => {

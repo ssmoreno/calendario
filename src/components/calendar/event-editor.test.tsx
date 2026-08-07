@@ -13,7 +13,7 @@ type EditorProps = ComponentProps<typeof EventEditor>;
 
 function renderEditor(overrides: Partial<EditorProps> = {}) {
   const props: EditorProps = {
-    dateKey: "2026-08-08",
+    seed: { dateKey: "2026-08-08" },
     viewerTimeZone: "UTC",
     occurrence: null,
     seriesEvent: null,
@@ -69,6 +69,13 @@ function weeklyOccurrence(): {
 }
 
 describe("EventEditor", () => {
+  it("uses an explicit calendar-slot start time", () => {
+    renderEditor({ seed: { dateKey: "2026-08-08", startTime: "14:30" } });
+
+    expect(screen.getByLabelText("Starts")).toHaveProperty("value", "14:30");
+    expect(screen.getByLabelText("Ends")).toHaveProperty("value", "15:30");
+  });
+
   it("validates required data and submits a complete event", async () => {
     const user = userEvent.setup();
     const { onSave } = renderEditor();
@@ -180,7 +187,7 @@ describe("EventEditor", () => {
 
   it("builds selected weekday and count recurrence rules", async () => {
     const user = userEvent.setup();
-    const { onSave } = renderEditor({ dateKey: "2026-08-10" });
+    const { onSave } = renderEditor({ seed: { dateKey: "2026-08-10" } });
     await user.type(screen.getByLabelText("Event title"), "Training");
     await user.click(screen.getByRole("button", { name: "Weekly" }));
     await user.click(screen.getByRole("button", { name: "Wed" }));
@@ -219,7 +226,7 @@ describe("EventEditor", () => {
     const user = userEvent.setup();
     const { occurrence, series } = weeklyOccurrence();
     const { onSave } = renderEditor({
-      dateKey: occurrence.dateKeys[0],
+      seed: { dateKey: occurrence.dateKeys[0] },
       occurrence,
       seriesEvent: series,
     });
