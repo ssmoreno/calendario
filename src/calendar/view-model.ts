@@ -1,11 +1,14 @@
-import { addDays, daysBetween } from "./date-time";
+import {
+  dateKeyInTimeZone,
+  minuteOfDayInTimeZone,
+  zonedTimestampToDate,
+} from "./date-time";
 import { eventStartSortValue } from "./recurrence";
 import type {
   EventSegment,
   OccupiedDateGroup,
   Occurrence,
-  QuietGap,
-  TimelineItem,
+  TimedEventLayout,
 } from "./types";
 
 function segmentPosition(
@@ -69,70 +72,78 @@ export function groupOccupiedDates(
     }));
 }
 
-function quietGap(from: string, to: string): QuietGap | null {
-  if (from > to) return null;
+function timedBounds(
+  segment: EventSegment,
+  viewerTimeZone: string,
+): Pick<TimedEventLayout, "startMinute" | "endMinute"> {
+  const timing = segment.occurrence.timing;
+  if (timing.kind !== "timed") {
+    return { startMinute: 0, endMinute: 1_440 };
+  }
+
+  const start = zonedTimestampToDate(timing.startsAt);
+  const end = new Date(start.getTime() + timing.durationMinutes * 60_000);
+  const startDate = dateKeyInTimeZone(start, viewerTimeZone);
+  const endDate = dateKeyInTimeZone(end, viewerTimeZone);
+  const startMinute =
+    segment.dateKey === startDate
+      ? minuteOfDayInTimeZone(start, viewerTimeZone)
+      : 0;
+  const endMinute =
+    segment.dateKey === endDate
+      ? minuteOfDayInTimeZone(end, viewerTimeZone)
+      : 1_440;
+
   return {
-    kind: "quiet",
-    count: daysBetween(from, to) + 1,
-    from,
-    to,
+    startMinute,
+    endMinute: Math.max(startMinute + 1, endMinute),
   };
 }
 
-function appendGap(
-  items: TimelineItem[],
-  from: string,
-  to: string,
-  today: string,
-) {
-  if (from > to) return;
-  if (today >= from && today <= to) {
-    const before = quietGap(from, addDays(today, -1));
-    if (before) items.push(before);
-    items.push({ kind: "today", dateKey: today });
-    const after = quietGap(addDays(today, 1), to);
-    if (after) items.push(after);
-    return;
-  }
-  const gap = quietGap(from, to);
-  if (gap) items.push(gap);
-}
-
-export function buildTimeline(
-  groups: OccupiedDateGroup[],
-  today: string,
-): TimelineItem[] {
-  if (groups.length === 0) return [];
-  const items: TimelineItem[] = [];
-  const first = groups[0].dateKey;
-  const last = groups.at(-1)?.dateKey ?? first;
-
-  if (today < first) {
-    items.push({ kind: "today", dateKey: today });
-    appendGap(items, addDays(today, 1), addDays(first, -1), today);
-  }
-
-  groups.forEach((group, index) => {
-    if (index > 0) {
-      const previous = groups[index - 1].dateKey;
-      appendGap(items, addDays(previous, 1), addDays(group.dateKey, -1), today);
-    }
-    items.push(group);
+function finalizeCluster(
+  cluster: Omit<TimedEventLayout, "column" | "columnCount">[],
+): TimedEventLayout[] {
+  if (cluster.length === 0) return [];
+  const laneEnds: number[] = [];
+  const placed = cluster.map((item) => {
+    const available = laneEnds.findIndex((end) => end <= item.startMinute);
+    const column = available === -1 ? laneEnds.length : available;
+    laneEnds[column] = item.endMinute;
+    return { ...item, column };
   });
-
-  if (today > last) {
-    appendGap(items, addDays(last, 1), addDays(today, -1), today);
-    items.push({ kind: "today", dateKey: today });
-  }
-
-  return items;
+  const columnCount = Math.max(1, laneEnds.length);
+  return placed.map((item) => ({ ...item, columnCount }));
 }
 
-export function nextOccupiedDate(
-  groups: OccupiedDateGroup[],
-  today: string,
-): string | null {
-  return groups.find((group) => group.dateKey >= today)?.dateKey ?? null;
+export function layoutTimedEvents(
+  segments: EventSegment[],
+  viewerTimeZone: string,
+): TimedEventLayout[] {
+  const timed = segments
+    .filter((segment) => segment.occurrence.timing.kind === "timed")
+    .map((segment) => ({ segment, ...timedBounds(segment, viewerTimeZone) }))
+    .sort(
+      (a, b) =>
+        a.startMinute - b.startMinute ||
+        a.endMinute - b.endMinute ||
+        a.segment.occurrence.key.localeCompare(b.segment.occurrence.key),
+    );
+
+  const layouts: TimedEventLayout[] = [];
+  let cluster: typeof timed = [];
+  let clusterEnd = -1;
+
+  for (const item of timed) {
+    if (cluster.length > 0 && item.startMinute >= clusterEnd) {
+      layouts.push(...finalizeCluster(cluster));
+      cluster = [];
+      clusterEnd = -1;
+    }
+    cluster.push(item);
+    clusterEnd = Math.max(clusterEnd, item.endMinute);
+  }
+  layouts.push(...finalizeCluster(cluster));
+  return layouts;
 }
 
 export function filterOccurrences(
@@ -175,5 +186,7 @@ export function filterOccurrences(
       nextBySeries.set(occurrence.rootEventId, occurrence);
     }
   }
-  return [...nextBySeries.values()];
+  return [...nextBySeries.values()].sort((a, b) =>
+    a.occurrenceStart.localeCompare(b.occurrenceStart),
+  );
 }

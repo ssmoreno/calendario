@@ -22,6 +22,7 @@ import { messages } from "@/calendar/messages";
 import { eventInputSchema } from "@/calendar/schemas";
 import {
   EVENT_COLORS,
+  type EditorSeed,
   type EventColor,
   type EventInput,
   type EventPatch,
@@ -31,7 +32,7 @@ import {
 } from "@/calendar/types";
 
 import { CloseIcon } from "./icons";
-import styles from "./agenda.module.css";
+import styles from "./calendar.module.css";
 
 type RepeatPreset =
   | "never"
@@ -70,7 +71,7 @@ interface EditorForm {
 }
 
 interface EventEditorProps {
-  dateKey: string;
+  seed: EditorSeed;
   viewerTimeZone: string;
   occurrence: Occurrence | null;
   seriesEvent: EventRecord | null;
@@ -157,7 +158,7 @@ function ruleValue(rrule: string | undefined, name: string): string | undefined 
 }
 
 function initialForm(
-  dateKey: string,
+  seed: EditorSeed,
   viewerTimeZone: string,
   occurrence: Occurrence | null,
   seriesEvent: EventRecord | null,
@@ -167,13 +168,15 @@ function initialForm(
   const recurringRecord = seriesEvent ?? record;
   const rrule = recurringRecord?.recurrence?.rrule;
   const startTime =
-    timing?.kind === "timed" ? timeValueFromZoned(timing.startsAt) : defaultStartTime();
+    timing?.kind === "timed"
+      ? timeValueFromZoned(timing.startsAt)
+      : (seed.startTime ?? defaultStartTime());
   const startDate =
     timing?.kind === "timed"
       ? dateValueFromZoned(timing.startsAt)
       : timing?.kind === "all-day"
         ? timing.startDate
-        : dateKey;
+        : seed.dateKey;
   const until = ruleValue(rrule, "UNTIL");
   const byday = ruleValue(rrule, "BYDAY")?.split(",") ?? [weekdayCode(startDate)];
   const frequency = (ruleValue(rrule, "FREQ") ?? "WEEKLY") as Frequency;
@@ -373,7 +376,7 @@ function submissionMessage(error: unknown, fallback: string): string {
 }
 
 export function EventEditor({
-  dateKey,
+  seed,
   viewerTimeZone,
   occurrence,
   seriesEvent,
@@ -382,8 +385,8 @@ export function EventEditor({
   onDelete,
 }: EventEditorProps) {
   const initial = useMemo(
-    () => initialForm(dateKey, viewerTimeZone, occurrence, seriesEvent),
-    [dateKey, occurrence, seriesEvent, viewerTimeZone],
+    () => initialForm(seed, viewerTimeZone, occurrence, seriesEvent),
+    [occurrence, seed, seriesEvent, viewerTimeZone],
   );
   const [form, setForm] = useState(initial);
   const [shouldAutoFocus] = useState(() =>
@@ -510,18 +513,11 @@ export function EventEditor({
           }
         >
           <div className={styles.editorHeader}>
-            <div>
-              <p className={styles.eyebrow}>
-                {isEditing
-                  ? editorMessages.editEyebrow
-                  : editorMessages.newEyebrow}
-              </p>
-              <Heading>
-                {isEditing
-                  ? editorMessages.editHeading
-                  : editorMessages.newHeading}
-              </Heading>
-            </div>
+            <Heading>
+              {isEditing
+                ? editorMessages.editHeading
+                : editorMessages.newHeading}
+            </Heading>
             <Button
               className={styles.closeButton}
               onPress={requestClose}

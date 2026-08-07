@@ -2,52 +2,41 @@
 
 ## Direction
 
-Calendario is a chromatic almanac: an event-only agenda that compresses empty time without making the user lose their place. The interface uses bold editorial dates, precise time labels, and one expressive ultramarine date group at a time. Empty days never become calendar cards; they appear only as quiet-time dividers.
+Calendario is a quiet calendar workspace presented as a restrained card within the page. Week is the primary view and Month is the only alternate view. Empty time is represented by empty grid space: there are no mood messages, decorative empty states, oversized date cards, gradients, or shadows.
 
-The approved prototype at `/tmp/calendario-design-preview.html` is the visual source of truth for this baseline.
+## Calendar behaviour
+
+- Weeks start on Monday and use 24-hour time in the browser timezone.
+- Desktop Week shows seven columns, a dedicated all-day row, and 60px hourly rows. Overlapping events share horizontal space.
+- Mobile Week shows one selected day beneath a seven-day strip and supports tap, swipe, and arrow-key day navigation.
+- Desktop Month rows grow to show every event. On mobile, a busy date expands an event list directly below its week.
+- Week slots snap event creation to 30 minutes with a one-hour default. Empty Month dates seed events at 09:00.
+- Empty slots remain blank. Blue is reserved for Today, focus, selection, and current time.
 
 ## Typography
 
-- Fraunces, weight 600–900: date numerals, display headings, and the wordmark.
-- Instrument Sans, weight 400–600: navigation, controls, event titles, and body copy.
-- IBM Plex Mono, weight 400–500: times, durations, weekdays, compact labels, and metadata.
-- Fonts are self-hosted by `next/font`; no browser request is made to Google Fonts.
+- Instrument Sans: navigation, controls, headings, event titles, and body copy.
+- IBM Plex Mono: time labels and compact temporal metadata.
+- Fonts are delivered through `next/font`.
 
-## Color
+## Colour
 
 | Token | Light | Dark | Purpose |
 | --- | --- | --- | --- |
-| Canvas | `#F4F0E6` | `#141411` | Application background |
-| Surface | `#FFFCF5` | `#1F1E1A` | Raised controls and editor |
-| Surface 2 | `#EBE5D8` | `#2B2923` | Quiet intervals |
-| Ink | `#181713` | `#F4F0E6` | Primary text |
-| Muted | `#6B685F` | `#AAA498` | Secondary text |
-| Line | `#D7D0C2` | `#38362F` | Dividers and borders |
-| Ultramarine | `#203FBD` | `#5374F2` | Next occupied day and focus context |
-| Ultramarine text | `#203FBD` | `#6685FF` | Accessible accent text on surfaces |
-| Ultramarine ink | `#FAF4E7` | `#000000` | Text on the active date field |
-| Coral | `#E95738` | `#FF7257` | Signals and focus |
-| Coral text | `#B43120` | `#FF8B76` | Accessible coral-toned labels on surfaces |
-| Mint | `#77C6AD` | `#88D4BB` | Event color |
-| Gold | `#E8B44D` | `#F4C15A` | Event color |
+| Canvas | `#F7F7F5` | `#111315` | Browser background |
+| Surface | `#FFFFFF` | `#181B1F` | Calendar workspace and controls |
+| Surface 2 | `#F1F3F5` | `#22262B` | Selected and secondary surfaces |
+| Ink | `#1F2328` | `#F2F4F7` | Primary text |
+| Muted | `#667085` | `#98A2B3` | Secondary text and time labels |
+| Line | `#E4E7EC` | `#343A40` | Grid and control borders |
+| Accent | `#2563EB` | `#6EA8FE` | Today, selection, focus, and current time |
 
-Color is never the only carrier of meaning. Event cards always include a textual time, recurrence, or continuation label.
+Saved event hues are mixed into the surface at 12% in light mode and 18% in dark mode. Event text uses a darker or lighter blend of the same hue while retaining at least 4.5:1 contrast. Colour is never the only carrier of meaning.
 
-## Layout and shape
+## Layout and accessibility
 
-- Maximum application canvas: 1320px.
-- Desktop occupied-date layout: approximately 31% date stamp and 69% events.
-- Mobile layout: oversized date stamp above the event list.
-- Base spacing unit: 4px.
-- Control radius: 5px. Card radius: 12px. Outer frame/editor radius: 20px.
-- Avoid pill shapes except for compact categorical controls and status tags.
-- Interactive targets are at least 44px wherever layout permits.
-
-## Motion and accessibility
-
-- Functional transitions run between 160ms and 240ms.
-- `prefers-reduced-motion` removes nonessential movement and smooth scrolling.
-- Keyboard focus uses a visible 3px coral ring with a 3px offset.
-- Date groups are labelled sections; event rows are buttons with complete accessible names.
-- The date navigator, popovers, and editor use React Aria Components for keyboard and focus behavior.
-- The editor becomes a right drawer on desktop and a full-height sheet on narrow screens.
+- The calendar card has a 1320px maximum width, 28px desktop margins, and an 8px mobile inset; the desktop header is 56px tall.
+- Controls use compact 6px radii and event blocks use 3px radii. Pills are limited to categorical editor choices.
+- Keyboard focus uses a visible 2px blue outline.
+- Grid slots and events have complete accessible names. Dialog focus and dismissal use React Aria Components.
+- `prefers-reduced-motion` removes nonessential motion and smooth scrolling.

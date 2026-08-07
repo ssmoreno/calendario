@@ -8,6 +8,12 @@ export const EVENT_COLORS = [
 export type EventColor = (typeof EVENT_COLORS)[number];
 export type ThemePreference = "system" | "light" | "dark";
 export type MutationScope = "occurrence" | "following" | "series";
+export type CalendarView = "week" | "month";
+
+export interface EditorSeed {
+  dateKey: string;
+  startTime?: string;
+}
 
 export type EventTiming =
   | {
@@ -108,16 +114,10 @@ export interface OccupiedDateGroup {
   segments: EventSegment[];
 }
 
-export interface QuietGap {
-  kind: "quiet";
-  count: number;
-  from: string;
-  to: string;
+export interface TimedEventLayout {
+  segment: EventSegment;
+  startMinute: number;
+  endMinute: number;
+  column: number;
+  columnCount: number;
 }
-
-export interface TodayMarker {
-  kind: "today";
-  dateKey: string;
-}
-
-export type TimelineItem = OccupiedDateGroup | QuietGap | TodayMarker;
