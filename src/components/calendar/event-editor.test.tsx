@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ComponentProps } from "react";
 import { I18nProvider } from "react-aria-components";
@@ -219,7 +219,8 @@ describe("EventEditor", () => {
 
     confirm.mockReturnValue(true);
     await user.click(screen.getByRole("button", { name: "Cancel" }));
-    expect(onClose).toHaveBeenCalledTimes(1);
+    // Closing waits for the dialog exit animation before unmounting.
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
   });
 
   it("submits only changed fields when editing an entire series", async () => {

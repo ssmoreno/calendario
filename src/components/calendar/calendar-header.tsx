@@ -19,10 +19,11 @@ import type {
 
 import {
   ChevronIcon,
+  MoonIcon,
   MoreIcon,
   PlusIcon,
   SearchIcon,
-  ThemeIcon,
+  SunIcon,
 } from "./icons";
 import styles from "./calendar.module.css";
 
@@ -34,6 +35,7 @@ interface CalendarHeaderProps {
   locale: string;
   viewerTimeZone: string;
   theme: ThemePreference;
+  resolvedTheme: "light" | "dark";
   onPrevious(): void;
   onNext(): void;
   onToday(): void;
@@ -41,16 +43,17 @@ interface CalendarHeaderProps {
   onQueryChange(query: string): void;
   onSelectResult(occurrence: Occurrence): void;
   onAdd(): void;
-  onCycleTheme(): void;
+  onToggleTheme(): void;
+  onSelectTheme(theme: ThemePreference): void;
   onExport(): void;
   onImport(file: File): void;
 }
 
-const themeLabels: Record<ThemePreference, string> = {
-  system: messages.header.themeSystem,
-  light: messages.header.themeLight,
-  dark: messages.header.themeDark,
-};
+const themeOptions: { value: ThemePreference; label: string }[] = [
+  { value: "system", label: messages.header.themeSystem },
+  { value: "light", label: messages.header.themeLight },
+  { value: "dark", label: messages.header.themeDark },
+];
 
 function SearchResult({
   occurrence,
@@ -93,6 +96,7 @@ export function CalendarHeader({
   locale,
   viewerTimeZone,
   theme,
+  resolvedTheme,
   onPrevious,
   onNext,
   onToday,
@@ -100,12 +104,13 @@ export function CalendarHeader({
   onQueryChange,
   onSelectResult,
   onAdd,
-  onCycleTheme,
+  onToggleTheme,
+  onSelectTheme,
   onExport,
   onImport,
 }: CalendarHeaderProps) {
   const [searchOpen, setSearchOpen] = useState(false);
-  const [dataOpen, setDataOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
   function openSearch() {
@@ -226,46 +231,78 @@ export function CalendarHeader({
         </div>
 
         <button
-          className={styles.iconButton}
+          className={`${styles.iconButton} ${styles.themeButton}`}
           type="button"
-          aria-label={themeLabels[theme]}
-          title={messages.header.themeTitle(themeLabels[theme])}
-          onClick={onCycleTheme}
+          aria-label={
+            resolvedTheme === "dark"
+              ? messages.header.switchToLight
+              : messages.header.switchToDark
+          }
+          title={
+            resolvedTheme === "dark"
+              ? messages.header.switchToLight
+              : messages.header.switchToDark
+          }
+          onClick={onToggleTheme}
         >
-          <ThemeIcon />
+          {resolvedTheme === "dark" ? <SunIcon /> : <MoonIcon />}
         </button>
 
-        <DialogTrigger isOpen={dataOpen} onOpenChange={setDataOpen}>
-          <Button className={styles.iconButton} aria-label={messages.header.dataOptions}>
+        <DialogTrigger isOpen={settingsOpen} onOpenChange={setSettingsOpen}>
+          <Button className={styles.iconButton} aria-label={messages.header.settings}>
             <MoreIcon />
           </Button>
-          <Popover className={styles.popover} placement="bottom end">
-            <Dialog className={styles.dataDialog} aria-label={messages.header.dataDialog}>
-              <p>{messages.header.dataEyebrow}</p>
-              <h2>{messages.header.dataHeading}</h2>
-              <span>{messages.header.dataBody}</span>
-              <div className={styles.dataActions}>
-                <Button
-                  onPress={() => {
-                    setDataOpen(false);
-                    onExport();
-                  }}
+          <Popover className={styles.popover} placement="bottom end" offset={6}>
+            <Dialog
+              className={styles.settingsDialog}
+              aria-label={messages.header.settingsDialog}
+            >
+              <section className={styles.settingsSection}>
+                <h2>{messages.header.appearanceHeading}</h2>
+                <div
+                  className={styles.segmented}
+                  role="group"
+                  aria-label={messages.header.themeGroup}
                 >
-                  {messages.header.exportJson}
-                </Button>
-                <FileTrigger
-                  acceptedFileTypes={["application/json", ".json"]}
-                  onSelect={(files) => {
-                    const file = files?.item(0);
-                    if (file) {
-                      setDataOpen(false);
-                      onImport(file);
-                    }
-                  }}
-                >
-                  <Button>{messages.header.importJson}</Button>
-                </FileTrigger>
-              </div>
+                  {themeOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      aria-pressed={theme === option.value}
+                      onClick={() => onSelectTheme(option.value)}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              <section className={styles.settingsSection}>
+                <h2>{messages.header.dataHeading}</h2>
+                <p>{messages.header.dataBody}</p>
+                <div className={styles.dataActions}>
+                  <Button
+                    onPress={() => {
+                      setSettingsOpen(false);
+                      onExport();
+                    }}
+                  >
+                    {messages.header.exportJson}
+                  </Button>
+                  <FileTrigger
+                    acceptedFileTypes={["application/json", ".json"]}
+                    onSelect={(files) => {
+                      const file = files?.item(0);
+                      if (file) {
+                        setSettingsOpen(false);
+                        onImport(file);
+                      }
+                    }}
+                  >
+                    <Button>{messages.header.importJson}</Button>
+                  </FileTrigger>
+                </div>
+              </section>
             </Dialog>
           </Popover>
         </DialogTrigger>

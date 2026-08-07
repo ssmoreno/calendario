@@ -47,6 +47,25 @@ async function todayKey(page: Page) {
   });
 }
 
+/** Contrast is only meaningful once entrances and crossfades have landed. */
+async function settleAnimations(page: Page) {
+  await page.evaluate(async () => {
+    const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+    // Two frames so pending style changes have produced their animations.
+    await nextFrame();
+    await nextFrame();
+    await Promise.all(
+      document
+        .getAnimations()
+        .filter(
+          (animation) =>
+            animation.effect?.getComputedTiming().iterations !== Infinity,
+        )
+        .map((animation) => animation.finished.catch(() => undefined)),
+    );
+  });
+}
+
 function addDays(dateKey: string, amount: number) {
   const date = new Date(`${dateKey}T12:00:00Z`);
   date.setUTCDate(date.getUTCDate() + amount);
@@ -243,10 +262,9 @@ test("searches chronologically, preserves the view, and opens the editor", async
 
   await expect(page.getByRole("dialog", { name: "Edit event" })).toBeVisible();
   await page.getByRole("button", { name: "Close editor" }).click();
-  await expect(page.getByRole("button", { name: "Month" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
+  await expect(
+    page.getByRole("button", { name: "Month", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByRole("searchbox", { name: "Search events" })).toHaveCount(0);
 });
 
@@ -288,7 +306,7 @@ test("imports, exports, persists themes, and passes Axe in light and dark", asyn
     },
   };
 
-  await page.getByRole("button", { name: "Calendar data options" }).click();
+  await page.getByRole("button", { name: "Settings" }).click();
   await page.locator('input[type="file"]').setInputFiles({
     name: "calendario.json",
     mimeType: "application/json",
@@ -297,21 +315,36 @@ test("imports, exports, persists themes, and passes Axe in light and dark", asyn
   await expect(page.getByRole("status")).toContainText("Calendar imported.");
   await expect(page.getByRole("button", { name: /Imported reading/ })).toBeVisible();
 
-  await page.getByRole("button", { name: "Calendar data options" }).click();
+  await page.getByRole("button", { name: "Settings" }).click();
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export JSON" }).click();
   expect((await downloadPromise).suggestedFilename()).toMatch(
     /^calendario-\d{4}-\d{2}-\d{2}\.json$/,
   );
 
+  await settleAnimations(page);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
-  await page.getByRole("button", { name: "Theme: system" }).click();
-  await page.getByRole("button", { name: "Theme: light" }).click();
+
+  // One click flips the theme, in either direction.
+  await page.getByRole("button", { name: "Switch to dark theme" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await settleAnimations(page);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  await page.getByRole("button", { name: "Switch to light theme" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+
+  await page.getByRole("button", { name: "Switch to dark theme" }).click();
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute(
     "data-theme-preference",
     "dark",
   );
+
+  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("button", { name: "System" }).click();
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-theme-preference",
+    "system",
+  );
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
 });
