@@ -1,0 +1,111 @@
+:root {
+  --canvas: #f4f0e6;
+  --surface: #fffcf5;
+  --surface-2: #ebe5d8;
+  --ink: #181713;
+  --muted: #6b685f;
+  --line: #d7d0c2;
+  --ultramarine: #203fbd;
+  --ultramarine-text: #203fbd;
+  --ultramarine-ink: #faf4e7;
+  --coral: #e95738;
+  --coral-text: #b43120;
+  --mint: #77c6ad;
+  --gold: #e8b44d;
+  --danger: #b42b1e;
+  --overlay: rgb(24 23 19 / 48%);
+  --shadow: 0 24px 70px rgb(39 34 24 / 16%);
+  --radius-control: 5px;
+  --radius-card: 12px;
+  --radius-frame: 20px;
+}
+
+[data-theme="dark"] {
+  --canvas: #141411;
+  --surface: #1f1e1a;
+  --surface-2: #2b2923;
+  --ink: #f4f0e6;
+  --muted: #aaa498;
+  --line: #38362f;
+  --ultramarine: #5374f2;
+  --ultramarine-text: #6685ff;
+  --ultramarine-ink: #000;
+  --coral: #ff7257;
+  --coral-text: #ff8b76;
+  --mint: #88d4bb;
+  --gold: #f4c15a;
+  --danger: #ff8a72;
+  --overlay: rgb(0 0 0 / 66%);
+  --shadow: 0 24px 70px rgb(0 0 0 / 42%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  background: var(--canvas);
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background:
+    radial-gradient(
+      circle at 8% -10%,
+      color-mix(in srgb, var(--coral) 10%, transparent),
+      transparent 30rem
+    ),
+    var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-ui), sans-serif;
+  text-rendering: optimizeLegibility;
+  transition:
+    background-color 220ms ease,
+    color 220ms ease;
+}
+
+button,
+input,
+textarea,
+select {
+  color: inherit;
+  font: inherit;
+}
+
+button,
+select,
+input[type="date"],
+input[type="time"],
+input[type="checkbox"],
+input[type="radio"] {
+  cursor: pointer;
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[role="button"]:focus-visible,
+[role="gridcell"]:focus-visible {
+  outline: 3px solid var(--coral);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: var(--coral);
+  color: #17130f;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
