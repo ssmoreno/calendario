@@ -15,8 +15,14 @@
   --mint: #27856d;
   --gold: #9a6b16;
   --event-mix: 12%;
+  --event-mix-hover: 20%;
   --radius-control: 6px;
   --radius-card: 10px;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-theme: 320ms;
 }
 
 [data-theme="dark"] {
@@ -36,6 +42,7 @@
   --mint: #7ed6bd;
   --gold: #f2c66d;
   --event-mix: 18%;
+  --event-mix-hover: 28%;
 }
 
 * {
@@ -63,6 +70,10 @@ textarea,
 select {
   color: inherit;
   font: inherit;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
 }
 
 button,
@@ -87,6 +98,17 @@ select:focus-visible,
 ::selection {
   background: var(--accent);
   color: #fff;
+}
+
+/*
+ * Theme changes crossfade the whole page instead of flashing. A view
+ * transition composites one snapshot, so it stays smooth on the dense grid
+ * where per-element colour transitions would stall the main thread.
+ */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--duration-theme);
+  animation-timing-function: var(--ease-in-out);
 }
 
 @media (prefers-reduced-motion: reduce) {

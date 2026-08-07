@@ -70,10 +70,19 @@ export function CloseIcon(props: IconProps) {
   );
 }
 
-export function ThemeIcon(props: IconProps) {
+export function MoonIcon(props: IconProps) {
   return (
     <Icon {...props}>
       <path d="M12 3a9 9 0 1 0 9 9c0-1-.16-1.96-.46-2.86A7 7 0 0 1 12 3Z" />
+    </Icon>
+  );
+}
+
+export function SunIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.4 5.4l1.4 1.4M17.2 17.2l1.4 1.4M18.6 5.4l-1.4 1.4M6.8 17.2l-1.4 1.4" />
     </Icon>
   );
 }

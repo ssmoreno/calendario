@@ -64,6 +64,8 @@ interface ToastState {
   undo?: () => void;
 }
 
+type NavDirection = "next" | "previous" | "none";
+
 interface BrowserSession {
   browser: BrowserContext;
   service: LocalCalendarService;
@@ -71,14 +73,44 @@ interface BrowserSession {
   notice: ToastState | null;
 }
 
-const themeOrder: ThemePreference[] = ["system", "light", "dark"];
+type ResolvedTheme = "light" | "dark";
 
-function applyTheme(theme: ThemePreference) {
-  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const resolved = theme === "system" ? (prefersDark ? "dark" : "light") : theme;
-  document.documentElement.dataset.theme = resolved;
-  document.documentElement.dataset.themePreference = theme;
-  document.documentElement.style.colorScheme = resolved;
+const DARK_SCHEME_QUERY = "(prefers-color-scheme: dark)";
+
+function subscribeToSystemTheme(callback: () => void) {
+  const media = window.matchMedia(DARK_SCHEME_QUERY);
+  media.addEventListener("change", callback);
+  return () => media.removeEventListener("change", callback);
+}
+
+function getSystemDarkSnapshot() {
+  return window.matchMedia(DARK_SCHEME_QUERY).matches;
+}
+
+function getServerSystemDarkSnapshot() {
+  return false;
+}
+
+/**
+ * Paints the theme, crossfading the page whenever the resolved theme actually
+ * flips so the switch never lands as a sudden white or black screen.
+ */
+function applyTheme(theme: ThemePreference, resolved: ResolvedTheme) {
+  const root = document.documentElement;
+  const paint = () => {
+    root.dataset.theme = resolved;
+    root.dataset.themePreference = theme;
+    root.style.colorScheme = resolved;
+  };
+  const flipped = root.dataset.theme !== resolved;
+  const animates = !window.matchMedia("(prefers-reduced-motion: reduce)")
+    .matches;
+
+  if (flipped && animates && typeof document.startViewTransition === "function") {
+    document.startViewTransition(paint);
+    return;
+  }
+  paint();
 }
 
 function safeStorage(): Storage | null {
@@ -147,14 +179,18 @@ function nextHalfHour(timeZone: string) {
 
 function CalendarSkeleton() {
   return (
-    <main className={styles.pageShell} aria-label={messages.app.loadingLabel}>
+    <div className={styles.pageShell} aria-label={messages.app.loadingLabel}>
       <header className={styles.appHeader}>
         <div className={styles.wordmark}>{messages.appName}</div>
         <div className={styles.skeletonPeriod} />
         <div className={styles.skeletonActions} />
       </header>
-      <div className={styles.skeletonCalendar} />
-    </main>
+      <main className={styles.calendarStage}>
+        <div className={styles.calendarCard}>
+          <div className={styles.skeletonCalendar} />
+        </div>
+      </main>
+    </div>
   );
 }
 
@@ -204,6 +240,18 @@ function HydratedCalendar() {
   const [preferences, setPreferences] = useState<PreferencesDocument>(
     session.preferences,
   );
+  const [navDirection, setNavDirection] = useState<NavDirection>("none");
+  const systemDark = useSyncExternalStore(
+    subscribeToSystemTheme,
+    getSystemDarkSnapshot,
+    getServerSystemDarkSnapshot,
+  );
+  const resolvedTheme: ResolvedTheme =
+    preferences.theme === "system"
+      ? systemDark
+        ? "dark"
+        : "light"
+      : preferences.theme;
 
   const visibleRange = useMemo(
     () => (view === "week" ? weekRange(anchorDate) : monthGridRange(anchorDate)),
@@ -229,14 +277,8 @@ function HydratedCalendar() {
   }, [document, range, service]);
 
   useEffect(() => {
-    applyTheme(preferences.theme);
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
-    const updateSystemTheme = () => {
-      if (preferences.theme === "system") applyTheme("system");
-    };
-    media.addEventListener("change", updateSystemTheme);
-    return () => media.removeEventListener("change", updateSystemTheme);
-  }, [preferences.theme]);
+    applyTheme(preferences.theme, resolvedTheme);
+  }, [preferences.theme, resolvedTheme]);
 
   useEffect(() => {
     function syncPreferences(event: StorageEvent) {
@@ -282,6 +324,7 @@ function HydratedCalendar() {
       : occurrence.record.recurrence
         ? occurrence.record
         : null;
+    setNavDirection("none");
     setSelectedDate(dateKey);
     setAnchorDate(dateKey);
     ensureCoverage(view, dateKey);
@@ -307,6 +350,7 @@ function HydratedCalendar() {
   }
 
   function navigate(direction: -1 | 1) {
+    setNavDirection(direction === 1 ? "next" : "previous");
     const shift = view === "week" ? 7 * direction : direction;
     const nextAnchor =
       view === "week"
@@ -326,22 +370,31 @@ function HydratedCalendar() {
   }
 
   function goToday() {
+    setNavDirection(
+      browser.today === anchorDate
+        ? "none"
+        : browser.today > anchorDate
+          ? "next"
+          : "previous",
+    );
     setAnchorDate(browser.today);
     setSelectedDate(browser.today);
     ensureCoverage(view, browser.today);
   }
 
   function changeView(nextView: CalendarView) {
+    setNavDirection("none");
     setView(nextView);
     setAnchorDate(selectedDate);
     ensureCoverage(nextView, selectedDate);
   }
 
-  function cycleTheme() {
-    const index = themeOrder.indexOf(preferences.theme);
-    const theme = themeOrder[(index + 1) % themeOrder.length];
-    const next = saveThemePreference(safeStorage(), theme);
-    setPreferences(next);
+  function selectTheme(theme: ThemePreference) {
+    setPreferences(saveThemePreference(safeStorage(), theme));
+  }
+
+  function toggleTheme() {
+    selectTheme(resolvedTheme === "dark" ? "light" : "dark");
   }
 
   async function saveEvent(
@@ -382,7 +435,6 @@ function HydratedCalendar() {
     } else {
       await service.createEvent(input);
     }
-    setEditor(null);
     setToast({ message: messages.eventSaved });
   }
 
@@ -396,7 +448,6 @@ function HydratedCalendar() {
       },
       scope,
     );
-    setEditor(null);
     setToast({
       message: messages.eventDeleted,
       undo: () => {
@@ -421,9 +472,14 @@ function HydratedCalendar() {
     }
   }
 
+  const visibleEventCount = groups.reduce(
+    (total, group) => total + group.segments.length,
+    0,
+  );
+
   return (
     <I18nProvider locale={CALENDAR_LOCALE}>
-      <main className={styles.pageShell}>
+      <div className={styles.pageShell}>
         <CalendarHeader
           view={view}
           periodLabel={periodLabel(view, anchorDate)}
@@ -432,6 +488,7 @@ function HydratedCalendar() {
           locale={CALENDAR_LOCALE}
           viewerTimeZone={browser.timeZone}
           theme={preferences.theme}
+          resolvedTheme={resolvedTheme}
           onPrevious={() => navigate(-1)}
           onNext={() => navigate(1)}
           onToday={goToday}
@@ -446,42 +503,61 @@ function HydratedCalendar() {
               startTime: nextHalfHour(browser.timeZone),
             })
           }
-          onCycleTheme={cycleTheme}
+          onToggleTheme={toggleTheme}
+          onSelectTheme={selectTheme}
           onExport={() => downloadJson(service.exportJson())}
           onImport={(file) => void importFile(file)}
         />
 
-        <div className={styles.calendarWorkspace} aria-label={messages.app.calendarLabel}>
-          {view === "week" ? (
-            <WeekView
-              from={visibleRange.from}
-              to={visibleRange.to}
-              groups={groups}
-              selectedDate={selectedDate}
-              today={browser.today}
-              locale={CALENDAR_LOCALE}
-              viewerTimeZone={browser.timeZone}
-              onSelectDate={selectDate}
-              onAdd={openCreate}
-              onEdit={openEdit}
-            />
-          ) : (
-            <MonthView
-              from={visibleRange.from}
-              to={visibleRange.to}
-              monthKey={anchorDate.slice(0, 7)}
-              groups={groups}
-              selectedDate={selectedDate}
-              today={browser.today}
-              locale={CALENDAR_LOCALE}
-              viewerTimeZone={browser.timeZone}
-              onSelectDate={selectDate}
-              onAdd={openCreate}
-              onEdit={openEdit}
-            />
-          )}
-        </div>
-      </main>
+        <main className={styles.calendarStage}>
+          <section
+            className={styles.calendarCard}
+            aria-label={messages.app.calendarLabel}
+          >
+            <div
+              key={`${view}:${visibleRange.from}`}
+              className={styles.calendarWorkspace}
+              data-direction={navDirection}
+            >
+              {view === "week" ? (
+                <WeekView
+                  from={visibleRange.from}
+                  to={visibleRange.to}
+                  groups={groups}
+                  selectedDate={selectedDate}
+                  today={browser.today}
+                  locale={CALENDAR_LOCALE}
+                  viewerTimeZone={browser.timeZone}
+                  onSelectDate={selectDate}
+                  onAdd={openCreate}
+                  onEdit={openEdit}
+                />
+              ) : (
+                <MonthView
+                  from={visibleRange.from}
+                  to={visibleRange.to}
+                  monthKey={anchorDate.slice(0, 7)}
+                  groups={groups}
+                  selectedDate={selectedDate}
+                  today={browser.today}
+                  locale={CALENDAR_LOCALE}
+                  viewerTimeZone={browser.timeZone}
+                  onSelectDate={selectDate}
+                  onAdd={openCreate}
+                  onEdit={openEdit}
+                />
+              )}
+            </div>
+          </section>
+        </main>
+
+        <footer className={styles.pageFooter}>
+          <span>{messages.footer.eventsInView(visibleEventCount)}</span>
+          <span className={styles.footerMeta}>
+            {messages.footer.meta(browser.timeZone)}
+          </span>
+        </footer>
+      </div>
 
       {editor ? (
         <EventEditor

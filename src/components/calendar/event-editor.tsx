@@ -34,6 +34,9 @@ import {
 import { CloseIcon } from "./icons";
 import styles from "./calendar.module.css";
 
+/** Matches the dialog exit animation in calendar.module.css. */
+const EXIT_ANIMATION_MS = 160;
+
 type RepeatPreset =
   | "never"
   | "daily"
@@ -395,6 +398,7 @@ export function EventEditor({
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<PendingAction | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [open, setOpen] = useState(true);
   const dirty = JSON.stringify(form) !== JSON.stringify(initial);
   const repeating = Boolean(seriesEvent?.recurrence ?? occurrence?.record.recurrence);
   const isEditing = Boolean(occurrence);
@@ -430,8 +434,18 @@ export function EventEditor({
     setError(null);
   }
 
+  /**
+   * Closing runs through local state so the dialog can play its exit
+   * animation before the parent drops it from the tree.
+   */
+  function close() {
+    setOpen(false);
+    window.setTimeout(onClose, EXIT_ANIMATION_MS);
+  }
+
   function requestClose() {
-    if (!dirty || window.confirm(editorMessages.discardConfirm)) onClose();
+    if (dirty && !window.confirm(editorMessages.discardConfirm)) return;
+    close();
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -452,6 +466,7 @@ export function EventEditor({
       }
       setSubmitting(true);
       await onSave(input, "series", patch);
+      close();
     } catch (submissionError) {
       setError(
         submissionMessage(submissionError, editorMessages.genericSaveError),
@@ -469,6 +484,7 @@ export function EventEditor({
       } else {
         await onDelete(scope);
       }
+      close();
     } catch (actionError) {
       setError(
         submissionMessage(actionError, editorMessages.genericChangeError),
@@ -483,12 +499,14 @@ export function EventEditor({
       setPending({ kind: "delete" });
     } else if (window.confirm(editorMessages.deleteConfirm)) {
       setSubmitting(true);
-      void onDelete("series").catch((actionError: unknown) => {
-        setError(
-          submissionMessage(actionError, editorMessages.genericChangeError),
-        );
-        setSubmitting(false);
-      });
+      void onDelete("series")
+        .then(close)
+        .catch((actionError: unknown) => {
+          setError(
+            submissionMessage(actionError, editorMessages.genericChangeError),
+          );
+          setSubmitting(false);
+        });
     }
   }
 
@@ -498,11 +516,11 @@ export function EventEditor({
 
   return (
     <ModalOverlay
-      isOpen
+      isOpen={open}
       isDismissable
       className={styles.modalOverlay}
-      onOpenChange={(open) => {
-        if (!open) requestClose();
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) requestClose();
       }}
     >
       <Modal className={styles.editorModal}>
