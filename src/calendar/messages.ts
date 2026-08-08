@@ -1,5 +1,5 @@
 export const messages = {
-  appName: "calendario",
+  appName: "Giganti",
   week: "Week",
   month: "Month",
   previousPeriod: "Previous period",
