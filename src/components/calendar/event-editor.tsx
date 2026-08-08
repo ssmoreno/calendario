@@ -19,6 +19,12 @@ import {
   timezoneFromZoned,
 } from "@/calendar/date-time";
 import { messages } from "@/calendar/messages";
+import {
+  MAX_REMINDER_MINUTES,
+  REMINDER_MINUTES_PER_UNIT,
+  reminderMinutes,
+  type ReminderUnit,
+} from "@/calendar/reminders";
 import { eventInputSchema } from "@/calendar/schemas";
 import {
   EVENT_COLORS,
@@ -49,6 +55,15 @@ type RepeatPreset =
 type RecurrenceEnd = "never" | "date" | "count";
 type Frequency = "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
 type TimedEndMode = "end-time" | "duration";
+type ReminderPreset =
+  | ""
+  | "0"
+  | "5"
+  | "15"
+  | "30"
+  | "60"
+  | "1440"
+  | "custom";
 
 interface EditorForm {
   title: string;
@@ -70,7 +85,9 @@ interface EditorForm {
   location: string;
   notes: string;
   color: EventColor;
-  reminder: string;
+  reminder: ReminderPreset;
+  reminderAmount: string;
+  reminderUnit: ReminderUnit;
 }
 
 interface EventEditorProps {
@@ -94,6 +111,15 @@ interface PendingAction {
 }
 
 const editorMessages = messages.editor;
+
+const REMINDER_PRESETS = new Set([
+  "0",
+  "5",
+  "15",
+  "30",
+  "60",
+  "1440",
+]);
 
 const WEEKDAYS = [
   ["MO", editorMessages.weekdayMonday],
@@ -133,6 +159,45 @@ function weekdayCode(dateKey: string): string {
 function daysInMonth(dateKey: string): number {
   const [year, month] = dateKey.split("-").map(Number);
   return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+function customReminderValue(minutes: number | undefined): {
+  reminder: ReminderPreset;
+  reminderAmount: string;
+  reminderUnit: ReminderUnit;
+} {
+  if (minutes === undefined) {
+    return { reminder: "", reminderAmount: "", reminderUnit: "minutes" };
+  }
+  const preset = String(minutes);
+  if (REMINDER_PRESETS.has(preset)) {
+    return {
+      reminder: preset as ReminderPreset,
+      reminderAmount: "",
+      reminderUnit: "minutes",
+    };
+  }
+  const unit =
+    (["weeks", "days", "hours"] as const).find(
+      (candidate) =>
+        minutes > 0 &&
+        minutes % REMINDER_MINUTES_PER_UNIT[candidate] === 0,
+    ) ?? "minutes";
+  return {
+    reminder: "custom",
+    reminderAmount: String(minutes / REMINDER_MINUTES_PER_UNIT[unit]),
+    reminderUnit: unit,
+  };
+}
+
+function reminderMinutesFromForm(form: EditorForm): number | undefined {
+  if (form.reminder === "") return undefined;
+  if (form.reminder !== "custom") return Number(form.reminder);
+  if (form.reminderAmount.trim() === "") return Number.NaN;
+  return reminderMinutes({
+    amount: Number(form.reminderAmount),
+    unit: form.reminderUnit,
+  });
 }
 
 function recurrencePreset(rrule?: string): RepeatPreset {
@@ -183,6 +248,7 @@ function initialForm(
   const until = ruleValue(rrule, "UNTIL");
   const byday = ruleValue(rrule, "BYDAY")?.split(",") ?? [weekdayCode(startDate)];
   const frequency = (ruleValue(rrule, "FREQ") ?? "WEEKLY") as Frequency;
+  const reminder = customReminderValue(record?.reminderMinutesBefore);
 
   return {
     title: record?.title ?? "",
@@ -219,10 +285,7 @@ function initialForm(
     location: record?.location ?? "",
     notes: record?.notes ?? "",
     color: record?.color ?? "coral",
-    reminder:
-      record?.reminderMinutesBefore === undefined
-        ? ""
-        : String(record.reminderMinutesBefore),
+    ...reminder,
   };
 }
 
@@ -335,8 +398,7 @@ function buildEventInput(
     location: form.location.trim() || undefined,
     notes: form.notes.trim() || undefined,
     color: form.color,
-    reminderMinutesBefore:
-      form.reminder === "" ? undefined : Number(form.reminder),
+    reminderMinutesBefore: reminderMinutesFromForm(form),
   });
 }
 
@@ -429,6 +491,22 @@ export function EventEditor({
         ...current,
         timedEndMode: "end-time",
         endTime: addMinutesToTime(current.startTime, duration),
+      };
+    });
+    setError(null);
+  }
+
+  function toggleReminderMode() {
+    setForm((current) => {
+      if (current.reminder === "custom") {
+        return { ...current, reminder: "" };
+      }
+      return {
+        ...current,
+        reminder: "custom",
+        reminderAmount:
+          current.reminder || current.reminderAmount || "15",
+        reminderUnit: current.reminder ? "minutes" : current.reminderUnit,
       };
     });
     setError(null);
@@ -799,22 +877,83 @@ export function EventEditor({
                   onChange={(event) => update("location", event.target.value)}
                 />
               </label>
-              <label className={styles.field}>
+              <div className={styles.field}>
                 <span>{editorMessages.reminder}</span>
-                <select
-                  value={form.reminder}
-                  onChange={(event) => update("reminder", event.target.value)}
+                {form.reminder === "custom" ? (
+                  <div className={styles.reminderCustomFields}>
+                    <label>
+                      <span className={styles.visuallyHidden}>
+                        {editorMessages.reminderAmount}
+                      </span>
+                      <input
+                        aria-label={editorMessages.reminderAmount}
+                        type="number"
+                        required
+                        min="0"
+                        max={
+                          MAX_REMINDER_MINUTES /
+                          REMINDER_MINUTES_PER_UNIT[form.reminderUnit]
+                        }
+                        step="any"
+                        value={form.reminderAmount}
+                        onChange={(event) =>
+                          update("reminderAmount", event.target.value)
+                        }
+                      />
+                    </label>
+                    <label>
+                      <span className={styles.visuallyHidden}>
+                        {editorMessages.reminderUnit}
+                      </span>
+                      <select
+                        value={form.reminderUnit}
+                        onChange={(event) =>
+                          update("reminderUnit", event.target.value as ReminderUnit)
+                        }
+                      >
+                        <option value="minutes">
+                          {editorMessages.reminderMinutesUnit}
+                        </option>
+                        <option value="hours">
+                          {editorMessages.reminderHoursUnit}
+                        </option>
+                        <option value="days">
+                          {editorMessages.reminderDaysUnit}
+                        </option>
+                        <option value="weeks">
+                          {editorMessages.reminderWeeksUnit}
+                        </option>
+                      </select>
+                    </label>
+                  </div>
+                ) : (
+                  <select
+                    aria-label={editorMessages.reminder}
+                    value={form.reminder}
+                    onChange={(event) =>
+                      update("reminder", event.target.value as ReminderPreset)
+                    }
+                  >
+                    <option value="">{editorMessages.reminderNone}</option>
+                    <option value="0">{editorMessages.reminderAtStart}</option>
+                    <option value="5">{editorMessages.reminderFive}</option>
+                    <option value="15">{editorMessages.reminderFifteen}</option>
+                    <option value="30">{editorMessages.reminderThirty}</option>
+                    <option value="60">{editorMessages.reminderHour}</option>
+                    <option value="1440">{editorMessages.reminderDay}</option>
+                  </select>
+                )}
+                <button
+                  type="button"
+                  className={styles.timingModeButton}
+                  onClick={toggleReminderMode}
                 >
-                  <option value="">{editorMessages.reminderNone}</option>
-                  <option value="0">{editorMessages.reminderAtStart}</option>
-                  <option value="5">{editorMessages.reminderFive}</option>
-                  <option value="15">{editorMessages.reminderFifteen}</option>
-                  <option value="30">{editorMessages.reminderThirty}</option>
-                  <option value="60">{editorMessages.reminderHour}</option>
-                  <option value="1440">{editorMessages.reminderDay}</option>
-                </select>
+                  {form.reminder === "custom"
+                    ? editorMessages.reminderUsePresets
+                    : editorMessages.reminderCustom}
+                </button>
                 {form.reminder ? <small>{messages.reminderUnavailable}</small> : null}
-              </label>
+              </div>
             </div>
 
             <fieldset className={styles.colorFieldset}>

@@ -108,6 +108,46 @@ describe("EventEditor", () => {
     );
   });
 
+  it("supports a custom reminder amount and unit", async () => {
+    const user = userEvent.setup();
+    const { onSave } = renderEditor();
+    await user.type(screen.getByLabelText("Event title"), "Visa appointment");
+    await user.click(screen.getByRole("button", { name: "Customize reminder" }));
+    await user.clear(screen.getByLabelText("Reminder amount"));
+    await user.type(screen.getByLabelText("Reminder amount"), "5");
+    await user.selectOptions(screen.getByLabelText("Reminder unit"), "days");
+
+    await user.click(screen.getByRole("button", { name: "Save event" }));
+
+    expect(onSave.mock.calls[0][0]).toMatchObject({
+      reminderMinutesBefore: 7_200,
+    });
+  });
+
+  it("keeps a custom reminder when switching between custom and presets", async () => {
+    const user = userEvent.setup();
+    const { onSave } = renderEditor();
+    await user.type(screen.getByLabelText("Event title"), "Visa appointment");
+    await user.click(screen.getByRole("button", { name: "Customize reminder" }));
+    await user.clear(screen.getByLabelText("Reminder amount"));
+    await user.type(screen.getByLabelText("Reminder amount"), "5");
+    await user.selectOptions(screen.getByLabelText("Reminder unit"), "days");
+
+    await user.click(screen.getByRole("button", { name: "Use reminder presets" }));
+    await user.click(screen.getByRole("button", { name: "Customize reminder" }));
+    expect((screen.getByLabelText("Reminder amount") as HTMLInputElement).value).toBe(
+      "5",
+    );
+    expect((screen.getByLabelText("Reminder unit") as HTMLSelectElement).value).toBe(
+      "days",
+    );
+
+    await user.click(screen.getByRole("button", { name: "Save event" }));
+    expect(onSave.mock.calls[0][0]).toMatchObject({
+      reminderMinutesBefore: 7_200,
+    });
+  });
+
   it("builds inclusive all-day ranges", async () => {
     const user = userEvent.setup();
     const { onSave } = renderEditor();

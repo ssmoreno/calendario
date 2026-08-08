@@ -250,6 +250,45 @@ export class LocalCalendarService implements CalendarService {
       .sort((a, b) => a.occurrenceStart.localeCompare(b.occurrenceStart));
   }
 
+  async listEventRecords(): Promise<EventRecord[]> {
+    return this.document.events.map((event) => ({
+      ...event,
+      timing: { ...event.timing },
+      recurrence: event.recurrence
+        ? {
+            ...event.recurrence,
+            excludedStarts: [...event.recurrence.excludedStarts],
+          }
+        : null,
+    }));
+  }
+
+  async setEventReminders(
+    eventIds: string[],
+    reminderMinutesBefore: number | undefined,
+  ): Promise<void> {
+    if (eventIds.length === 0) return;
+    const ids = new Set(eventIds);
+    const found = this.document.events.filter((event) => ids.has(event.id));
+    if (found.length !== ids.size) throw new Error(messages.domain.eventNotFound);
+    const now = new Date().toISOString();
+    this.commit(
+      this.document.events.map((event) => {
+        if (!ids.has(event.id)) return event;
+        const updated = recordFromInput(
+          mergeEventInput(event, { reminderMinutesBefore }),
+          now,
+          event,
+        );
+        return {
+          ...updated,
+          ...(event.seriesId ? { seriesId: event.seriesId } : {}),
+          ...(event.originalStart ? { originalStart: event.originalStart } : {}),
+        };
+      }),
+    );
+  }
+
   async createEvent(input: EventInput): Promise<EventRecord> {
     const now = new Date().toISOString();
     const event = recordFromInput(input, now);

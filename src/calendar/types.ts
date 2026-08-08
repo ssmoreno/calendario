@@ -76,6 +76,11 @@ export interface CalendarRange {
 }
 
 export interface CalendarService {
+  listEventRecords(): Promise<EventRecord[]>;
+  setEventReminders(
+    eventIds: string[],
+    reminderMinutesBefore: number | undefined,
+  ): Promise<void>;
   listOccurrences(range: CalendarRange): Promise<Occurrence[]>;
   createEvent(input: EventInput): Promise<EventRecord>;
   updateEvent(

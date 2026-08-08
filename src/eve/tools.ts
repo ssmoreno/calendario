@@ -8,9 +8,15 @@ import {
   isTimeZone,
   localDateTimeToZoned,
 } from "@/calendar/date-time";
+import {
+  MAX_REMINDER_MINUTES,
+  REMINDER_UNITS,
+  reminderMinutes,
+} from "@/calendar/reminders";
 import { EVENT_COLORS } from "@/calendar/types";
 import type {
   CalendarService,
+  EventColor,
   EventPatch,
   EventRecord,
   EventTiming,
@@ -20,6 +26,94 @@ import type {
 const MAX_RANGE_DAYS = 366;
 const MAX_LISTED_OCCURRENCES = 200;
 const NOTES_PREVIEW_LENGTH = 280;
+const FRIENDLY_EVENT_COLORS = ["blue", "red", "green", "yellow"] as const;
+
+type FriendlyEventColor = (typeof FRIENDLY_EVENT_COLORS)[number];
+
+const COLOR_ALIASES: Record<FriendlyEventColor, EventColor> = {
+  blue: "ultramarine",
+  red: "coral",
+  green: "mint",
+  yellow: "gold",
+} as const;
+
+const selectableColorSchema = z.enum([
+  ...EVENT_COLORS,
+  ...FRIENDLY_EVENT_COLORS,
+]);
+
+const reminderOffsetSchema = z
+  .object({
+    amount: z
+      .number()
+      .nonnegative()
+      .describe("How many of the selected units before the event starts."),
+    unit: z.enum(REMINDER_UNITS).describe("Unit for amount."),
+  })
+  .refine(
+    (offset) => {
+      const minutes = reminderMinutes(offset);
+      return Number.isSafeInteger(minutes) && minutes <= MAX_REMINDER_MINUTES;
+    },
+    `The reminder must resolve to a whole number of minutes no more than ${MAX_REMINDER_MINUTES}.`,
+  )
+  .describe(
+    "A precise lead time before the event. Preserve the user's unit: 5 days is { amount: 5, unit: 'days' }; 22 minutes is { amount: 22, unit: 'minutes' }.",
+  );
+
+const eventSelectorSchema = z
+  .object({
+    all: z
+      .boolean()
+      .optional()
+      .describe("Set true only when the user explicitly says every event."),
+    eventIds: z
+      .array(z.string().min(1))
+      .min(1)
+      .optional()
+      .describe("Exact event IDs. A record must match one of them."),
+    query: z
+      .string()
+      .trim()
+      .min(1)
+      .optional()
+      .describe(
+        "Case-insensitive text matched against title, location, and notes.",
+      ),
+    colors: z
+      .array(selectableColorSchema)
+      .min(1)
+      .optional()
+      .describe(
+        "Event colors. Friendly names map to saved colors: blue=ultramarine, red=coral, green=mint, yellow=gold.",
+      ),
+    timing: z
+      .enum(["timed", "all-day"])
+      .optional()
+      .describe("Match only timed or all-day events."),
+    repeating: z
+      .boolean()
+      .optional()
+      .describe("True for repeating events; false for one-off events."),
+    hasReminder: z
+      .boolean()
+      .optional()
+      .describe("Match events based on whether they currently have a reminder."),
+  })
+  .refine(
+    (selector) =>
+      selector.all === true ||
+      selector.eventIds !== undefined ||
+      selector.query !== undefined ||
+      selector.colors !== undefined ||
+      selector.timing !== undefined ||
+      selector.repeating !== undefined ||
+      selector.hasReminder !== undefined,
+    "Choose at least one event property, or set all to true.",
+  )
+  .describe(
+    "Select saved events. Different fields combine with AND; values within eventIds or colors combine with OR.",
+  );
 
 const dateKeySchema = z
   .string()
@@ -84,6 +178,47 @@ const targetFields = {
     .min(1)
     .describe("The occurrenceStart exactly as returned by list_events."),
 };
+
+function savedColor(
+  color: z.infer<typeof selectableColorSchema>,
+): EventRecord["color"] {
+  if ((FRIENDLY_EVENT_COLORS as readonly string[]).includes(color)) {
+    return COLOR_ALIASES[color as FriendlyEventColor];
+  }
+  return color as EventColor;
+}
+
+function recordMatchesSelector(
+  record: EventRecord,
+  selector: z.infer<typeof eventSelectorSchema>,
+): boolean {
+  if (selector.eventIds && !selector.eventIds.includes(record.id)) return false;
+  if (selector.query) {
+    const needle = selector.query.toLowerCase();
+    const textMatches = [record.title, record.location, record.notes].some(
+      (field) => field?.toLowerCase().includes(needle),
+    );
+    if (!textMatches) return false;
+  }
+  if (selector.colors) {
+    const colors = selector.colors.map(savedColor);
+    if (!colors.includes(record.color)) return false;
+  }
+  if (selector.timing && record.timing.kind !== selector.timing) return false;
+  if (
+    selector.repeating !== undefined &&
+    Boolean(record.recurrence || record.seriesId) !== selector.repeating
+  ) {
+    return false;
+  }
+  if (
+    selector.hasReminder !== undefined &&
+    (record.reminderMinutesBefore !== undefined) !== selector.hasReminder
+  ) {
+    return false;
+  }
+  return true;
+}
 
 function toEventTiming(
   input: z.infer<typeof timingSchema>,
@@ -200,8 +335,15 @@ export function createEveTools(
         .describe(
           "Case-insensitive text filter over title, location, and notes.",
         ),
+      colors: z
+        .array(selectableColorSchema)
+        .min(1)
+        .optional()
+        .describe(
+          "Optional color filter. Friendly names map as blue=ultramarine, red=coral, green=mint, yellow=gold.",
+        ),
     }),
-    run: async ({ from, to, query }) => {
+    run: async ({ from, to, query, colors }) => {
       const span = daysBetween(from, to);
       if (span < 0) throw new Error("`to` must be on or after `from`.");
       if (span > MAX_RANGE_DAYS) {
@@ -211,13 +353,17 @@ export function createEveTools(
       }
       const occurrences = await service.listOccurrences({ from, to });
       const needle = query?.toLowerCase();
-      const matches = needle
-        ? occurrences.filter(({ record }) =>
-            [record.title, record.location, record.notes].some((field) =>
-              field?.toLowerCase().includes(needle),
-            ),
-          )
-        : occurrences;
+      const savedColors = colors?.map(savedColor);
+      const matches = occurrences.filter(({ record }) => {
+        const matchesText =
+          !needle ||
+          [record.title, record.location, record.notes].some((field) =>
+            field?.toLowerCase().includes(needle),
+          );
+        return (
+          matchesText && (!savedColors || savedColors.includes(record.color))
+        );
+      });
       return JSON.stringify({
         range: { from, to },
         count: matches.length,
@@ -245,17 +391,12 @@ export function createEveTools(
       ),
       location: z.string().trim().max(240).optional(),
       notes: z.string().trim().max(10_000).optional(),
-      color: z
-        .enum(EVENT_COLORS)
+      color: selectableColorSchema.optional().describe(
+        "Calendar color. Friendly names map as blue=ultramarine, red=coral, green=mint, yellow=gold. Omit unless the user asks for one.",
+      ),
+      reminder: reminderOffsetSchema
         .optional()
-        .describe("Calendar color. Omit unless the user asks for one."),
-      reminderMinutesBefore: z
-        .number()
-        .int()
-        .nonnegative()
-        .max(40_320)
-        .optional()
-        .describe("Minutes before the start to remind, e.g. 0, 15, 60, 1440."),
+        .describe("When to remind before the event starts."),
     }),
     run: async (input) => {
       try {
@@ -267,8 +408,10 @@ export function createEveTools(
             : null,
           location: input.location,
           notes: input.notes,
-          color: input.color ?? "coral",
-          reminderMinutesBefore: input.reminderMinutesBefore,
+          color: input.color ? savedColor(input.color) : "coral",
+          reminderMinutesBefore: input.reminder
+            ? reminderMinutes(input.reminder)
+            : undefined,
         });
         return JSON.stringify({ created: describeRecord(record) });
       } catch (error) {
@@ -312,15 +455,13 @@ export function createEveTools(
             .nullable()
             .optional()
             .describe("New notes, or null to clear them."),
-          color: z.enum(EVENT_COLORS).optional(),
-          reminderMinutesBefore: z
-            .number()
-            .int()
-            .nonnegative()
-            .max(40_320)
+          color: selectableColorSchema.optional().describe(
+            "New color. Friendly names map as blue=ultramarine, red=coral, green=mint, yellow=gold.",
+          ),
+          reminder: reminderOffsetSchema
             .nullable()
             .optional()
-            .describe("Minutes before the start, or null to remove the reminder."),
+            .describe("New lead time, or null to remove the reminder."),
         })
         .describe("Only the fields to change."),
     }),
@@ -338,9 +479,11 @@ export function createEveTools(
       }
       if (hasKey(changes, "location")) patch.location = changes.location ?? undefined;
       if (hasKey(changes, "notes")) patch.notes = changes.notes ?? undefined;
-      if (changes.color !== undefined) patch.color = changes.color;
-      if (hasKey(changes, "reminderMinutesBefore")) {
-        patch.reminderMinutesBefore = changes.reminderMinutesBefore ?? undefined;
+      if (changes.color !== undefined) patch.color = savedColor(changes.color);
+      if (hasKey(changes, "reminder")) {
+        patch.reminderMinutesBefore = changes.reminder
+          ? reminderMinutes(changes.reminder)
+          : undefined;
       }
       if (Object.keys(patch).length === 0) {
         throw new Error("No changes provided — include at least one field in `changes`.");
@@ -370,7 +513,53 @@ export function createEveTools(
     },
   });
 
-  return { listEvents, createEvent, updateEvent, deleteEvent };
+  const setEventReminders = betaZodTool({
+    name: "set_event_reminders",
+    description:
+      "Set or remove a reminder across a user-described group of saved events in one operation, including whole repeating series and matching series exceptions. Use for words such as each, every, all, any, or events matching a property (for example every red event). This changes the saved events themselves, so matching future occurrences of a repeating series inherit the reminder. Use list_events plus update_event for one specific event.",
+    inputSchema: z.object({
+      selector: eventSelectorSchema,
+      reminder: reminderOffsetSchema
+        .nullable()
+        .describe("Lead time to set, or null to remove matching reminders."),
+    }),
+    run: async ({ selector, reminder }) => {
+      const records = await service.listEventRecords();
+      const matches = records.filter((record) =>
+        recordMatchesSelector(record, selector),
+      );
+      const minutesBefore = reminder ? reminderMinutes(reminder) : undefined;
+      const changed = matches.filter(
+        (record) => record.reminderMinutesBefore !== minutesBefore,
+      );
+
+      await service.setEventReminders(
+        changed.map((record) => record.id),
+        minutesBefore,
+      );
+
+      return JSON.stringify({
+        matchedCount: matches.length,
+        changedCount: changed.length,
+        reminderMinutesBefore: minutesBefore ?? null,
+        events: matches.map(({ id, title, color, seriesId, originalStart }) => ({
+          eventId: id,
+          title,
+          color,
+          isSeriesException: Boolean(seriesId) || undefined,
+          occurrenceStart: originalStart,
+        })),
+      });
+    },
+  });
+
+  return {
+    listEvents,
+    createEvent,
+    updateEvent,
+    deleteEvent,
+    setEventReminders,
+  };
 }
 
 export type EveTools = ReturnType<typeof createEveTools>;
