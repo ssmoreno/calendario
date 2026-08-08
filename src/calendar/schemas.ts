@@ -1,9 +1,10 @@
 import { RRule } from "rrule";
 import { z } from "zod";
 
-import { EVENT_COLORS } from "./types";
 import { daysBetween, isDateKey, isTimeZone, isZonedTimestamp } from "./date-time";
 import { messages } from "./messages";
+import { MAX_REMINDER_MINUTES } from "./reminders";
+import { EVENT_COLORS } from "./types";
 
 const timedSchema = z.object({
   kind: z.literal("timed"),
@@ -54,7 +55,12 @@ const eventFields = {
   location: z.string().trim().max(240).optional(),
   notes: z.string().trim().max(10_000).optional(),
   color: z.enum(EVENT_COLORS),
-  reminderMinutesBefore: z.number().int().nonnegative().max(40_320).optional(),
+  reminderMinutesBefore: z
+    .number()
+    .int()
+    .nonnegative()
+    .max(MAX_REMINDER_MINUTES)
+    .optional(),
 };
 
 function recurrenceEndsAfterStart(value: {

@@ -50,6 +50,35 @@ describe("Eve calendar tools", () => {
     expect(record.color).toBe("coral");
   });
 
+  it("preserves custom reminder lead times and human-friendly colors", async () => {
+    const result = await asJson(
+      tools.createEvent.run({
+        title: "Visa appointment",
+        timing: {
+          kind: "timed",
+          date: "2026-08-20",
+          time: "10:00",
+          durationMinutes: 30,
+        },
+        color: "red",
+        reminder: { amount: 5, unit: "days" },
+      }),
+    );
+
+    expect(result.created).toMatchObject({
+      color: "coral",
+      reminderMinutesBefore: 7_200,
+    });
+
+    await tools.updateEvent.run({
+      eventId: result.created.eventId,
+      occurrenceStart: result.created.timing.startsAt,
+      scope: "series",
+      changes: { reminder: { amount: 22, unit: "minutes" } },
+    });
+    expect(service.getDocument().events[0].reminderMinutesBefore).toBe(22);
+  });
+
   it("creates a timed event in an explicit timezone", async () => {
     const result = await asJson(
       tools.createEvent.run({
@@ -127,6 +156,121 @@ describe("Eve calendar tools", () => {
     expect(byTitle.occurrences[0].title).toBe("Dentist");
     const byLocation = await listAugust("violetas");
     expect(byLocation.occurrences[0].title).toBe("Coffee");
+  });
+
+  it("filters with familiar color names", async () => {
+    await tools.createEvent.run({
+      title: "Red appointment",
+      color: "coral",
+      timing: { kind: "timed", date: "2026-08-10", time: "15:30", durationMinutes: 45 },
+    });
+    await tools.createEvent.run({
+      title: "Gold appointment",
+      color: "gold",
+      timing: { kind: "timed", date: "2026-08-11", time: "15:30", durationMinutes: 45 },
+    });
+
+    const listed = await asJson(
+      tools.listEvents.run({
+        from: "2026-08-01",
+        to: "2026-08-31",
+        colors: ["red"],
+      }),
+    );
+    expect(listed.occurrences.map((event: { title: string }) => event.title)).toEqual([
+      "Red appointment",
+    ]);
+  });
+
+  it("sets an exact reminder across every event matching a selector", async () => {
+    await tools.createEvent.run({
+      title: "Red one-off",
+      color: "coral",
+      timing: { kind: "timed", date: "2026-08-10", time: "15:30", durationMinutes: 45 },
+    });
+    await tools.createEvent.run({
+      title: "Red weekly",
+      color: "coral",
+      timing: { kind: "timed", date: "2026-08-11", time: "09:00", durationMinutes: 30 },
+      rrule: "FREQ=WEEKLY",
+    });
+    await tools.createEvent.run({
+      title: "Gold one-off",
+      color: "gold",
+      timing: { kind: "all-day", startDate: "2026-08-12" },
+    });
+
+    const result = await asJson(
+      tools.setEventReminders.run({
+        selector: { colors: ["red"] },
+        reminder: { amount: 22, unit: "minutes" },
+      }),
+    );
+
+    expect(result).toMatchObject({
+      matchedCount: 2,
+      changedCount: 2,
+      reminderMinutesBefore: 22,
+    });
+    expect(service.getDocument().revision).toBe(4);
+    expect(
+      service.getDocument().events.map(({ title, reminderMinutesBefore }) => ({
+        title,
+        reminderMinutesBefore,
+      })),
+    ).toEqual([
+      { title: "Red one-off", reminderMinutesBefore: 22 },
+      { title: "Red weekly", reminderMinutesBefore: 22 },
+      { title: "Gold one-off", reminderMinutesBefore: undefined },
+    ]);
+
+    const removed = await asJson(
+      tools.setEventReminders.run({
+        selector: { colors: ["red"], hasReminder: true },
+        reminder: null,
+      }),
+    );
+    expect(removed).toMatchObject({ matchedCount: 2, changedCount: 2 });
+    expect(
+      service
+        .getDocument()
+        .events.every((event) => event.reminderMinutesBefore === undefined),
+    ).toBe(true);
+  });
+
+  it("updates matching recurring exceptions as well as their series", async () => {
+    await tools.createEvent.run({
+      title: "Red weekly",
+      color: "coral",
+      timing: {
+        kind: "timed",
+        date: "2026-08-03",
+        time: "09:00",
+        durationMinutes: 30,
+      },
+      rrule: "FREQ=WEEKLY;COUNT=2",
+    });
+    const second = (await listAugust()).occurrences[1];
+    await tools.updateEvent.run({
+      eventId: second.eventId,
+      occurrenceStart: second.occurrenceStart,
+      scope: "occurrence",
+      changes: { title: "Exceptional red weekly" },
+    });
+
+    const result = await asJson(
+      tools.setEventReminders.run({
+        selector: { colors: ["red"] },
+        reminder: { amount: 22, unit: "minutes" },
+      }),
+    );
+
+    expect(result).toMatchObject({ matchedCount: 2, changedCount: 2 });
+    expect(
+      service
+        .getDocument()
+        .events.map((event) => event.reminderMinutesBefore),
+    ).toEqual([22, 22]);
   });
 
   it("round-trips list output into a single-occurrence update", async () => {
@@ -252,5 +396,17 @@ describe("Eve calendar tools", () => {
       tools.deleteEvent.parse({ eventId: "abc", occurrenceStart: "2026-08-01" })
         .scope,
     ).toBe("occurrence");
+    expect(() =>
+      tools.setEventReminders.parse({
+        selector: {},
+        reminder: { amount: 22, unit: "minutes" },
+      }),
+    ).toThrow();
+    expect(() =>
+      tools.setEventReminders.parse({
+        selector: { all: true },
+        reminder: { amount: 0.01, unit: "hours" },
+      }),
+    ).toThrow();
   });
 });

@@ -1090,6 +1090,17 @@
   resize: vertical;
 }
 
+.reminderCustomFields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+  gap: 6px;
+}
+
+.reminderCustomFields input,
+.reminderCustomFields select {
+  width: 100%;
+}
+
 .field small,
 .overnightNote {
   color: var(--muted);
