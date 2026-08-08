@@ -88,6 +88,27 @@ function SearchResult({
   );
 }
 
+export function CalendarBrand() {
+  return (
+    <div className={styles.brand}>
+      <div className={styles.wordmark} aria-label={messages.header.brandLabel}>
+        {messages.appName}
+      </div>
+      <a
+        className={styles.contactEmail}
+        href={`mailto:${messages.header.contactEmail}`}
+      >
+        {messages.header.contactEmail}
+      </a>
+      <div className={styles.contactDetails}>
+        <span>{messages.header.contactLocation}</span>
+        <span aria-hidden="true">·</span>
+        <span>{messages.header.contactService}</span>
+      </div>
+    </div>
+  );
+}
+
 export function CalendarHeader({
   view,
   periodLabel,
@@ -130,9 +151,7 @@ export function CalendarHeader({
 
   return (
     <header className={styles.appHeader}>
-      <div className={styles.wordmark} aria-label={messages.header.brandLabel}>
-        {messages.appName}
-      </div>
+      <CalendarBrand />
 
       <div className={styles.periodNavigation}>
         <button
