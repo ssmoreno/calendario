@@ -1,5 +1,3 @@
-import { RRule, type Options } from "rrule";
-
 import {
   addDays,
   dateRange,
@@ -9,6 +7,7 @@ import {
   zonedTimestampParts,
 } from "./date-time";
 import { messages } from "./messages";
+import { RRule, type Options } from "./rrule-package";
 import type {
   CalendarRange,
   EventRecord,

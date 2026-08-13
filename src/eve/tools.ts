@@ -1,6 +1,6 @@
-import { betaZodTool } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
 
+import { CalendarDocumentEngine } from "@/calendar/calendar-document-engine";
 import {
   addDays,
   daysBetween,
@@ -15,7 +15,6 @@ import {
 } from "@/calendar/reminders";
 import { EVENT_COLORS } from "@/calendar/types";
 import type {
-  CalendarService,
   EventColor,
   EventPatch,
   EventRecord,
@@ -304,22 +303,25 @@ const hasKey = (value: object, key: string): boolean =>
   Object.prototype.hasOwnProperty.call(value, key);
 
 export interface EveToolsOptions {
-  /** IANA timezone dates, times, and ranges are interpreted in unless a call names another. */
   timeZone: string;
 }
 
-/**
- * The tools Eve uses to control a calendar. They bind to the CalendarService
- * interface, so any backend (browser localStorage today, a server store for
- * the WhatsApp channel later) works unchanged. Pass the result to the SDK
- * tool runner as `Object.values(tools)`.
- */
+function calendarTool<Schema extends z.ZodType, Output>(definition: {
+  description: string;
+  inputSchema: Schema;
+  run: (input: z.infer<Schema>) => Output;
+}) {
+  return {
+    ...definition,
+    parse: (input: unknown) => definition.inputSchema.parse(input),
+  };
+}
+
 export function createEveTools(
-  service: CalendarService,
+  service: CalendarDocumentEngine,
   { timeZone }: EveToolsOptions,
 ) {
-  const listEvents = betaZodTool({
-    name: "list_events",
+  const listEvents = calendarTool({
     description:
       "Read the user's calendar: every event occurrence between two dates, with repeating series expanded and sorted by start. Call this before answering any question about existing plans, and always call it before update_event or delete_event to copy the target's exact eventId and occurrenceStart.",
     inputSchema: z.object({
@@ -343,7 +345,7 @@ export function createEveTools(
           "Optional color filter. Friendly names map as blue=ultramarine, red=coral, green=mint, yellow=gold.",
         ),
     }),
-    run: async ({ from, to, query, colors }) => {
+    run: ({ from, to, query, colors }) => {
       const span = daysBetween(from, to);
       if (span < 0) throw new Error("`to` must be on or after `from`.");
       if (span > MAX_RANGE_DAYS) {
@@ -351,7 +353,7 @@ export function createEveTools(
           `That range is too wide — request ${MAX_RANGE_DAYS} days or fewer.`,
         );
       }
-      const occurrences = await service.listOccurrences({ from, to });
+      const occurrences = service.listOccurrences({ from, to });
       const needle = query?.toLowerCase();
       const savedColors = colors?.map(savedColor);
       const matches = occurrences.filter(({ record }) => {
@@ -364,7 +366,7 @@ export function createEveTools(
           matchesText && (!savedColors || savedColors.includes(record.color))
         );
       });
-      return JSON.stringify({
+      return {
         range: { from, to },
         count: matches.length,
         ...(matches.length > MAX_LISTED_OCCURRENCES
@@ -375,12 +377,11 @@ export function createEveTools(
         occurrences: matches
           .slice(0, MAX_LISTED_OCCURRENCES)
           .map(describeOccurrence),
-      });
+      };
     },
   });
 
-  const createEvent = betaZodTool({
-    name: "create_event",
+  const createEvent = calendarTool({
     description:
       "Add a new event to the user's calendar. Call when the user wants to schedule, add, book, or block time. Do not use this to change an existing event — use update_event for that.",
     inputSchema: z.object({
@@ -398,9 +399,9 @@ export function createEveTools(
         .optional()
         .describe("When to remind before the event starts."),
     }),
-    run: async (input) => {
+    run: (input) => {
       try {
-        const record = await service.createEvent({
+        const record = service.createEvent({
           title: input.title,
           timing: toEventTiming(input.timing, timeZone),
           recurrence: input.rrule
@@ -413,15 +414,14 @@ export function createEveTools(
             ? reminderMinutes(input.reminder)
             : undefined,
         });
-        return JSON.stringify({ created: describeRecord(record) });
+        return { created: describeRecord(record) };
       } catch (error) {
         toReadableError(error);
       }
     },
   });
 
-  const updateEvent = betaZodTool({
-    name: "update_event",
+  const updateEvent = calendarTool({
     description:
       "Change an existing event. First resolve the target with list_events and pass its eventId and occurrenceStart exactly. Include only the fields being changed; omitted fields keep their current value. For repeating events choose scope from the user's wording — if it is unclear whether they mean one occurrence or the whole series, ask before calling.",
     inputSchema: z.object({
@@ -465,7 +465,7 @@ export function createEveTools(
         })
         .describe("Only the fields to change."),
     }),
-    run: async ({ eventId, occurrenceStart, scope, changes }) => {
+    run: ({ eventId, occurrenceStart, scope, changes }) => {
       const patch: EventPatch = {};
       if (changes.title !== undefined) patch.title = changes.title;
       if (changes.timing !== undefined) {
@@ -489,32 +489,30 @@ export function createEveTools(
         throw new Error("No changes provided — include at least one field in `changes`.");
       }
       try {
-        await service.updateEvent({ eventId, occurrenceStart }, scope, patch);
+        service.updateEvent({ eventId, occurrenceStart }, scope, patch);
       } catch (error) {
         toReadableError(error);
       }
-      return JSON.stringify({
+      return {
         updated: { eventId, occurrenceStart, scope, fields: Object.keys(patch) },
-      });
+      };
     },
   });
 
-  const deleteEvent = betaZodTool({
-    name: "delete_event",
+  const deleteEvent = calendarTool({
     description:
       "Remove an event from the user's calendar. First resolve the target with list_events and pass its eventId and occurrenceStart exactly. For repeating events, scope controls how much is removed; confirm with the user before deleting a whole series.",
     inputSchema: z.object({
       ...targetFields,
       scope: scopeSchema,
     }),
-    run: async ({ eventId, occurrenceStart, scope }) => {
-      await service.deleteEvent({ eventId, occurrenceStart }, scope);
-      return JSON.stringify({ deleted: { eventId, occurrenceStart, scope } });
+    run: ({ eventId, occurrenceStart, scope }) => {
+      service.deleteEvent({ eventId, occurrenceStart }, scope);
+      return { deleted: { eventId, occurrenceStart, scope } };
     },
   });
 
-  const setEventReminders = betaZodTool({
-    name: "set_event_reminders",
+  const setEventReminders = calendarTool({
     description:
       "Set or remove a reminder across a user-described group of saved events in one operation, including whole repeating series and matching series exceptions. Use for words such as each, every, all, any, or events matching a property (for example every red event). This changes the saved events themselves, so matching future occurrences of a repeating series inherit the reminder. Use list_events plus update_event for one specific event.",
     inputSchema: z.object({
@@ -523,8 +521,8 @@ export function createEveTools(
         .nullable()
         .describe("Lead time to set, or null to remove matching reminders."),
     }),
-    run: async ({ selector, reminder }) => {
-      const records = await service.listEventRecords();
+    run: ({ selector, reminder }) => {
+      const records = service.listEventRecords();
       const matches = records.filter((record) =>
         recordMatchesSelector(record, selector),
       );
@@ -533,12 +531,12 @@ export function createEveTools(
         (record) => record.reminderMinutesBefore !== minutesBefore,
       );
 
-      await service.setEventReminders(
+      service.setEventReminders(
         changed.map((record) => record.id),
         minutesBefore,
       );
 
-      return JSON.stringify({
+      return {
         matchedCount: matches.length,
         changedCount: changed.length,
         reminderMinutesBefore: minutesBefore ?? null,
@@ -549,7 +547,7 @@ export function createEveTools(
           isSeriesException: Boolean(seriesId) || undefined,
           occurrenceStart: originalStart,
         })),
-      });
+      };
     },
   });
 

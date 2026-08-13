@@ -2,18 +2,26 @@
   "name": "calendario",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "next dev",
+    "dev:eve": "eve dev",
     "build": "next build",
+    "build:eve": "eve build",
     "start": "next start",
+    "start:eve": "eve start",
+    "eve:info": "eve info --json",
     "lint": "eslint",
     "test": "NODE_OPTIONS=--no-experimental-webstorage vitest run",
     "test:watch": "NODE_OPTIONS=--no-experimental-webstorage vitest",
     "test:e2e": "env -u NO_COLOR playwright test"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.115.0",
     "@internationalized/date": "^3.12.3",
+    "ai": "7.0.58",
+    "eve": "0.36.0",
     "next": "16.3.0",
     "react": "19.2.8",
     "react-aria-components": "^1.20.0",
@@ -27,7 +35,7 @@
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.3",
-    "@types/node": "^20",
+    "@types/node": "^24",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.0.5",
