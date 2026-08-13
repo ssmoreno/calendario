@@ -1,6 +1,5 @@
 "use client";
 
-import { RRule } from "rrule";
 import { FormEvent, useMemo, useState } from "react";
 import {
   Button,
@@ -25,6 +24,7 @@ import {
   reminderMinutes,
   type ReminderUnit,
 } from "@/calendar/reminders";
+import { RRule } from "@/calendar/rrule-package";
 import { eventInputSchema } from "@/calendar/schemas";
 import {
   EVENT_COLORS,
