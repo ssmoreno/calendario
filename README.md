@@ -42,6 +42,8 @@ pnpm dev:eve
 
 Production Eve routes fail closed until real browser authentication replaces the explicit `placeholderAuth()` guard. Local Eve development and trusted Vercel OIDC callers remain enabled. Those OIDC callers are one trusted operator domain; Eve session IDs do not have per-principal ownership ACLs in this milestone. Add persistent session ownership checks before admitting multiple browser users or tenants.
 
+`/chat` is a plain development harness for talking to that agent: it streams turns, shows each tool call, and answers the approval and question prompts the agent raises for series deletions and ambiguous recurring edits. It keeps its session cursor under `calendario.chat.v1` in browser storage so a reload resumes the same durable calendar, and **New session** starts an empty one. Because the Eve channel fails closed, a deployed `/chat` returns 401 until real browser authentication replaces `placeholderAuth()`.
+
 GLM 5.2 is free for Eve agents through August 27, 2026 under [Vercel's promotion](https://vercel.com/changelog/glm-5-2-free-for-eve-agents-through-august-27-via-blackbox-on-ai-gateway). The offer excludes `zai/glm-5.2-fast`; standard AI Gateway rates apply afterward.
 
 ## Quality gates
