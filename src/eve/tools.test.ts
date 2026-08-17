@@ -1,27 +1,26 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
+import { CalendarDocumentEngine } from "@/calendar/calendar-document-engine";
 import { localDateTimeToZoned } from "@/calendar/date-time";
-import { LocalCalendarService } from "@/calendar/local-calendar-service";
+import { emptyCalendar } from "@/calendar/storage";
 
 import { createEveTools, type EveTools } from "./tools";
 
 const TIME_ZONE = "UTC";
 
 async function asJson(result: unknown) {
-  return JSON.parse((await result) as string);
+  const resolved = await result;
+  return typeof resolved === "string" ? JSON.parse(resolved) : resolved;
 }
 
 describe("Eve calendar tools", () => {
-  let service: LocalCalendarService;
+  let service: CalendarDocumentEngine;
   let tools: EveTools;
 
   beforeEach(() => {
-    window.localStorage.clear();
-    service = LocalCalendarService.open(TIME_ZONE).service;
+    service = new CalendarDocumentEngine(emptyCalendar(), TIME_ZONE);
     tools = createEveTools(service, { timeZone: TIME_ZONE });
   });
-
-  afterEach(() => service.dispose());
 
   function listAugust(query?: string) {
     return asJson(
@@ -30,17 +29,17 @@ describe("Eve calendar tools", () => {
   }
 
   it("creates a timed event in the user's timezone by default", async () => {
-    const result = await asJson(
-      tools.createEvent.run({
-        title: "Dentist",
-        timing: {
-          kind: "timed",
-          date: "2026-08-10",
-          time: "15:30",
-          durationMinutes: 45,
-        },
-      }),
-    );
+    const output = tools.createEvent.run({
+      title: "Dentist",
+      timing: {
+        kind: "timed",
+        date: "2026-08-10",
+        time: "15:30",
+        durationMinutes: 45,
+      },
+    });
+    expect(typeof output).toBe("object");
+    const result = await asJson(output);
     expect(result.created.eventId).toBeTruthy();
     expect(result.created.timing.startsAt).toBe(
       localDateTimeToZoned("2026-08-10", "15:30", TIME_ZONE),
@@ -365,27 +364,27 @@ describe("Eve calendar tools", () => {
     expect((await listAugust()).count).toBe(0);
   });
 
-  it("rejects invalid input with readable errors instead of raw ZodError output", async () => {
-    await expect(
+  it("rejects invalid input with readable errors instead of raw ZodError output", () => {
+    expect(() =>
       tools.createEvent.run({
         title: "Broken",
         timing: { kind: "timed", date: "2026-08-10", time: "15:30", durationMinutes: 45 },
         rrule: "EVERY-TUESDAY",
       }),
-    ).rejects.toThrow(/recurrence\.rrule/);
+    ).toThrow(/recurrence\.rrule/);
 
-    await expect(
+    expect(() =>
       tools.listEvents.run({ from: "2026-08-31", to: "2026-08-01" }),
-    ).rejects.toThrow(/on or after/);
+    ).toThrow(/on or after/);
 
-    await expect(
+    expect(() =>
       tools.updateEvent.run({
         eventId: "missing",
         occurrenceStart: "2026-08-01",
         scope: "occurrence",
         changes: {},
       }),
-    ).rejects.toThrow(/no changes provided/i);
+    ).toThrow(/no changes provided/i);
   });
 
   it("validates raw model input through the schemas", () => {

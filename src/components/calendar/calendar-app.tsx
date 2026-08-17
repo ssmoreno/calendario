@@ -42,7 +42,7 @@ import type {
 } from "@/calendar/types";
 import { filterOccurrences, groupOccupiedDates } from "@/calendar/view-model";
 
-import { CalendarHeader } from "./calendar-header";
+import { CalendarBrand, CalendarHeader } from "./calendar-header";
 import { EventEditor } from "./event-editor";
 import styles from "./calendar.module.css";
 import { MonthView } from "./month-view";
@@ -181,7 +181,7 @@ function CalendarSkeleton() {
   return (
     <div className={styles.pageShell} aria-label={messages.app.loadingLabel}>
       <header className={styles.appHeader}>
-        <div className={styles.wordmark}>{messages.appName}</div>
+        <CalendarBrand />
         <div className={styles.skeletonPeriod} />
         <div className={styles.skeletonActions} />
       </header>

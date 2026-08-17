@@ -47,6 +47,9 @@ export const messages = {
   },
   header: {
     brandLabel: "Calendario",
+    contactEmail: "santimorenox@gmail.com",
+    contactLocation: "Argentina",
+    contactService: "Servicio de organización/planificación",
     closeSearch: "Close search",
     searchResults: "Search results",
     switchToLight: "Switch to light theme",

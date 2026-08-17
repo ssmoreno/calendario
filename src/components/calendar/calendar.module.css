@@ -39,10 +39,54 @@
   animation: chromeIn var(--duration-base) var(--ease-out) both;
 }
 
+.brand {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
 .wordmark {
   font-size: 17px;
   font-weight: 700;
   letter-spacing: -0.03em;
+}
+
+.contactEmail {
+  overflow: hidden;
+  max-width: 100%;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.25;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.contactEmail:hover {
+  color: var(--ink);
+}
+
+.contactEmail:focus-visible {
+  border-radius: 2px;
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.contactDetails {
+  display: flex;
+  max-width: 100%;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.contactDetails span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .calendarStage {
@@ -1317,7 +1361,7 @@
     min-width: 0;
   }
 
-  .wordmark {
+  .brand {
     display: none;
   }
 }

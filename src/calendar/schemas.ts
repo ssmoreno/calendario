@@ -1,9 +1,9 @@
-import { RRule } from "rrule";
 import { z } from "zod";
 
 import { daysBetween, isDateKey, isTimeZone, isZonedTimestamp } from "./date-time";
 import { messages } from "./messages";
 import { MAX_REMINDER_MINUTES } from "./reminders";
+import { RRule } from "./rrule-package";
 import { EVENT_COLORS } from "./types";
 
 const timedSchema = z.object({

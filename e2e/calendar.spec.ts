@@ -209,16 +209,25 @@ test("uses the mobile day strip for tap, keyboard, and swipe navigation", async 
   await page.goto("/");
   const selectedColumn = page.locator('[data-date-key][data-selected]');
   const originalDate = await selectedColumn.getAttribute("data-date-key");
+  if (!originalDate) throw new Error("No selected day is visible");
+  const originalDayIndex =
+    (new Date(`${originalDate}T12:00:00Z`).getUTCDay() + 6) % 7;
+  const targetDayIndex = originalDayIndex === 0 ? 2 : 0;
   const dayButton = page
     .getByLabel("Week view")
     .locator(":scope > div")
     .first()
     .getByRole("button")
-    .nth(2);
+    .nth(targetDayIndex);
   await dayButton.click();
+  await expect(selectedColumn).not.toHaveAttribute("data-date-key", originalDate);
+  const afterTap = await selectedColumn.getAttribute("data-date-key");
   await dayButton.focus();
   await page.keyboard.press("ArrowRight");
-  await expect(selectedColumn).not.toHaveAttribute("data-date-key", originalDate ?? "");
+  await expect(selectedColumn).not.toHaveAttribute(
+    "data-date-key",
+    afterTap ?? "",
+  );
 
   const afterKeyboard = await selectedColumn.getAttribute("data-date-key");
   const box = await page.getByLabel("Week view").boundingBox();
