@@ -4,7 +4,7 @@ SS Calendar is a focused Google Calendar agent. Its authenticated home combines 
 
 The current milestone includes:
 
-- Email/password and Google sign-in through Better Auth.
+- Google Calendar sign-in through Better Auth.
 - OAuth connection to the user's primary Google Calendar with automatic token refresh.
 - Agent-driven listing, creation, editing, deletion, recurring-event scopes, and reminders.
 - A responsive upcoming-event summary with expandable details and no calendar editor UI.

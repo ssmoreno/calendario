@@ -16,7 +16,8 @@ test("sends signed-out visitors to the login page and removes /chat", async ({
 
 test("passes Axe on the login page", async ({ page }) => {
   await page.goto("/login");
-  await expect(page.getByLabel("Email")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Continue with Google" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Sign in with Google Calendar" }),
+  ).toBeVisible();
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 });
