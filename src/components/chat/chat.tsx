@@ -72,6 +72,10 @@ export function Chat({
   const agent = useEveAgent({
     initialEvents,
     initialSession,
+    prepareSend: (payload) => ({
+      ...payload,
+      clientContext: `Device timezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}`,
+    }),
     onFinish: (snapshot: UseEveAgentSnapshot<EveMessageData>) =>
       onPersist({ events: snapshot.events, session: snapshot.session }),
   });
