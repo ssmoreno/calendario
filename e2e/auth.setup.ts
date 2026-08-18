@@ -23,10 +23,16 @@ for (const [project, account] of Object.entries(E2E_ACCOUNTS)) {
       );
     }
 
-    await page.goto("/login");
-    await page.getByLabel("Email").fill(account.email);
-    await page.getByLabel("Password").fill(E2E_PASSWORD);
-    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    const signIn = await page.request.post("/api/auth/sign-in/email", {
+      data: { email: account.email, password: E2E_PASSWORD },
+    });
+    if (!signIn.ok()) {
+      throw new Error(
+        `Unexpected sign-in response ${signIn.status()}: ${await signIn.text()}`,
+      );
+    }
+
+    await page.goto("/");
 
     await expect(
       page.getByRole("heading", { name: "SS Calendar", exact: true }),

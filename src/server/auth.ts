@@ -11,7 +11,7 @@ const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
 export const auth = betterAuth({
   database: prismaAdapter(prisma, { provider: "postgresql" }),
   account: { encryptOAuthTokens: true },
-  emailAndPassword: { enabled: true },
+  emailAndPassword: { enabled: process.env.NODE_ENV !== "production" },
   socialProviders:
     googleClientId && googleClientSecret
       ? {
@@ -19,7 +19,6 @@ export const auth = betterAuth({
             clientId: googleClientId,
             clientSecret: googleClientSecret,
             accessType: "offline",
-            prompt: "select_account consent",
             scope: [GOOGLE_CALENDAR_SCOPE],
           },
         }
