@@ -1,12 +1,5 @@
-import {
-  addDays,
-  dateValueFromZoned,
-  daysBetween,
-  localDateTimeToZoned,
-  timeValueFromZoned,
-  timezoneFromZoned,
-} from "./date-time";
 import { messages } from "./messages";
+import { rebaseSeriesTiming, timingAtOccurrence } from "./mutation-scope";
 import { expandEvent, truncateRuleBefore } from "./recurrence";
 import { eventInputSchema } from "./schemas";
 import type {
@@ -15,7 +8,6 @@ import type {
   EventInput,
   EventPatch,
   EventRecord,
-  EventTiming,
   MutationScope,
   Occurrence,
   OccurrenceTarget,
@@ -58,66 +50,6 @@ function recordFromInput(
   };
 }
 
-function timingAtTarget(event: EventRecord, occurrenceStart: string): EventTiming {
-  if (event.timing.kind === "timed") {
-    return {
-      ...event.timing,
-      startsAt: occurrenceStart,
-    };
-  }
-  const durationDays = Math.max(
-    1,
-    daysBetween(event.timing.startDate, event.timing.endDateExclusive),
-  );
-  return {
-    kind: "all-day",
-    startDate: occurrenceStart,
-    endDateExclusive: addDays(occurrenceStart, durationDays),
-  };
-}
-
-function rebaseSeriesTiming(
-  base: EventTiming,
-  selected: EventTiming,
-  next: EventTiming,
-): EventTiming {
-  if (base.kind !== next.kind || selected.kind !== next.kind) return next;
-  if (
-    next.kind === "timed" &&
-    base.kind === "timed" &&
-    selected.kind === "timed"
-  ) {
-    if (
-      dateValueFromZoned(next.startsAt) !==
-      dateValueFromZoned(selected.startsAt)
-    ) {
-      return next;
-    }
-    return {
-      ...next,
-      startsAt: localDateTimeToZoned(
-        dateValueFromZoned(base.startsAt),
-        timeValueFromZoned(next.startsAt),
-        timezoneFromZoned(next.startsAt),
-      ),
-    };
-  }
-  if (
-    next.kind === "all-day" &&
-    base.kind === "all-day" &&
-    selected.kind === "all-day"
-  ) {
-    if (next.startDate !== selected.startDate) return next;
-    const durationDays = daysBetween(next.startDate, next.endDateExclusive);
-    return {
-      ...next,
-      startDate: base.startDate,
-      endDateExclusive: addDays(base.startDate, durationDays),
-    };
-  }
-  return next;
-}
-
 function normalizeSeriesPatch(
   base: EventRecord,
   source: EventRecord,
@@ -129,7 +61,7 @@ function normalizeSeriesPatch(
   }
   const selectedTiming = source.seriesId
     ? source.timing
-    : timingAtTarget(base, target.occurrenceStart);
+    : timingAtOccurrence(base.timing, target.occurrenceStart);
   return {
     ...patch,
     timing: rebaseSeriesTiming(base.timing, selectedTiming, patch.timing),
@@ -273,7 +205,7 @@ export class CalendarDocumentEngine {
       }
 
       const baseInput = mergeEventInput(base, {
-        timing: timingAtTarget(base, target.occurrenceStart),
+        timing: timingAtOccurrence(base.timing, target.occurrenceStart),
         ...patch,
         recurrence: null,
       });
@@ -321,7 +253,7 @@ export class CalendarDocumentEngine {
         : null
       : { rrule: split.followingRule, excludedStarts: [] };
     const followingInput = mergeEventInput(base, {
-      timing: timingAtTarget(base, target.occurrenceStart),
+      timing: timingAtOccurrence(base.timing, target.occurrenceStart),
       ...patch,
       recurrence: followingRecurrence,
     });

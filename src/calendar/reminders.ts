@@ -1,4 +1,4 @@
-export const MAX_REMINDER_MINUTES = 525_600;
+export const MAX_REMINDER_MINUTES = 40_320;
 export const REMINDER_UNITS = ["minutes", "hours", "days", "weeks"] as const;
 
 export type ReminderUnit = (typeof REMINDER_UNITS)[number];

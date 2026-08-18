@@ -2,12 +2,14 @@ import { defineState } from "eve/context";
 
 import {
   changeCalendarTimeZone,
-  createCalendarSessionRuntime,
   initialCalendarSessionState,
   type CalendarSessionState,
 } from "../../src/eve/calendar-session";
-import type { UserSettings } from "../../src/calendar/settings";
 import type { EveTools } from "../../src/eve/tools";
+import { createEveTools } from "../../src/eve/tools";
+import { googleCalendarForUser } from "../../src/server/google-calendar";
+import { requireUserId } from "./auth";
+import { eventDefaultsFor } from "./user-settings";
 
 export type { CalendarSessionState } from "../../src/eve/calendar-session";
 
@@ -16,30 +18,22 @@ export const calendarState = defineState<CalendarSessionState>(
   initialCalendarSessionState,
 );
 
-function toolsFor(state: CalendarSessionState): EveTools {
-  return createCalendarSessionRuntime(state).tools;
-}
-
-export function readCalendar<Result>(
-  read: (tools: EveTools) => Result,
-): Result {
-  return read(toolsFor(calendarState.get()));
-}
-
-export function updateCalendar<Result>(
-  update: (tools: EveTools) => Result,
-  defaults?: UserSettings,
-): Result {
-  let result: Result | undefined;
-  let completed = false;
-  calendarState.update((current) => {
-    const { engine, tools } = createCalendarSessionRuntime(current, defaults);
-    result = update(tools);
-    completed = true;
-    return { ...current, document: engine.getDocument() };
-  });
-  if (!completed) throw new Error("The calendar update did not complete.");
-  return result as Result;
+export async function runCalendar<Result>(
+  ctx: Parameters<typeof requireUserId>[0],
+  run: (tools: EveTools) => Result | Promise<Result>,
+): Promise<Result> {
+  const { timeZone } = calendarState.get();
+  if (!timeZone) {
+    throw new Error(
+      "The calendar timezone is not set. Ask the user for their location or IANA timezone, then call set_time_zone.",
+    );
+  }
+  const userId = requireUserId(ctx);
+  const [service, defaults] = await Promise.all([
+    googleCalendarForUser(userId, timeZone),
+    eventDefaultsFor(ctx),
+  ]);
+  return await run(createEveTools(service, { timeZone, defaults }));
 }
 
 export function setCalendarTimeZone(timeZone: string): CalendarSessionState {

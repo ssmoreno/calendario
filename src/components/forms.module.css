@@ -1,0 +1,72 @@
+.field {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+}
+
+.field > span,
+.colorFieldset legend {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+}
+
+.field small {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.reminderCustomFields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+  gap: 6px;
+}
+
+.colorFieldset {
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+
+.segmented button {
+  min-height: 30px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.segmented button[aria-pressed="true"] {
+  background: var(--surface);
+}
+
+.formError {
+  padding: 10px;
+  margin: 0;
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, var(--line));
+  border-radius: var(--radius-control);
+  color: var(--danger);
+  font-size: 12px;
+}

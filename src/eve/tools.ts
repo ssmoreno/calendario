@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-import { CalendarDocumentEngine } from "@/calendar/calendar-document-engine";
 import {
   addDays,
   daysBetween,
@@ -24,6 +23,7 @@ import type {
   EventRecord,
   EventTiming,
   Occurrence,
+  CalendarService,
 } from "@/calendar/types";
 
 const MAX_RANGE_DAYS = 366;
@@ -231,11 +231,35 @@ function recordMatchesSelector(
   }
   if (
     selector.hasReminder !== undefined &&
-    (record.reminderMinutesBefore !== undefined) !== selector.hasReminder
+    (record.reminderOverrides
+      ? record.reminderOverrides.length > 0 || record.usesDefaultReminder === true
+      : record.reminderMinutesBefore !== undefined ||
+        record.usesDefaultReminder === true) !== selector.hasReminder
   ) {
     return false;
   }
   return true;
+}
+
+function hasExactReminder(
+  record: EventRecord,
+  reminderMinutesBefore: number | undefined,
+): boolean {
+  if (!record.reminderOverrides) {
+    return (
+      !record.usesDefaultReminder &&
+      record.reminderMinutesBefore === reminderMinutesBefore
+    );
+  }
+  if (record.usesDefaultReminder) return false;
+  if (reminderMinutesBefore === undefined) {
+    return record.reminderOverrides.length === 0;
+  }
+  return (
+    record.reminderOverrides.length === 1 &&
+    record.reminderOverrides[0].method === "popup" &&
+    record.reminderOverrides[0].minutes === reminderMinutesBefore
+  );
 }
 
 function toEventTiming(
@@ -296,6 +320,7 @@ function describeRecord(record: EventRecord) {
     notes: notesPreview(record.notes),
     color: record.color,
     reminderMinutesBefore: record.reminderMinutesBefore,
+    usesCalendarDefaultReminder: record.usesDefaultReminder || undefined,
   };
 }
 
@@ -331,7 +356,7 @@ export interface EveToolsOptions {
 function calendarTool<Schema extends z.ZodType, Output>(definition: {
   description: string;
   inputSchema: Schema;
-  run: (input: z.infer<Schema>) => Output;
+  run: (input: z.infer<Schema>) => Output | Promise<Output>;
 }) {
   return {
     ...definition,
@@ -340,7 +365,7 @@ function calendarTool<Schema extends z.ZodType, Output>(definition: {
 }
 
 export function createEveTools(
-  service: CalendarDocumentEngine,
+  service: CalendarService,
   { timeZone, defaults = DEFAULT_USER_SETTINGS }: EveToolsOptions,
 ) {
   const listEvents = calendarTool({
@@ -367,7 +392,7 @@ export function createEveTools(
           "Optional color filter. Friendly names map as blue=ultramarine, red=coral, green=mint, yellow=gold.",
         ),
     }),
-    run: ({ from, to, query, colors }) => {
+    run: async ({ from, to, query, colors }) => {
       const span = daysBetween(from, to);
       if (span < 0) throw new Error("`to` must be on or after `from`.");
       if (span > MAX_RANGE_DAYS) {
@@ -375,7 +400,7 @@ export function createEveTools(
           `That range is too wide — request ${MAX_RANGE_DAYS} days or fewer.`,
         );
       }
-      const occurrences = service.listOccurrences({ from, to });
+      const occurrences = await service.listOccurrences({ from, to });
       const needle = query?.toLowerCase();
       const savedColors = colors?.map(savedColor);
       const matches = occurrences.filter(({ record }) => {
@@ -423,9 +448,9 @@ export function createEveTools(
           "When to remind before the event starts. Omit to use the user's default reminder, or pass null when they ask for no reminder at all.",
         ),
     }),
-    run: (input) => {
+    run: async (input) => {
       try {
-        const record = service.createEvent({
+        const record = await service.createEvent({
           title: input.title,
           timing: toEventTiming(
             input.timing,
@@ -496,7 +521,7 @@ export function createEveTools(
         })
         .describe("Only the fields to change."),
     }),
-    run: ({ eventId, occurrenceStart, scope, changes }) => {
+    run: async ({ eventId, occurrenceStart, scope, changes }) => {
       const patch: EventPatch = {};
       if (changes.title !== undefined) patch.title = changes.title;
       if (changes.timing !== undefined) {
@@ -524,7 +549,7 @@ export function createEveTools(
         throw new Error("No changes provided — include at least one field in `changes`.");
       }
       try {
-        service.updateEvent({ eventId, occurrenceStart }, scope, patch);
+        await service.updateEvent({ eventId, occurrenceStart }, scope, patch);
       } catch (error) {
         toReadableError(error);
       }
@@ -541,8 +566,8 @@ export function createEveTools(
       ...targetFields,
       scope: scopeSchema,
     }),
-    run: ({ eventId, occurrenceStart, scope }) => {
-      service.deleteEvent({ eventId, occurrenceStart }, scope);
+    run: async ({ eventId, occurrenceStart, scope }) => {
+      await service.deleteEvent({ eventId, occurrenceStart }, scope);
       return { deleted: { eventId, occurrenceStart, scope } };
     },
   });
@@ -556,17 +581,17 @@ export function createEveTools(
         .nullable()
         .describe("Lead time to set, or null to remove matching reminders."),
     }),
-    run: ({ selector, reminder }) => {
-      const records = service.listEventRecords();
+    run: async ({ selector, reminder }) => {
+      const records = await service.listEventRecords();
       const matches = records.filter((record) =>
         recordMatchesSelector(record, selector),
       );
       const minutesBefore = reminder ? reminderMinutes(reminder) : undefined;
       const changed = matches.filter(
-        (record) => record.reminderMinutesBefore !== minutesBefore,
+        (record) => !hasExactReminder(record, minutesBefore),
       );
 
-      service.setEventReminders(
+      await service.setEventReminders(
         changed.map((record) => record.id),
         minutesBefore,
       );

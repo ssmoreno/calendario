@@ -14,5 +14,5 @@ export default function proxy(request: NextRequest) {
 export const config = {
   // Everything except the login page, the API (which answers 401 itself), the
   // Eve channel (which runs its own auth walk), and static assets.
-  matcher: ["/((?!login|api|eve|_next|.*\\..*).*)"],
+  matcher: ["/((?!login|chat|api|eve|_next|.*\\..*).*)"],
 };

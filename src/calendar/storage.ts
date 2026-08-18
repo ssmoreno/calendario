@@ -1,112 +1,12 @@
-import {
-  calendarDocumentSchema,
-  importSchema,
-  preferencesDocumentSchema,
-} from "./schemas";
-import type {
-  CalendarDocument,
-  EventRecord,
-  PreferencesDocument,
-  ThemePreference,
-} from "./types";
+import { preferencesDocumentSchema } from "./schemas";
+import type { PreferencesDocument, ThemePreference } from "./types";
 
-export const EVENTS_STORAGE_KEY = "calendario.events.v1";
 export const PREFERENCES_STORAGE_KEY = "calendario.preferences.v1";
 
 export interface StorageLike {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
   removeItem(key: string): void;
-}
-
-export interface CalendarLoadResult {
-  document: CalendarDocument;
-  recoveredCorruptData: boolean;
-  storageAvailable: boolean;
-}
-
-export function emptyCalendar(events: EventRecord[] = []): CalendarDocument {
-  return {
-    version: 1,
-    revision: 0,
-    updatedAt: new Date(0).toISOString(),
-    events,
-  };
-}
-
-export function loadCalendarDocument(
-  storage: StorageLike | null,
-  seedEvents: EventRecord[] = [],
-  now = new Date(),
-  storageKey = EVENTS_STORAGE_KEY,
-): CalendarLoadResult {
-  if (!storage) {
-    return {
-      document: emptyCalendar(seedEvents),
-      recoveredCorruptData: false,
-      storageAvailable: false,
-    };
-  }
-
-  let raw: string | null;
-  try {
-    raw = storage.getItem(storageKey);
-  } catch {
-    return {
-      document: emptyCalendar(seedEvents),
-      recoveredCorruptData: false,
-      storageAvailable: false,
-    };
-  }
-
-  if (!raw) {
-    return {
-      document: emptyCalendar(seedEvents),
-      recoveredCorruptData: false,
-      storageAvailable: true,
-    };
-  }
-
-  try {
-    const document = calendarDocumentSchema.parse(JSON.parse(raw));
-    return {
-      document,
-      recoveredCorruptData: false,
-      storageAvailable: true,
-    };
-  } catch {
-    try {
-      storage.setItem(`${storageKey}.corrupt.${now.getTime()}`, raw);
-      storage.removeItem(storageKey);
-    } catch {
-      return {
-        document: emptyCalendar(seedEvents),
-        recoveredCorruptData: true,
-        storageAvailable: false,
-      };
-    }
-    return {
-      document: emptyCalendar(seedEvents),
-      recoveredCorruptData: true,
-      storageAvailable: true,
-    };
-  }
-}
-
-export function parseCalendarImport(value: string): CalendarDocument {
-  const parsed = importSchema.parse(JSON.parse(value));
-  return "calendar" in parsed ? parsed.calendar : parsed;
-}
-
-export function serializeCalendarExport(document: CalendarDocument): string {
-  return JSON.stringify(
-    {
-      exportedAt: new Date().toISOString(),
-      calendar: document,
-    },
-    null,
-    2,
-  );
 }
 
 export function loadPreferences(

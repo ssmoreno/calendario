@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import { IBM_Plex_Mono, Instrument_Sans } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
@@ -16,8 +17,8 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Calendario",
-  description: "A focused week and month calendar.",
+  title: "SS Calendar",
+  description: "A Google-backed calendar agent.",
 };
 
 const themeScript = `
@@ -39,7 +40,7 @@ const themeScript = `
   }
 })();`;
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="en"

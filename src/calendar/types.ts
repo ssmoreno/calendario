@@ -8,12 +8,6 @@ export const EVENT_COLORS = [
 export type EventColor = (typeof EVENT_COLORS)[number];
 export type ThemePreference = "system" | "light" | "dark";
 export type MutationScope = "occurrence" | "following" | "series";
-export type CalendarView = "week" | "month";
-
-export interface EditorSeed {
-  dateKey: string;
-  startTime?: string;
-}
 
 export type EventTiming =
   | {
@@ -32,6 +26,11 @@ export interface Recurrence {
   excludedStarts: string[];
 }
 
+export interface EventReminderOverride {
+  method: string;
+  minutes: number;
+}
+
 export interface EventRecord {
   id: string;
   title: string;
@@ -41,6 +40,8 @@ export interface EventRecord {
   notes?: string;
   color: EventColor;
   reminderMinutesBefore?: number;
+  reminderOverrides?: EventReminderOverride[];
+  usesDefaultReminder?: boolean;
   seriesId?: string;
   originalStart?: string;
   createdAt: string;
@@ -49,7 +50,12 @@ export interface EventRecord {
 
 export type EventInput = Omit<
   EventRecord,
-  "id" | "seriesId" | "originalStart" | "createdAt" | "updatedAt"
+  | "id"
+  | "seriesId"
+  | "originalStart"
+  | "reminderOverrides"
+  | "createdAt"
+  | "updatedAt"
 >;
 
 export type EventPatch = Partial<EventInput>;
@@ -105,24 +111,4 @@ export interface PreferencesDocument {
   version: 1;
   revision: number;
   theme: ThemePreference;
-}
-
-export interface EventSegment {
-  occurrence: Occurrence;
-  dateKey: string;
-  dayPosition: "single" | "start" | "middle" | "end";
-}
-
-export interface OccupiedDateGroup {
-  kind: "date";
-  dateKey: string;
-  segments: EventSegment[];
-}
-
-export interface TimedEventLayout {
-  segment: EventSegment;
-  startMinute: number;
-  endMinute: number;
-  column: number;
-  columnCount: number;
 }
