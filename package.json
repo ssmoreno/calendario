@@ -11,6 +11,7 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
     "dev:eve": "eve dev",
+    "prebuild": "prisma generate",
     "build": "next build",
     "build:eve": "eve build",
     "start": "next start",
