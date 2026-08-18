@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState } from "react";
 import {
   Button,
@@ -23,6 +24,7 @@ import {
   MoreIcon,
   PlusIcon,
   SearchIcon,
+  SettingsIcon,
   SunIcon,
 } from "./icons";
 import styles from "./calendar.module.css";
@@ -322,6 +324,15 @@ export function CalendarHeader({
                   </FileTrigger>
                 </div>
               </section>
+
+              <Link
+                className={styles.allSettingsLink}
+                href="/settings"
+                onClick={() => setSettingsOpen(false)}
+              >
+                <SettingsIcon />
+                <span>{messages.header.allSettings}</span>
+              </Link>
             </Dialog>
           </Popover>
         </DialogTrigger>

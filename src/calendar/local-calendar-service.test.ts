@@ -7,6 +7,7 @@ import {
 } from "./date-time";
 import { LocalCalendarService } from "./local-calendar-service";
 import { EVENTS_STORAGE_KEY } from "./storage";
+import { scopedStorageKey } from "@/lib/scoped-storage";
 import type { EventInput } from "./types";
 
 const input: EventInput = {
@@ -25,7 +26,7 @@ describe("LocalCalendarService mutation scopes", () => {
 
   beforeEach(() => {
     window.localStorage.clear();
-    service = LocalCalendarService.open("UTC").service;
+    service = LocalCalendarService.open("UTC", "user-a").service;
   });
 
   afterEach(() => service?.dispose());
@@ -277,7 +278,7 @@ describe("LocalCalendarService mutation scopes", () => {
 
     window.dispatchEvent(
       new StorageEvent("storage", {
-        key: EVENTS_STORAGE_KEY,
+        key: scopedStorageKey(EVENTS_STORAGE_KEY, "user-a"),
         newValue: JSON.stringify(newer),
       }),
     );
@@ -285,11 +286,62 @@ describe("LocalCalendarService mutation scopes", () => {
 
     window.dispatchEvent(
       new StorageEvent("storage", {
-        key: EVENTS_STORAGE_KEY,
+        key: scopedStorageKey(EVENTS_STORAGE_KEY, "user-a"),
         newValue: JSON.stringify(current),
       }),
     );
     expect(service.getDocument()).toEqual(newer);
     unsubscribe();
+  });
+
+  it("isolates local calendars by account", async () => {
+    await service.createEvent({ ...input, recurrence: null });
+    const otherAccount = LocalCalendarService.open("UTC", "user-b").service;
+
+    expect(await otherAccount.listEventRecords()).toEqual([]);
+
+    otherAccount.dispose();
+  });
+
+  it("imports an unscoped legacy calendar only after explicit confirmation", () => {
+    const legacyDocument = {
+      version: 1 as const,
+      revision: 1,
+      updatedAt: "2026-08-17T12:00:00.000Z",
+      events: [
+        {
+          id: "legacy-event",
+          title: "Legacy event",
+          timing: {
+            kind: "timed" as const,
+            startsAt: localDateTimeToZoned("2026-08-17", "09:00", "UTC"),
+            durationMinutes: 30,
+          },
+          recurrence: null,
+          color: "coral" as const,
+          createdAt: "2026-08-17T12:00:00.000Z",
+          updatedAt: "2026-08-17T12:00:00.000Z",
+        },
+      ],
+    };
+    window.localStorage.setItem(
+      EVENTS_STORAGE_KEY,
+      JSON.stringify(legacyDocument),
+    );
+
+    const account = LocalCalendarService.open("UTC", "user-a");
+
+    expect(account.legacyCalendarAvailable).toBe(true);
+    expect(account.service.getDocument().events).toEqual([]);
+    expect(account.service.importLegacyCalendar()).toBe(true);
+    expect(account.service.getDocument().events).toEqual(legacyDocument.events);
+    expect(window.localStorage.getItem(EVENTS_STORAGE_KEY)).toBeNull();
+    expect(
+      window.localStorage.getItem(
+        scopedStorageKey(EVENTS_STORAGE_KEY, "user-a"),
+      ),
+    ).not.toBeNull();
+
+    account.service.dispose();
   });
 });

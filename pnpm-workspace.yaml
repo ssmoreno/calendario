@@ -1,4 +1,7 @@
 allowBuilds:
+  '@prisma/engines': true
+  esbuild: true
+  prisma: true
   unrs-resolver: false
 minimumReleaseAgeExclude:
   - eve@0.36.0

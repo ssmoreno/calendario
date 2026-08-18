@@ -21,10 +21,13 @@ import { messages } from "@/calendar/messages";
 import {
   MAX_REMINDER_MINUTES,
   REMINDER_MINUTES_PER_UNIT,
-  reminderMinutes,
+  reminderChoiceFor,
+  reminderChoiceMinutes,
+  type ReminderPreset,
   type ReminderUnit,
 } from "@/calendar/reminders";
 import { RRule } from "@/calendar/rrule-package";
+import { DEFAULT_USER_SETTINGS, type UserSettings } from "@/calendar/settings";
 import { eventInputSchema } from "@/calendar/schemas";
 import {
   EVENT_COLORS,
@@ -55,15 +58,6 @@ type RepeatPreset =
 type RecurrenceEnd = "never" | "date" | "count";
 type Frequency = "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
 type TimedEndMode = "end-time" | "duration";
-type ReminderPreset =
-  | ""
-  | "0"
-  | "5"
-  | "15"
-  | "30"
-  | "60"
-  | "1440"
-  | "custom";
 
 interface EditorForm {
   title: string;
@@ -93,6 +87,8 @@ interface EditorForm {
 interface EventEditorProps {
   seed: EditorSeed;
   viewerTimeZone: string;
+  /** Seeds a new event; an existing event always keeps its own values. */
+  defaults?: UserSettings;
   occurrence: Occurrence | null;
   seriesEvent: EventRecord | null;
   onClose(): void;
@@ -111,15 +107,6 @@ interface PendingAction {
 }
 
 const editorMessages = messages.editor;
-
-const REMINDER_PRESETS = new Set([
-  "0",
-  "5",
-  "15",
-  "30",
-  "60",
-  "1440",
-]);
 
 const WEEKDAYS = [
   ["MO", editorMessages.weekdayMonday],
@@ -166,36 +153,14 @@ function customReminderValue(minutes: number | undefined): {
   reminderAmount: string;
   reminderUnit: ReminderUnit;
 } {
-  if (minutes === undefined) {
-    return { reminder: "", reminderAmount: "", reminderUnit: "minutes" };
-  }
-  const preset = String(minutes);
-  if (REMINDER_PRESETS.has(preset)) {
-    return {
-      reminder: preset as ReminderPreset,
-      reminderAmount: "",
-      reminderUnit: "minutes",
-    };
-  }
-  const unit =
-    (["weeks", "days", "hours"] as const).find(
-      (candidate) =>
-        minutes > 0 &&
-        minutes % REMINDER_MINUTES_PER_UNIT[candidate] === 0,
-    ) ?? "minutes";
-  return {
-    reminder: "custom",
-    reminderAmount: String(minutes / REMINDER_MINUTES_PER_UNIT[unit]),
-    reminderUnit: unit,
-  };
+  const { preset, amount, unit } = reminderChoiceFor(minutes);
+  return { reminder: preset, reminderAmount: amount, reminderUnit: unit };
 }
 
 function reminderMinutesFromForm(form: EditorForm): number | undefined {
-  if (form.reminder === "") return undefined;
-  if (form.reminder !== "custom") return Number(form.reminder);
-  if (form.reminderAmount.trim() === "") return Number.NaN;
-  return reminderMinutes({
-    amount: Number(form.reminderAmount),
+  return reminderChoiceMinutes({
+    preset: form.reminder,
+    amount: form.reminderAmount,
     unit: form.reminderUnit,
   });
 }
@@ -230,6 +195,7 @@ function initialForm(
   viewerTimeZone: string,
   occurrence: Occurrence | null,
   seriesEvent: EventRecord | null,
+  defaults: UserSettings,
 ): EditorForm {
   const record = occurrence?.record;
   const timing = occurrence?.timing;
@@ -248,7 +214,11 @@ function initialForm(
   const until = ruleValue(rrule, "UNTIL");
   const byday = ruleValue(rrule, "BYDAY")?.split(",") ?? [weekdayCode(startDate)];
   const frequency = (ruleValue(rrule, "FREQ") ?? "WEEKLY") as Frequency;
-  const reminder = customReminderValue(record?.reminderMinutesBefore);
+  const reminder = customReminderValue(
+    record
+      ? record.reminderMinutesBefore
+      : (defaults.defaultReminderMinutes ?? undefined),
+  );
 
   return {
     title: record?.title ?? "",
@@ -260,13 +230,15 @@ function initialForm(
     endTime:
       timing?.kind === "timed"
         ? addMinutesToTime(startTime, timing.durationMinutes)
-        : addMinutesToTime(startTime, 60),
+        : addMinutesToTime(startTime, defaults.defaultDurationMinutes),
     timedEndMode:
       timing?.kind === "timed" && timing.durationMinutes > 1_440
         ? "duration"
         : "end-time",
     durationMinutes:
-      timing?.kind === "timed" ? String(timing.durationMinutes) : "60",
+      timing?.kind === "timed"
+        ? String(timing.durationMinutes)
+        : String(defaults.defaultDurationMinutes),
     timeZone:
       timing?.kind === "timed" ? timezoneFromZoned(timing.startsAt) : viewerTimeZone,
     repeatPreset: recurrencePreset(rrule),
@@ -284,7 +256,7 @@ function initialForm(
     occurrenceCount: ruleValue(rrule, "COUNT") ?? "10",
     location: record?.location ?? "",
     notes: record?.notes ?? "",
-    color: record?.color ?? "coral",
+    color: record?.color ?? defaults.defaultColor,
     ...reminder,
   };
 }
@@ -443,6 +415,7 @@ function submissionMessage(error: unknown, fallback: string): string {
 export function EventEditor({
   seed,
   viewerTimeZone,
+  defaults = DEFAULT_USER_SETTINGS,
   occurrence,
   seriesEvent,
   onClose,
@@ -450,8 +423,8 @@ export function EventEditor({
   onDelete,
 }: EventEditorProps) {
   const initial = useMemo(
-    () => initialForm(seed, viewerTimeZone, occurrence, seriesEvent),
-    [occurrence, seed, seriesEvent, viewerTimeZone],
+    () => initialForm(seed, viewerTimeZone, occurrence, seriesEvent, defaults),
+    [defaults, occurrence, seed, seriesEvent, viewerTimeZone],
   );
   const [form, setForm] = useState(initial);
   const [shouldAutoFocus] = useState(() =>

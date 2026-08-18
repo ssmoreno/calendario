@@ -69,6 +69,27 @@ function weeklyOccurrence(): {
 }
 
 describe("EventEditor", () => {
+  it("seeds a new event from the account defaults", () => {
+    renderEditor({
+      seed: { dateKey: "2026-08-08", startTime: "14:30" },
+      defaults: {
+        defaultDurationMinutes: 30,
+        defaultReminderMinutes: 8,
+        defaultColor: "mint",
+        theme: "system",
+      },
+    });
+
+    expect(screen.getByLabelText("Ends")).toHaveProperty("value", "15:00");
+    expect(screen.getByLabelText("Reminder amount")).toHaveProperty(
+      "value",
+      "8",
+    );
+    expect(
+      screen.getByRole("radio", { name: "mint" }),
+    ).toHaveProperty("checked", true);
+  });
+
   it("uses an explicit calendar-slot start time", () => {
     renderEditor({ seed: { dateKey: "2026-08-08", startTime: "14:30" } });
 

@@ -34,7 +34,7 @@ export function buildCalendarContext(
   now = new Date(),
 ): string {
   if (!state.timeZone) {
-    return "The user's timezone is not configured. Before interpreting dates or times or using a calendar tool, ask for their location or IANA timezone, then call set_time_zone.";
+    return "The user's timezone is not configured. If a device timezone is reported in the conversation context, call set_time_zone with it immediately, without asking. Otherwise ask for their location or IANA timezone, then call set_time_zone.";
   }
   const current = currentCalendarTime(state.timeZone, now);
   return `Today is ${current.weekday}, ${current.today}, and the local time is ${current.localTime} in ${current.timeZone}. Resolve relative dates and times against this context.`;

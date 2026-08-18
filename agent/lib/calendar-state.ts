@@ -6,6 +6,7 @@ import {
   initialCalendarSessionState,
   type CalendarSessionState,
 } from "../../src/eve/calendar-session";
+import type { UserSettings } from "../../src/calendar/settings";
 import type { EveTools } from "../../src/eve/tools";
 
 export type { CalendarSessionState } from "../../src/eve/calendar-session";
@@ -27,11 +28,12 @@ export function readCalendar<Result>(
 
 export function updateCalendar<Result>(
   update: (tools: EveTools) => Result,
+  defaults?: UserSettings,
 ): Result {
   let result: Result | undefined;
   let completed = false;
   calendarState.update((current) => {
-    const { engine, tools } = createCalendarSessionRuntime(current);
+    const { engine, tools } = createCalendarSessionRuntime(current, defaults);
     result = update(tools);
     completed = true;
     return { ...current, document: engine.getDocument() };

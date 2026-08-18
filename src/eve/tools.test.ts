@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { CalendarDocumentEngine } from "@/calendar/calendar-document-engine";
 import { localDateTimeToZoned } from "@/calendar/date-time";
+import { DEFAULT_USER_SETTINGS } from "@/calendar/settings";
 import { emptyCalendar } from "@/calendar/storage";
 
 import { createEveTools, type EveTools } from "./tools";
@@ -47,6 +48,47 @@ describe("Eve calendar tools", () => {
     const [record] = service.getDocument().events;
     expect(record.title).toBe("Dentist");
     expect(record.color).toBe("coral");
+  });
+
+  it("fills an omitted length, color, and reminder from the saved defaults", async () => {
+    const withDefaults = createEveTools(service, {
+      timeZone: TIME_ZONE,
+      defaults: {
+        ...DEFAULT_USER_SETTINGS,
+        defaultDurationMinutes: 30,
+        defaultReminderMinutes: 8,
+        defaultColor: "mint",
+      },
+    });
+
+    await asJson(
+      withDefaults.createEvent.run({
+        title: "Coffee",
+        timing: { kind: "timed", date: "2026-08-10", time: "15:30" },
+      }),
+    );
+
+    const [record] = service.getDocument().events;
+    expect(record.timing).toMatchObject({ durationMinutes: 30 });
+    expect(record.color).toBe("mint");
+    expect(record.reminderMinutesBefore).toBe(8);
+  });
+
+  it("takes an explicit null reminder as no reminder at all", async () => {
+    const withDefaults = createEveTools(service, {
+      timeZone: TIME_ZONE,
+      defaults: { ...DEFAULT_USER_SETTINGS, defaultReminderMinutes: 8 },
+    });
+
+    await asJson(
+      withDefaults.createEvent.run({
+        title: "Quiet block",
+        timing: { kind: "timed", date: "2026-08-11", time: "09:00" },
+        reminder: null,
+      }),
+    );
+
+    expect(service.getDocument().events[0].reminderMinutesBefore).toBeUndefined();
   });
 
   it("preserves custom reminder lead times and human-friendly colors", async () => {

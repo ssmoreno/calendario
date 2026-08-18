@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    ports:
+      - "54329:5432"
+    environment:
+      POSTGRES_USER: calendario
+      POSTGRES_PASSWORD: calendario
+      POSTGRES_DB: calendario
+    volumes:
+      - calendario-postgres:/var/lib/postgresql/data
+
+volumes:
+  calendario-postgres:

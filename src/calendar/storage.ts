@@ -38,6 +38,7 @@ export function loadCalendarDocument(
   storage: StorageLike | null,
   seedEvents: EventRecord[] = [],
   now = new Date(),
+  storageKey = EVENTS_STORAGE_KEY,
 ): CalendarLoadResult {
   if (!storage) {
     return {
@@ -49,7 +50,7 @@ export function loadCalendarDocument(
 
   let raw: string | null;
   try {
-    raw = storage.getItem(EVENTS_STORAGE_KEY);
+    raw = storage.getItem(storageKey);
   } catch {
     return {
       document: emptyCalendar(seedEvents),
@@ -75,8 +76,8 @@ export function loadCalendarDocument(
     };
   } catch {
     try {
-      storage.setItem(`${EVENTS_STORAGE_KEY}.corrupt.${now.getTime()}`, raw);
-      storage.removeItem(EVENTS_STORAGE_KEY);
+      storage.setItem(`${storageKey}.corrupt.${now.getTime()}`, raw);
+      storage.removeItem(storageKey);
     } catch {
       return {
         document: emptyCalendar(seedEvents),

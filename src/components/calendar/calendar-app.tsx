@@ -3,6 +3,7 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
   useSyncExternalStore,
 } from "react";
@@ -20,12 +21,14 @@ import {
 } from "@/calendar/date-time";
 import { LocalCalendarService } from "@/calendar/local-calendar-service";
 import { messages } from "@/calendar/messages";
-import { preferencesDocumentSchema } from "@/calendar/schemas";
+import type { UserSettings } from "@/calendar/settings";
+import { saveThemePreference } from "@/calendar/storage";
 import {
-  loadPreferences,
-  PREFERENCES_STORAGE_KEY,
-  saveThemePreference,
-} from "@/calendar/storage";
+  applyTheme,
+  DARK_SCHEME_QUERY,
+  resolveTheme,
+  type ResolvedTheme,
+} from "@/calendar/theme";
 import type {
   CalendarDocument,
   CalendarRange,
@@ -37,10 +40,10 @@ import type {
   EventSegment,
   MutationScope,
   Occurrence,
-  PreferencesDocument,
   ThemePreference,
 } from "@/calendar/types";
 import { filterOccurrences, groupOccupiedDates } from "@/calendar/view-model";
+import { SerialTaskQueue } from "@/lib/serial-task-queue";
 
 import { CalendarBrand, CalendarHeader } from "./calendar-header";
 import { EventEditor } from "./event-editor";
@@ -61,6 +64,7 @@ interface EditorTarget {
 
 interface ToastState {
   message: string;
+  importLegacy?: boolean;
   undo?: () => void;
 }
 
@@ -69,13 +73,8 @@ type NavDirection = "next" | "previous" | "none";
 interface BrowserSession {
   browser: BrowserContext;
   service: LocalCalendarService;
-  preferences: PreferencesDocument;
   notice: ToastState | null;
 }
-
-type ResolvedTheme = "light" | "dark";
-
-const DARK_SCHEME_QUERY = "(prefers-color-scheme: dark)";
 
 function subscribeToSystemTheme(callback: () => void) {
   const media = window.matchMedia(DARK_SCHEME_QUERY);
@@ -89,28 +88,6 @@ function getSystemDarkSnapshot() {
 
 function getServerSystemDarkSnapshot() {
   return false;
-}
-
-/**
- * Paints the theme, crossfading the page whenever the resolved theme actually
- * flips so the switch never lands as a sudden white or black screen.
- */
-function applyTheme(theme: ThemePreference, resolved: ResolvedTheme) {
-  const root = document.documentElement;
-  const paint = () => {
-    root.dataset.theme = resolved;
-    root.dataset.themePreference = theme;
-    root.style.colorScheme = resolved;
-  };
-  const flipped = root.dataset.theme !== resolved;
-  const animates = !window.matchMedia("(prefers-reduced-motion: reduce)")
-    .matches;
-
-  if (flipped && animates && typeof document.startViewTransition === "function") {
-    document.startViewTransition(paint);
-    return;
-  }
-  paint();
 }
 
 function safeStorage(): Storage | null {
@@ -194,34 +171,52 @@ function CalendarSkeleton() {
   );
 }
 
-function createBrowserSession(): BrowserSession {
+function createBrowserSession(userId: string): BrowserSession {
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
   const today = todayKey(timeZone);
-  const opened = LocalCalendarService.open(timeZone);
-  const notice = opened.recoveredCorruptData
-    ? { message: messages.corruptRecovery }
-    : !opened.storageAvailable
-      ? { message: messages.storageUnavailable }
-      : null;
+  const opened = LocalCalendarService.open(timeZone, userId);
+  let notice: ToastState | null = null;
+  if (opened.recoveredCorruptData) {
+    notice = { message: messages.corruptRecovery };
+  } else if (!opened.storageAvailable) {
+    notice = { message: messages.storageUnavailable };
+  } else if (opened.legacyCalendarAvailable) {
+    notice = { message: messages.legacyCalendarFound, importLegacy: true };
+  }
   return {
     browser: { timeZone, today },
     service: opened.service,
-    preferences: loadPreferences(safeStorage()),
     notice,
   };
 }
 
-export function CalendarApp() {
+export function CalendarApp({
+  initialSettings,
+  userId,
+}: {
+  initialSettings: UserSettings;
+  userId: string;
+}) {
   const hydrated = useSyncExternalStore(
     () => () => undefined,
     () => true,
     () => false,
   );
-  return hydrated ? <HydratedCalendar /> : <CalendarSkeleton />;
+  return hydrated ? (
+    <HydratedCalendar initialSettings={initialSettings} userId={userId} />
+  ) : (
+    <CalendarSkeleton />
+  );
 }
 
-function HydratedCalendar() {
-  const [session] = useState(createBrowserSession);
+function HydratedCalendar({
+  initialSettings,
+  userId,
+}: {
+  initialSettings: UserSettings;
+  userId: string;
+}) {
+  const [session] = useState(() => createBrowserSession(userId));
   const { browser, service } = session;
   const [document, setDocument] = useState<CalendarDocument>(() =>
     service.getDocument(),
@@ -237,21 +232,17 @@ function HydratedCalendar() {
   const [query, setQuery] = useState("");
   const [editor, setEditor] = useState<EditorTarget | null>(null);
   const [toast, setToast] = useState<ToastState | null>(session.notice);
-  const [preferences, setPreferences] = useState<PreferencesDocument>(
-    session.preferences,
-  );
+  const [settings, setSettings] = useState(initialSettings);
+  const persistedTheme = useRef(initialSettings.theme);
+  const themeSaveQueue = useRef(new SerialTaskQueue());
+  const themeRequestSequence = useRef(0);
   const [navDirection, setNavDirection] = useState<NavDirection>("none");
   const systemDark = useSyncExternalStore(
     subscribeToSystemTheme,
     getSystemDarkSnapshot,
     getServerSystemDarkSnapshot,
   );
-  const resolvedTheme: ResolvedTheme =
-    preferences.theme === "system"
-      ? systemDark
-        ? "dark"
-        : "light"
-      : preferences.theme;
+  const resolvedTheme: ResolvedTheme = resolveTheme(settings.theme, systemDark);
 
   const visibleRange = useMemo(
     () => (view === "week" ? weekRange(anchorDate) : monthGridRange(anchorDate)),
@@ -277,23 +268,27 @@ function HydratedCalendar() {
   }, [document, range, service]);
 
   useEffect(() => {
-    applyTheme(preferences.theme, resolvedTheme);
-  }, [preferences.theme, resolvedTheme]);
+    applyTheme(settings.theme, resolvedTheme);
+  }, [settings.theme, resolvedTheme]);
 
+  // Settings can change on the settings page, in another tab, or through Eve.
   useEffect(() => {
-    function syncPreferences(event: StorageEvent) {
-      if (event.key !== PREFERENCES_STORAGE_KEY || !event.newValue) return;
+    async function refresh() {
       try {
-        const incoming = preferencesDocumentSchema.parse(JSON.parse(event.newValue));
-        setPreferences((current) =>
-          incoming.revision > current.revision ? incoming : current,
-        );
+        const response = await fetch("/api/settings");
+        if (!response.ok) return;
+        const { settings: next } = (await response.json()) as {
+          settings: UserSettings;
+        };
+        persistedTheme.current = next.theme;
+        setSettings(next);
+        saveThemePreference(safeStorage(), next.theme);
       } catch {
-        // Malformed preferences from another tab cannot replace a valid copy.
+        // A failed refresh just leaves the settings loaded with the page.
       }
     }
-    window.addEventListener("storage", syncPreferences);
-    return () => window.removeEventListener("storage", syncPreferences);
+    window.addEventListener("focus", refresh);
+    return () => window.removeEventListener("focus", refresh);
   }, []);
 
   const groups = useMemo(
@@ -389,12 +384,36 @@ function HydratedCalendar() {
     ensureCoverage(nextView, selectedDate);
   }
 
-  function selectTheme(theme: ThemePreference) {
-    setPreferences(saveThemePreference(safeStorage(), theme));
+  async function selectTheme(theme: ThemePreference) {
+    const sequence = ++themeRequestSequence.current;
+    setSettings((current) => ({ ...current, theme }));
+    saveThemePreference(safeStorage(), theme);
+    try {
+      const saved = await themeSaveQueue.current.run(async () => {
+        const response = await fetch("/api/settings", {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ theme }),
+        });
+        if (!response.ok) throw new Error(messages.settings.saveFailed);
+        const payload = (await response.json()) as { settings: UserSettings };
+        return payload.settings;
+      });
+      persistedTheme.current = saved.theme;
+      if (sequence !== themeRequestSequence.current) return;
+      setSettings(saved);
+      saveThemePreference(safeStorage(), saved.theme);
+    } catch {
+      if (sequence !== themeRequestSequence.current) return;
+      const fallback = persistedTheme.current;
+      setSettings((current) => ({ ...current, theme: fallback }));
+      saveThemePreference(safeStorage(), fallback);
+      setToast({ message: messages.settings.saveFailed });
+    }
   }
 
   function toggleTheme() {
-    selectTheme(resolvedTheme === "dark" ? "light" : "dark");
+    void selectTheme(resolvedTheme === "dark" ? "light" : "dark");
   }
 
   async function saveEvent(
@@ -472,6 +491,21 @@ function HydratedCalendar() {
     }
   }
 
+  function importLegacyCalendar() {
+    if (
+      document.events.length > 0 &&
+      !window.confirm(messages.app.importReplaceConfirm)
+    ) {
+      return;
+    }
+    const imported = service.importLegacyCalendar();
+    setToast({
+      message: imported
+        ? messages.legacyImportSuccess
+        : messages.legacyImportFailure,
+    });
+  }
+
   const visibleEventCount = groups.reduce(
     (total, group) => total + group.segments.length,
     0,
@@ -487,7 +521,7 @@ function HydratedCalendar() {
           results={searchResults}
           locale={CALENDAR_LOCALE}
           viewerTimeZone={browser.timeZone}
-          theme={preferences.theme}
+          theme={settings.theme}
           resolvedTheme={resolvedTheme}
           onPrevious={() => navigate(-1)}
           onNext={() => navigate(1)}
@@ -564,6 +598,7 @@ function HydratedCalendar() {
           key={`${editor.occurrence?.key ?? "new"}:${editor.seed.dateKey}:${editor.seed.startTime ?? ""}`}
           seed={editor.seed}
           viewerTimeZone={browser.timeZone}
+          defaults={settings}
           occurrence={editor.occurrence}
           seriesEvent={editor.seriesEvent}
           onClose={() => setEditor(null)}
@@ -578,6 +613,11 @@ function HydratedCalendar() {
           {toast.undo ? (
             <button type="button" onClick={toast.undo}>
               {messages.undo}
+            </button>
+          ) : null}
+          {toast.importLegacy ? (
+            <button type="button" onClick={importLegacyCalendar}>
+              {messages.importLegacy}
             </button>
           ) : null}
           <button
