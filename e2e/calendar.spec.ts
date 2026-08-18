@@ -21,7 +21,12 @@ test.beforeEach(async ({ page }) => {
   page.on("pageerror", (error) => problems.push(`pageerror: ${error.message}`));
   await page.addInitScript((calendar) => {
     if (localStorage.getItem("calendario.e2e.initialized") !== "1") {
-      localStorage.setItem("calendario.events.v1", JSON.stringify(calendar));
+      const userId = localStorage.getItem("calendario.e2e.userId");
+      if (!userId) throw new Error("E2E user id missing from storage state.");
+      localStorage.setItem(
+        `calendario.events.v1.user.${encodeURIComponent(userId)}`,
+        JSON.stringify(calendar),
+      );
       localStorage.removeItem("calendario.preferences.v1");
       localStorage.setItem("calendario.e2e.initialized", "1");
     }
@@ -79,8 +84,10 @@ async function replaceCalendar(
   const now = new Date().toISOString();
   await page.evaluate(
     ({ timestamp, nextEvents }) => {
+      const userId = localStorage.getItem("calendario.e2e.userId");
+      if (!userId) throw new Error("E2E user id missing from storage state.");
       localStorage.setItem(
-        "calendario.events.v1",
+        `calendario.events.v1.user.${encodeURIComponent(userId)}`,
         JSON.stringify({
           version: 1,
           revision: 1,
@@ -92,6 +99,28 @@ async function replaceCalendar(
     { timestamp: now, nextEvents: events },
   );
   await page.reload();
+}
+
+async function throughSettingsPatch(
+  page: Page,
+  action: () => Promise<unknown>,
+) {
+  const saved = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === "/api/settings" &&
+      response.request().method() === "PATCH" &&
+      response.ok(),
+  );
+  await action();
+  await saved;
+}
+
+function minutesBetween(start: string, end: string) {
+  const [startHour, startMinute] = start.split(":").map(Number);
+  const [endHour, endMinute] = end.split(":").map(Number);
+  const startMinutes = startHour * 60 + startMinute;
+  const endMinutes = endHour * 60 + endMinute;
+  return (endMinutes - startMinutes + 1_440) % 1_440;
 }
 
 function allDayEvent(id: string, title: string, dateKey: string) {
@@ -356,4 +385,81 @@ test("imports, exports, persists themes, and passes Axe in light and dark", asyn
     "system",
   );
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+});
+
+test("persists account settings and seeds new events from them", async ({
+  page,
+}) => {
+  await page.goto("/settings");
+  await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
+  expect(
+    await page.evaluate(async () => {
+      const response = await fetch("/api/settings", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          defaultDurationMinutes: 60,
+          defaultReminderMinutes: null,
+          defaultColor: "coral",
+          theme: "system",
+        }),
+      });
+      return response.ok;
+    }),
+  ).toBe(true);
+  await page.reload();
+
+  const duration = page.getByLabel("Default duration (minutes)");
+  await duration.fill("30");
+  await throughSettingsPatch(page, () => duration.press("Tab"));
+  await throughSettingsPatch(page, () =>
+    page.getByLabel("Default reminder").selectOption("15"),
+  );
+  await throughSettingsPatch(page, () =>
+    page.getByRole("radio", { name: "mint" }).click(),
+  );
+  await throughSettingsPatch(page, () =>
+    page.getByRole("button", { name: "Dark", exact: true }).click(),
+  );
+
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-theme-preference",
+    "dark",
+  );
+  await page.reload();
+  await expect(duration).toHaveValue("30");
+  await expect(page.getByLabel("Default reminder")).toHaveValue("15");
+  await expect(page.getByRole("radio", { name: "mint" })).toBeChecked();
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-theme-preference",
+    "dark",
+  );
+  await settleAnimations(page);
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Add event", exact: true }).click();
+  const editor = page.getByRole("dialog", { name: "Add event" });
+  expect(
+    minutesBetween(
+      await editor.getByLabel("Starts").inputValue(),
+      await editor.getByLabel("Ends").inputValue(),
+    ),
+  ).toBe(30);
+  await expect(editor.getByLabel("Reminder")).toHaveValue("15");
+  await expect(editor.getByRole("radio", { name: "mint" })).toBeChecked();
+  await page.getByRole("button", { name: "Close editor" }).click();
+
+  await page.goto("/settings");
+  await duration.fill("60");
+  await throughSettingsPatch(page, () => duration.press("Tab"));
+  await throughSettingsPatch(page, () =>
+    page.getByLabel("Default reminder").selectOption(""),
+  );
+  await throughSettingsPatch(page, () =>
+    page.getByRole("radio", { name: "coral" }).click(),
+  );
+  await throughSettingsPatch(page, () =>
+    page.getByRole("button", { name: "System", exact: true }).click(),
+  );
 });

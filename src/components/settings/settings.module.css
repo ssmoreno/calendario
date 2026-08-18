@@ -1,0 +1,213 @@
+.settingsShell {
+  display: flex;
+  width: min(100%, 1136px);
+  min-height: 100dvh;
+  flex-direction: column;
+  padding: 20px 28px 32px;
+  margin: 0 auto;
+  gap: 16px;
+}
+
+.settingsHeader {
+  display: flex;
+  min-height: 56px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.settingsHeader h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 650;
+}
+
+.backLink {
+  color: var(--muted);
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.backLink:hover {
+  color: var(--ink);
+}
+
+.settingsCard {
+  display: grid;
+  width: min(100%, 1080px);
+  padding: 4px 24px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.settingsGroup {
+  display: grid;
+  padding: 22px 0;
+  border-bottom: 1px solid var(--line);
+  gap: 14px;
+}
+
+.settingsGroup:last-child {
+  border-bottom: 0;
+}
+
+.groupIntro {
+  display: grid;
+  gap: 4px;
+}
+
+.groupIntro h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.groupIntro p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.controlRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  align-items: start;
+  gap: 14px;
+}
+
+.colorChoices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.colorChoices label[data-color="ultramarine"] {
+  --swatch: var(--ultramarine);
+}
+
+.colorChoices label[data-color="coral"] {
+  --swatch: var(--coral);
+}
+
+.colorChoices label[data-color="mint"] {
+  --swatch: var(--mint);
+}
+
+.colorChoices label[data-color="gold"] {
+  --swatch: var(--gold);
+}
+
+.colorChoices label {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--swatch) var(--event-mix), var(--surface));
+  color: var(--swatch);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 6px;
+}
+
+.colorChoices label:has(input:checked) {
+  border-color: var(--swatch);
+}
+
+.colorChoices input {
+  margin: 0;
+  accent-color: var(--swatch);
+}
+
+.memoryList {
+  display: grid;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  gap: 8px;
+}
+
+.memoryList li {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  gap: 12px;
+}
+
+.memoryList p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.memoryList time {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+}
+
+.emptyNote {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.secondaryButton {
+  min-height: 32px;
+  flex: none;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.secondaryButton:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+.secondaryButton:disabled {
+  opacity: 0.6;
+}
+
+.accountRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.accountEmail {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.statusLine {
+  min-height: 16px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.statusLine[data-tone="error"] {
+  color: var(--danger);
+}
+
+@media (max-width: 680px) {
+  .settingsShell {
+    padding: 12px 8px 24px;
+  }
+
+  .settingsCard {
+    padding: 4px 16px;
+  }
+}

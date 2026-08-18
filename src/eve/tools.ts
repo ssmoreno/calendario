@@ -13,6 +13,10 @@ import {
   REMINDER_UNITS,
   reminderMinutes,
 } from "@/calendar/reminders";
+import {
+  DEFAULT_USER_SETTINGS,
+  type UserSettings,
+} from "@/calendar/settings";
 import { EVENT_COLORS } from "@/calendar/types";
 import type {
   EventColor,
@@ -36,12 +40,12 @@ const COLOR_ALIASES: Record<FriendlyEventColor, EventColor> = {
   yellow: "gold",
 } as const;
 
-const selectableColorSchema = z.enum([
+export const selectableColorSchema = z.enum([
   ...EVENT_COLORS,
   ...FRIENDLY_EVENT_COLORS,
 ]);
 
-const reminderOffsetSchema = z
+export const reminderOffsetSchema = z
   .object({
     amount: z
       .number()
@@ -118,26 +122,36 @@ const dateKeySchema = z
   .string()
   .refine(isDateKey, "Use a real calendar date in YYYY-MM-DD format.");
 
-const timedTimingSchema = z.object({
+const timedTimingFields = {
   kind: z.literal("timed"),
   date: dateKeySchema.describe("Start date, YYYY-MM-DD."),
   time: z
     .string()
     .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use 24-hour HH:MM.")
     .describe("Start time in 24-hour HH:MM, e.g. 09:30 or 17:00."),
-  durationMinutes: z
-    .number()
-    .int()
-    .positive()
-    .max(525_600)
-    .describe(
-      "Event length in minutes. If the user gave an end time, convert it to minutes.",
-    ),
   timeZone: z
     .string()
     .refine(isTimeZone, "Use an IANA timezone like Europe/Madrid.")
     .optional()
     .describe("IANA timezone of the start time. Omit to use the user's timezone."),
+};
+
+const durationMinutesSchema = z.number().int().positive().max(525_600);
+
+const timedTimingSchema = z.object({
+  ...timedTimingFields,
+  durationMinutes: durationMinutesSchema.describe(
+    "Event length in minutes. If the user gave an end time, convert it to minutes.",
+  ),
+});
+
+const newTimedTimingSchema = z.object({
+  ...timedTimingFields,
+  durationMinutes: durationMinutesSchema
+    .optional()
+    .describe(
+      "Event length in minutes. If the user gave an end time, convert it to minutes. Omit to use the length the user saved as their default.",
+    ),
 });
 
 const allDayTimingSchema = z.object({
@@ -148,11 +162,16 @@ const allDayTimingSchema = z.object({
     .describe("Last day of the event, inclusive. Omit for a single-day event."),
 });
 
+const timingDescription =
+  'Use kind "timed" for events at a clock time and "all-day" for date-only events.';
+
 const timingSchema = z
   .discriminatedUnion("kind", [timedTimingSchema, allDayTimingSchema])
-  .describe(
-    'Use kind "timed" for events at a clock time and "all-day" for date-only events.',
-  );
+  .describe(timingDescription);
+
+const newTimingSchema = z
+  .discriminatedUnion("kind", [newTimedTimingSchema, allDayTimingSchema])
+  .describe(timingDescription);
 
 const rruleSchema = z
   .string()
@@ -178,7 +197,7 @@ const targetFields = {
     .describe("The occurrenceStart exactly as returned by list_events."),
 };
 
-function savedColor(
+export function savedColor(
   color: z.infer<typeof selectableColorSchema>,
 ): EventRecord["color"] {
   if ((FRIENDLY_EVENT_COLORS as readonly string[]).includes(color)) {
@@ -220,8 +239,9 @@ function recordMatchesSelector(
 }
 
 function toEventTiming(
-  input: z.infer<typeof timingSchema>,
+  input: z.infer<typeof newTimingSchema>,
   defaultTimeZone: string,
+  defaultDurationMinutes: number,
 ): EventTiming {
   if (input.kind === "timed") {
     return {
@@ -231,7 +251,7 @@ function toEventTiming(
         input.time,
         input.timeZone ?? defaultTimeZone,
       ),
-      durationMinutes: input.durationMinutes,
+      durationMinutes: input.durationMinutes ?? defaultDurationMinutes,
     };
   }
   const lastDay = input.endDate ?? input.startDate;
@@ -304,6 +324,8 @@ const hasKey = (value: object, key: string): boolean =>
 
 export interface EveToolsOptions {
   timeZone: string;
+  /** Fills in whatever the user did not spell out when creating an event. */
+  defaults?: UserSettings;
 }
 
 function calendarTool<Schema extends z.ZodType, Output>(definition: {
@@ -319,7 +341,7 @@ function calendarTool<Schema extends z.ZodType, Output>(definition: {
 
 export function createEveTools(
   service: CalendarDocumentEngine,
-  { timeZone }: EveToolsOptions,
+  { timeZone, defaults = DEFAULT_USER_SETTINGS }: EveToolsOptions,
 ) {
   const listEvents = calendarTool({
     description:
@@ -383,36 +405,45 @@ export function createEveTools(
 
   const createEvent = calendarTool({
     description:
-      "Add a new event to the user's calendar. Call when the user wants to schedule, add, book, or block time. Do not use this to change an existing event — use update_event for that.",
+      "Add a new event to the user's calendar, with a reminder when the user wants one. Call when the user wants to schedule, add, book, or block time. Do not use this to change an existing event — use update_event for that.",
     inputSchema: z.object({
       title: z.string().trim().min(1).max(160).describe("Event title."),
-      timing: timingSchema,
+      timing: newTimingSchema,
       rrule: rruleSchema.optional().describe(
         "Include only when the event repeats.",
       ),
       location: z.string().trim().max(240).optional(),
       notes: z.string().trim().max(10_000).optional(),
       color: selectableColorSchema.optional().describe(
-        "Calendar color. Friendly names map as blue=ultramarine, red=coral, green=mint, yellow=gold. Omit unless the user asks for one.",
+        "Calendar color. Friendly names map as blue=ultramarine, red=coral, green=mint, yellow=gold. Omit unless the user asks for one, and the user's default color is used.",
       ),
       reminder: reminderOffsetSchema
-        .optional()
-        .describe("When to remind before the event starts."),
+        .nullish()
+        .describe(
+          "When to remind before the event starts. Omit to use the user's default reminder, or pass null when they ask for no reminder at all.",
+        ),
     }),
     run: (input) => {
       try {
         const record = service.createEvent({
           title: input.title,
-          timing: toEventTiming(input.timing, timeZone),
+          timing: toEventTiming(
+            input.timing,
+            timeZone,
+            defaults.defaultDurationMinutes,
+          ),
           recurrence: input.rrule
             ? { rrule: input.rrule, excludedStarts: [] }
             : null,
           location: input.location,
           notes: input.notes,
-          color: input.color ? savedColor(input.color) : "coral",
-          reminderMinutesBefore: input.reminder
-            ? reminderMinutes(input.reminder)
-            : undefined,
+          color: input.color ? savedColor(input.color) : defaults.defaultColor,
+          reminderMinutesBefore:
+            input.reminder === undefined
+              ? (defaults.defaultReminderMinutes ?? undefined)
+              : input.reminder === null
+                ? undefined
+                : reminderMinutes(input.reminder),
         });
         return { created: describeRecord(record) };
       } catch (error) {
@@ -469,7 +500,11 @@ export function createEveTools(
       const patch: EventPatch = {};
       if (changes.title !== undefined) patch.title = changes.title;
       if (changes.timing !== undefined) {
-        patch.timing = toEventTiming(changes.timing, timeZone);
+        patch.timing = toEventTiming(
+          changes.timing,
+          timeZone,
+          defaults.defaultDurationMinutes,
+        );
       }
       if (hasKey(changes, "rrule")) {
         patch.recurrence =

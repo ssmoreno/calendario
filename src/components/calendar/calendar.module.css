@@ -483,6 +483,31 @@
   gap: 8px;
 }
 
+.allSettingsLink {
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  padding: 0 14px;
+  border-top: 1px solid var(--line);
+  border-radius: 0 0 var(--radius-card) var(--radius-card);
+  margin: 0 -14px -14px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 600;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.allSettingsLink:hover {
+  background: var(--surface-2);
+}
+
+.allSettingsLink svg {
+  width: 15px;
+  height: 15px;
+  color: var(--muted);
+}
+
 .dataActions button {
   min-height: 36px;
   padding: 0 12px;
