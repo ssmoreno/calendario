@@ -65,3 +65,37 @@
   font-size: 12px;
   justify-self: center;
 }
+
+.divider {
+  display: flex;
+  align-items: center;
+  color: var(--muted);
+  font-size: 10px;
+  gap: 10px;
+  text-transform: uppercase;
+}
+
+.divider::before,
+.divider::after {
+  height: 1px;
+  flex: 1;
+  background: var(--line);
+  content: "";
+}
+
+.googleButton {
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.googleButton:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+.googleButton:disabled {
+  opacity: 0.6;
+}

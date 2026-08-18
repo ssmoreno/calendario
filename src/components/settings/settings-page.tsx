@@ -24,10 +24,14 @@ import { saveThemePreference } from "@/calendar/storage";
 import { applyThemePreference } from "@/calendar/theme";
 import { EVENT_COLORS, type ThemePreference } from "@/calendar/types";
 import { authClient } from "@/lib/auth-client";
+import {
+  GOOGLE_CALENDAR_PROVIDER,
+  GOOGLE_CALENDAR_SCOPE,
+} from "@/lib/google-calendar";
 import { SerialTaskQueue } from "@/lib/serial-task-queue";
 
-import calendarStyles from "../calendar/calendar.module.css";
-import { clearSavedChat } from "../chat/chat-storage";
+import { clearSavedAgent } from "../agent/agent-storage";
+import formStyles from "../forms.module.css";
 import styles from "./settings.module.css";
 
 const settingsMessages = messages.settings;
@@ -58,6 +62,7 @@ const reminderUnitLabels: Record<ReminderUnit, string> = {
 
 interface SettingsPageProps {
   email: string;
+  googleConnected: boolean;
   userId: string;
   initialSettings: UserSettings;
   initialMemories: UserMemoryRecord[];
@@ -65,6 +70,7 @@ interface SettingsPageProps {
 
 export function SettingsPage({
   email,
+  googleConnected,
   userId,
   initialSettings,
   initialMemories,
@@ -181,12 +187,26 @@ export function SettingsPage({
     try {
       const result = await authClient.signOut();
       if (result.error) throw new Error(messages.auth.signOutFailed);
-      clearSavedChat(userId);
+      clearSavedAgent(userId);
       router.replace("/login");
       router.refresh();
     } catch {
       setStatus({ text: messages.auth.signOutFailed, failed: true });
     } finally {
+      endOperation();
+    }
+  }
+
+  async function connectGoogle() {
+    beginOperation();
+    const result = await authClient.linkSocial({
+      provider: GOOGLE_CALENDAR_PROVIDER,
+      callbackURL: "/settings",
+      errorCallbackURL: "/settings?google=error",
+      scopes: [GOOGLE_CALENDAR_SCOPE],
+    });
+    if (result?.error) {
+      setStatus({ text: settingsMessages.googleConnectFailed, failed: true });
       endOperation();
     }
   }
@@ -208,7 +228,7 @@ export function SettingsPage({
           </div>
 
           <div className={styles.controlRow}>
-            <label className={calendarStyles.field}>
+            <label className={formStyles.field}>
               <span>{settingsMessages.duration}</span>
               <input
                 type="number"
@@ -220,7 +240,7 @@ export function SettingsPage({
               />
             </label>
 
-            <div className={calendarStyles.field}>
+            <div className={formStyles.field}>
               <span>{settingsMessages.reminder}</span>
               <select
                 aria-label={settingsMessages.reminder}
@@ -240,7 +260,7 @@ export function SettingsPage({
                 <option value="custom">{settingsMessages.reminderCustom}</option>
               </select>
               {reminder.preset === "custom" ? (
-                <div className={calendarStyles.reminderCustomFields}>
+                <div className={formStyles.reminderCustomFields}>
                   <input
                     aria-label={editorMessages.reminderAmount}
                     type="number"
@@ -278,7 +298,7 @@ export function SettingsPage({
             </div>
           </div>
 
-          <fieldset className={calendarStyles.colorFieldset}>
+          <fieldset className={formStyles.colorFieldset}>
             <legend>{settingsMessages.color}</legend>
             <div className={styles.colorChoices}>
               {EVENT_COLORS.map((color) => (
@@ -303,7 +323,7 @@ export function SettingsPage({
             <p>{settingsMessages.appearanceBody}</p>
           </div>
           <div
-            className={calendarStyles.segmented}
+            className={formStyles.segmented}
             role="group"
             aria-label={messages.header.themeGroup}
           >
@@ -317,6 +337,30 @@ export function SettingsPage({
                 {themeLabels[option]}
               </button>
             ))}
+          </div>
+        </section>
+
+        <section className={styles.settingsGroup}>
+          <div className={styles.groupIntro}>
+            <h2>{settingsMessages.googleHeading}</h2>
+            <p>
+              {googleConnected
+                ? settingsMessages.googleConnected
+                : settingsMessages.googleDisconnected}
+            </p>
+          </div>
+          <div className={styles.accountRow}>
+            <span className={styles.connectionStatus} data-connected={googleConnected}>
+              {googleConnected ? "Connected" : "Not connected"}
+            </span>
+            <button
+              className={styles.secondaryButton}
+              type="button"
+              disabled={busy}
+              onClick={() => void connectGoogle()}
+            >
+              {googleConnected ? "Reconnect" : "Connect Google Calendar"}
+            </button>
           </div>
         </section>
 

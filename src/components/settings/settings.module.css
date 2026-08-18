@@ -192,6 +192,26 @@
   font-size: 12px;
 }
 
+.connectionStatus {
+  display: inline-flex;
+  align-items: center;
+  color: var(--muted);
+  font-size: 12px;
+  gap: 7px;
+}
+
+.connectionStatus::before {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+  content: "";
+}
+
+.connectionStatus[data-connected="true"]::before {
+  background: var(--mint);
+}
+
 .statusLine {
   min-height: 16px;
   color: var(--muted);

@@ -1,13 +1,17 @@
-import { CalendarApp } from "@/components/calendar/calendar-app";
+import { Dashboard } from "@/components/dashboard/dashboard";
+import { hasGoogleCalendarConnection } from "@/server/google-calendar";
 import { requireSession } from "@/server/session";
-import { getUserSettings } from "@/server/settings-store";
 
 export default async function Home() {
   const session = await requireSession();
   return (
-    <CalendarApp
-      initialSettings={await getUserSettings(session.user.id)}
-      userId={session.user.id}
+    <Dashboard
+      initialConnected={await hasGoogleCalendarConnection(session.user.id)}
+      user={{
+        id: session.user.id,
+        name: session.user.name,
+        email: session.user.email,
+      }}
     />
   );
 }

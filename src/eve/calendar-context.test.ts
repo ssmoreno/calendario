@@ -1,13 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { emptyCalendar } from "@/calendar/storage";
-
 import { buildCalendarContext, currentCalendarTime } from "./calendar-context";
 
 describe("Eve calendar context", () => {
   it("requires timezone setup before date interpretation", () => {
     expect(
-      buildCalendarContext({ timeZone: null, document: emptyCalendar() }),
+      buildCalendarContext({ timeZone: null }),
     ).toContain("timezone is not configured");
   });
 
@@ -15,7 +13,6 @@ describe("Eve calendar context", () => {
     const context = buildCalendarContext(
       {
         timeZone: "America/Argentina/Buenos_Aires",
-        document: emptyCalendar(),
       },
       new Date("2026-08-13T15:45:00.000Z"),
     );

@@ -1,13 +1,35 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CalendarDocumentEngine } from "@/calendar/calendar-document-engine";
 import { localDateTimeToZoned } from "@/calendar/date-time";
 import { DEFAULT_USER_SETTINGS } from "@/calendar/settings";
-import { emptyCalendar } from "@/calendar/storage";
+import type { CalendarDocument, CalendarService } from "@/calendar/types";
 
 import { createEveTools, type EveTools } from "./tools";
 
 const TIME_ZONE = "UTC";
+
+function emptyCalendar(): CalendarDocument {
+  return {
+    version: 1,
+    revision: 0,
+    updatedAt: new Date(0).toISOString(),
+    events: [],
+  };
+}
+
+function calendarServiceFor(engine: CalendarDocumentEngine): CalendarService {
+  return {
+    listEventRecords: async () => engine.listEventRecords(),
+    setEventReminders: async (eventIds, reminderMinutesBefore) =>
+      engine.setEventReminders(eventIds, reminderMinutesBefore),
+    listOccurrences: async (range) => engine.listOccurrences(range),
+    createEvent: async (input) => engine.createEvent(input),
+    updateEvent: async (target, scope, patch) =>
+      engine.updateEvent(target, scope, patch),
+    deleteEvent: async (target, scope) => engine.deleteEvent(target, scope),
+  };
+}
 
 async function asJson(result: unknown) {
   const resolved = await result;
@@ -20,7 +42,7 @@ describe("Eve calendar tools", () => {
 
   beforeEach(() => {
     service = new CalendarDocumentEngine(emptyCalendar(), TIME_ZONE);
-    tools = createEveTools(service, { timeZone: TIME_ZONE });
+    tools = createEveTools(calendarServiceFor(service), { timeZone: TIME_ZONE });
   });
 
   function listAugust(query?: string) {
@@ -51,7 +73,7 @@ describe("Eve calendar tools", () => {
   });
 
   it("fills an omitted length, color, and reminder from the saved defaults", async () => {
-    const withDefaults = createEveTools(service, {
+    const withDefaults = createEveTools(calendarServiceFor(service), {
       timeZone: TIME_ZONE,
       defaults: {
         ...DEFAULT_USER_SETTINGS,
@@ -75,7 +97,7 @@ describe("Eve calendar tools", () => {
   });
 
   it("takes an explicit null reminder as no reminder at all", async () => {
-    const withDefaults = createEveTools(service, {
+    const withDefaults = createEveTools(calendarServiceFor(service), {
       timeZone: TIME_ZONE,
       defaults: { ...DEFAULT_USER_SETTINGS, defaultReminderMinutes: 8 },
     });
@@ -314,6 +336,47 @@ describe("Eve calendar tools", () => {
     ).toEqual([22, 22]);
   });
 
+  it("replaces multiple Google reminders even when the first already matches", async () => {
+    await tools.createEvent.run({
+      title: "Planning",
+      timing: {
+        kind: "timed",
+        date: "2026-08-10",
+        time: "15:30",
+        durationMinutes: 45,
+      },
+    });
+    const [record] = service.getDocument().events;
+    const setEventReminders = vi.fn(async () => undefined);
+    const googleBacked = createEveTools(
+      {
+        ...calendarServiceFor(service),
+        listEventRecords: async () => [
+          {
+            ...record,
+            reminderMinutesBefore: 10,
+            reminderOverrides: [
+              { method: "popup", minutes: 10 },
+              { method: "popup", minutes: 30 },
+            ],
+          },
+        ],
+        setEventReminders,
+      },
+      { timeZone: TIME_ZONE },
+    );
+
+    const result = await asJson(
+      googleBacked.setEventReminders.run({
+        selector: { all: true },
+        reminder: { amount: 10, unit: "minutes" },
+      }),
+    );
+
+    expect(result.changedCount).toBe(1);
+    expect(setEventReminders).toHaveBeenCalledWith([record.id], 10);
+  });
+
   it("round-trips list output into a single-occurrence update", async () => {
     await tools.createEvent.run({
       title: "Swim",
@@ -406,27 +469,27 @@ describe("Eve calendar tools", () => {
     expect((await listAugust()).count).toBe(0);
   });
 
-  it("rejects invalid input with readable errors instead of raw ZodError output", () => {
-    expect(() =>
+  it("rejects invalid input with readable errors instead of raw ZodError output", async () => {
+    await expect(
       tools.createEvent.run({
         title: "Broken",
         timing: { kind: "timed", date: "2026-08-10", time: "15:30", durationMinutes: 45 },
         rrule: "EVERY-TUESDAY",
       }),
-    ).toThrow(/recurrence\.rrule/);
+    ).rejects.toThrow(/recurrence\.rrule/);
 
-    expect(() =>
+    await expect(
       tools.listEvents.run({ from: "2026-08-31", to: "2026-08-01" }),
-    ).toThrow(/on or after/);
+    ).rejects.toThrow(/on or after/);
 
-    expect(() =>
+    await expect(
       tools.updateEvent.run({
         eventId: "missing",
         occurrenceStart: "2026-08-01",
         scope: "occurrence",
         changes: {},
       }),
-    ).toThrow(/no changes provided/i);
+    ).rejects.toThrow(/no changes provided/i);
   });
 
   it("validates raw model input through the schemas", () => {
@@ -449,5 +512,12 @@ describe("Eve calendar tools", () => {
         reminder: { amount: 0.01, unit: "hours" },
       }),
     ).toThrow();
+    expect(() =>
+      tools.createEvent.parse({
+        title: "Too early",
+        timing: { kind: "all-day", startDate: "2026-08-20" },
+        reminder: { amount: 5, unit: "weeks" },
+      }),
+    ).toThrow(/40320/);
   });
 });

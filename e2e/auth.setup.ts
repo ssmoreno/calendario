@@ -29,7 +29,7 @@ for (const [project, account] of Object.entries(E2E_ACCOUNTS)) {
     await page.getByRole("button", { name: "Sign in", exact: true }).click();
 
     await expect(
-      page.getByRole("button", { name: "Add event", exact: true }),
+      page.getByRole("heading", { name: "SS Calendar", exact: true }),
     ).toBeVisible();
     const userId = await page.evaluate(async () => {
       const response = await fetch("/api/auth/get-session");

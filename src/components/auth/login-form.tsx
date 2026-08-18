@@ -6,7 +6,7 @@ import { useState, type FormEvent } from "react";
 import { messages } from "@/calendar/messages";
 import { authClient } from "@/lib/auth-client";
 
-import calendarStyles from "../calendar/calendar.module.css";
+import formStyles from "../forms.module.css";
 import styles from "./auth.module.css";
 
 const authMessages = messages.auth;
@@ -36,6 +36,20 @@ export function LoginForm() {
     router.refresh();
   }
 
+  async function signInWithGoogle() {
+    setSubmitting(true);
+    setError(null);
+    const result = await authClient.signIn.social({
+      provider: "google",
+      callbackURL: "/",
+      errorCallbackURL: "/login?error=google",
+    });
+    if (result?.error) {
+      setError(result.error.message ?? authMessages.genericFailure);
+      setSubmitting(false);
+    }
+  }
+
   return (
     <main className={styles.authStage}>
       <section className={styles.authCard}>
@@ -50,7 +64,7 @@ export function LoginForm() {
 
         <form className={styles.authForm} onSubmit={submit} noValidate>
           {creating ? (
-            <label className={calendarStyles.field}>
+            <label className={formStyles.field}>
               <span>{authMessages.name}</span>
               <input
                 autoComplete="name"
@@ -62,7 +76,7 @@ export function LoginForm() {
             </label>
           ) : null}
 
-          <label className={calendarStyles.field}>
+          <label className={formStyles.field}>
             <span>{authMessages.email}</span>
             <input
               type="email"
@@ -73,7 +87,7 @@ export function LoginForm() {
             />
           </label>
 
-          <label className={calendarStyles.field}>
+          <label className={formStyles.field}>
             <span>{authMessages.password}</span>
             <input
               type="password"
@@ -87,7 +101,7 @@ export function LoginForm() {
           </label>
 
           {error ? (
-            <p className={calendarStyles.formError} role="alert">
+            <p className={formStyles.formError} role="alert">
               {error}
             </p>
           ) : null}
@@ -102,6 +116,19 @@ export function LoginForm() {
               : creating
                 ? authMessages.signUp
                 : authMessages.signIn}
+          </button>
+
+          <div className={styles.divider}>
+            <span>{authMessages.or}</span>
+          </div>
+
+          <button
+            className={styles.googleButton}
+            type="button"
+            disabled={submitting}
+            onClick={() => void signInWithGoogle()}
+          >
+            {authMessages.continueWithGoogle}
           </button>
 
           <button

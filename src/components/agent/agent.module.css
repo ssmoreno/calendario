@@ -1,0 +1,136 @@
+.panel {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+.panelHeading {
+  display: flex;
+  min-height: 28px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.panelHeading h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.quietButton {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.transcript {
+  display: grid;
+  max-height: 340px;
+  padding: 14px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  gap: 14px;
+}
+
+.message {
+  display: grid;
+  max-width: 88%;
+  gap: 4px;
+}
+
+.message[data-role="user"] {
+  justify-self: end;
+}
+
+.message > span {
+  color: var(--muted);
+  font-family: var(--font-mono), monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+}
+
+.messageText {
+  padding: 9px 11px;
+  border-radius: 9px;
+  margin: 0;
+  background: var(--surface-2);
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.message[data-role="user"] .messageText {
+  background: var(--accent-soft);
+}
+
+.prompt {
+  display: grid;
+  padding: 12px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-control);
+  margin: 0;
+  gap: 8px;
+}
+
+.prompt legend,
+.prompt p {
+  font-size: 12px;
+}
+
+.prompt p {
+  margin: 0;
+}
+
+.promptOptions,
+.answerForm,
+.composer {
+  display: flex;
+  gap: 8px;
+}
+
+.prompt button,
+.answerForm button,
+.composer button {
+  min-width: 38px;
+  min-height: 38px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  font-size: 12px;
+}
+
+.answerForm input,
+.composer input {
+  min-width: 0;
+  min-height: 44px;
+  flex: 1;
+  padding: 0 13px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.composer button {
+  min-width: 44px;
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--canvas);
+  font-size: 18px;
+}
+
+.composer button:disabled,
+.composer input:disabled {
+  opacity: 0.55;
+}
+
+.error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 12px;
+}

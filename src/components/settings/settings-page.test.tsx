@@ -37,6 +37,7 @@ function renderSettings(
   render(
     <SettingsPage
       email="user@example.com"
+      googleConnected={false}
       userId="user-a"
       initialSettings={DEFAULT_USER_SETTINGS}
       initialMemories={memories}
