@@ -2,10 +2,12 @@ import { z } from "zod";
 
 import {
   addDays,
+  dateKeyInTimeZone,
   daysBetween,
   isDateKey,
   isTimeZone,
   localDateTimeToZoned,
+  zonedTimestampToDate,
 } from "@/calendar/date-time";
 import {
   MAX_REMINDER_MINUTES,
@@ -289,6 +291,17 @@ function toEventTiming(
   };
 }
 
+function startsAtTheSameMoment(a: EventTiming, b: EventTiming): boolean {
+  if (a.kind === "timed") {
+    return (
+      b.kind === "timed" &&
+      zonedTimestampToDate(a.startsAt).getTime() ===
+        zonedTimestampToDate(b.startsAt).getTime()
+    );
+  }
+  return b.kind === "all-day" && a.startDate === b.startDate;
+}
+
 function describeTiming(timing: EventTiming) {
   if (timing.kind === "timed") {
     return {
@@ -428,9 +441,31 @@ export function createEveTools(
     },
   });
 
+  /**
+   * A subagent starts a fresh session for every task, so a task it has already
+   * carried out looks new to it. Reading the target day before writing turns a
+   * repeated create into a report that the event is already there.
+   */
+  async function occurrenceAlreadySaved(title: string, timing: EventTiming) {
+    const dateKey =
+      timing.kind === "timed"
+        ? dateKeyInTimeZone(zonedTimestampToDate(timing.startsAt), timeZone)
+        : timing.startDate;
+    const occurrences = await service.listOccurrences({
+      from: dateKey,
+      to: dateKey,
+    });
+    const wanted = title.trim().toLowerCase();
+    return occurrences.find(
+      (occurrence) =>
+        occurrence.record.title.trim().toLowerCase() === wanted &&
+        startsAtTheSameMoment(occurrence.timing, timing),
+    );
+  }
+
   const createEvent = calendarTool({
     description:
-      "Add a new event to the user's calendar, with a reminder when the user wants one. Call when the user wants to schedule, add, book, or block time. Do not use this to change an existing event — use update_event for that.",
+      "Add a new event to the user's calendar, with a reminder when the user wants one. Call when the user wants to schedule, add, book, or block time. Do not use this to change an existing event — use update_event for that. When an event with the same title already starts at that moment nothing is added, and the saved one comes back as alreadyExists.",
     inputSchema: z.object({
       title: z.string().trim().min(1).max(160).describe("Event title."),
       timing: newTimingSchema,
@@ -450,13 +485,16 @@ export function createEveTools(
     }),
     run: async (input) => {
       try {
+        const timing = toEventTiming(
+          input.timing,
+          timeZone,
+          defaults.defaultDurationMinutes,
+        );
+        const saved = await occurrenceAlreadySaved(input.title, timing);
+        if (saved) return { alreadyExists: describeOccurrence(saved) };
         const record = await service.createEvent({
           title: input.title,
-          timing: toEventTiming(
-            input.timing,
-            timeZone,
-            defaults.defaultDurationMinutes,
-          ),
+          timing,
           recurrence: input.rrule
             ? { rrule: input.rrule, excludedStarts: [] }
             : null,

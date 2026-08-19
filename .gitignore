@@ -28,6 +28,7 @@
 /.eve/
 /.output/
 /.nitro/
+/.eval-calendar.json
 
 # production
 /build

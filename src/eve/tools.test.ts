@@ -183,6 +183,70 @@ describe("Eve calendar tools", () => {
     expect(singleDay.created.timing.lastDay).toBe("2026-08-25");
   });
 
+  describe("repeated creates", () => {
+    const cumple = {
+      title: "Cumple Teo",
+      timing: {
+        kind: "timed",
+        date: "2026-08-19",
+        time: "20:00",
+        durationMinutes: 300,
+      },
+    } as const;
+
+    it("reports the saved event instead of adding it twice", async () => {
+      const first = await asJson(tools.createEvent.run(cumple));
+      const again = await asJson(
+        tools.createEvent.run({ ...cumple, title: "cumple teo" }),
+      );
+
+      expect(again.created).toBeUndefined();
+      expect(again.alreadyExists.eventId).toBe(first.created.eventId);
+      expect(service.getDocument().events).toHaveLength(1);
+    });
+
+    it("adds the same title again at a different time", async () => {
+      await tools.createEvent.run(cumple);
+      const later = await asJson(
+        tools.createEvent.run({
+          ...cumple,
+          timing: { ...cumple.timing, time: "22:00" },
+        }),
+      );
+
+      expect(later.created).toBeTruthy();
+      expect(service.getDocument().events).toHaveLength(2);
+    });
+
+    it("adds a different title at the same time", async () => {
+      await tools.createEvent.run(cumple);
+      const other = await asJson(
+        tools.createEvent.run({ ...cumple, title: "Cena" }),
+      );
+
+      expect(other.created).toBeTruthy();
+      expect(service.getDocument().events).toHaveLength(2);
+    });
+
+    it("reports an all-day event that already covers that day", async () => {
+      const first = await asJson(
+        tools.createEvent.run({
+          title: "Offsite",
+          timing: { kind: "all-day", startDate: "2026-08-20" },
+        }),
+      );
+      const again = await asJson(
+        tools.createEvent.run({
+          title: "Offsite",
+          timing: { kind: "all-day", startDate: "2026-08-20", endDate: "2026-08-21" },
+        }),
+      );
+
+      expect(again.alreadyExists.eventId).toBe(first.created.eventId);
+      expect(service.getDocument().events).toHaveLength(1);
+    });
+  });
+
   it("expands repeating events when listing and reports the rule", async () => {
     await tools.createEvent.run({
       title: "Swim",

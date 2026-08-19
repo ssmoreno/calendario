@@ -3,6 +3,7 @@ import { createEveTools } from "../../src/eve/tools";
 import { googleCalendarForUser } from "../../src/server/google-calendar";
 import { getUserSettings } from "../../src/server/settings-store";
 import { requireUserId } from "./auth";
+import { fakeCalendar, fakeCalendarPath } from "./fake-calendar";
 
 /**
  * The timezone lives in the user's saved settings rather than durable session
@@ -21,6 +22,9 @@ export async function runCalendar<Result>(
       "The calendar timezone is not set. Ask the user for their location or IANA timezone, then call set_time_zone.",
     );
   }
-  const service = await googleCalendarForUser(userId, timeZone);
+  const storePath = fakeCalendarPath();
+  const service = storePath
+    ? fakeCalendar(storePath, timeZone)
+    : await googleCalendarForUser(userId, timeZone);
   return await run(createEveTools(service, { timeZone, defaults }));
 }

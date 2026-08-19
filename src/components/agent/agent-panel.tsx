@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import type { ReactNode } from "react";
 import type { MessageStreamEvent } from "eve/client";
 import { useEveAgent } from "eve/react";
 import type {
+  EveMessage,
   EveMessageData,
   EveMessageInputRequest,
-  EveMessagePart,
   UseEveAgentSnapshot,
 } from "eve/react";
 
@@ -21,6 +22,7 @@ import {
   writeSavedAgent,
   type AgentSnapshot,
 } from "./agent-storage";
+import { plainText, replyText } from "./message-text";
 import styles from "./agent.module.css";
 
 function pendingRequests(data: EveMessageData): readonly EveMessageInputRequest[] {
@@ -65,8 +67,21 @@ function safeStorage(): Storage | null {
   }
 }
 
-function MessagePart({ part }: { part: EveMessagePart }) {
-  return part.type === "text" ? <p className={styles.messageText}>{part.text}</p> : null;
+function Message({ children, role }: { children: ReactNode; role: EveMessage["role"] }) {
+  return (
+    <article className={styles.message} data-role={role}>
+      <span>{role === "user" ? "You" : "SS"}</span>
+      {children}
+    </article>
+  );
+}
+
+function WorkingMessage() {
+  return (
+    <Message role="assistant">
+      <p className={styles.working}>Working…</p>
+    </Message>
+  );
 }
 
 function HydratedAgentPanel({
@@ -100,6 +115,17 @@ function HydratedAgentPanel({
 
   const isBusy = agent.status === "submitted" || agent.status === "streaming";
   const request = pendingRequests(agent.data).at(-1);
+  /**
+   * Where the working indicator goes while a turn runs: over the assistant
+   * message being built, or after the user's message when it has none yet. The
+   * turn's own status can read `complete` mid-turn — the reducer sets it on
+   * every finished text part, narration included — so the session status is
+   * what says whether the answer has landed.
+   */
+  const running = !isBusy
+    ? -1
+    : agent.data.messages.length -
+      (agent.data.messages.at(-1)?.role === "assistant" ? 1 : 0);
 
   useEffect(() => {
     const transcript = transcriptRef.current;
@@ -154,18 +180,18 @@ function HydratedAgentPanel({
 
       {expanded ? (
         <div className={styles.transcript} ref={transcriptRef} aria-live="polite">
-          {agent.data.messages.map((message) => {
-            const textParts = message.parts.filter((part) => part.type === "text");
-            if (!textParts.length) return null;
+          {agent.data.messages.map((message, index) => {
+            if (index === running) return <WorkingMessage key={message.id} />;
+            const text = replyText(message);
+            if (!text) return null;
             return (
-              <article className={styles.message} data-role={message.role} key={message.id}>
-                <span>{message.role === "user" ? "You" : "SS"}</span>
-                {textParts.map((part, index) => (
-                  <MessagePart key={index} part={part} />
-                ))}
-              </article>
+              <Message key={message.id} role={message.role}>
+                <p className={styles.messageText}>{plainText(text)}</p>
+              </Message>
             );
           })}
+
+          {running === agent.data.messages.length ? <WorkingMessage /> : null}
 
           {request ? (
             <fieldset className={styles.prompt}>

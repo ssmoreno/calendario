@@ -2,7 +2,17 @@ import { describe, expect, it } from "vitest";
 
 import { DEFAULT_USER_SETTINGS } from "@/calendar/settings";
 
-import { buildUserContext } from "./user-context";
+import { buildSettingsContext, buildUserContext } from "./user-context";
+
+describe("buildSettingsContext", () => {
+  it("summarises the defaults without any memories", () => {
+    const context = buildSettingsContext(DEFAULT_USER_SETTINGS);
+
+    expect(context).toContain("Default event length: 60 minutes");
+    expect(context).toContain("Timezone: not saved yet");
+    expect(context).not.toContain("saved about this user");
+  });
+});
 
 describe("buildUserContext", () => {
   it("summarises the defaults and says nothing is remembered yet", () => {
