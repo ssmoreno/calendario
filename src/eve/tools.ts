@@ -302,6 +302,10 @@ function startsAtTheSameMoment(a: EventTiming, b: EventTiming): boolean {
   return b.kind === "all-day" && a.startDate === b.startDate;
 }
 
+function normalizeRRule(rrule: string | undefined): string | undefined {
+  return rrule?.replace(/^RRULE:/, "");
+}
+
 function describeTiming(timing: EventTiming) {
   if (timing.kind === "timed") {
     return {
@@ -465,7 +469,8 @@ export function createEveTools(
     return occurrences.find(
       (occurrence) =>
         occurrence.record.title.trim().toLowerCase() === wanted &&
-        (occurrence.record.recurrence?.rrule ?? undefined) === rrule &&
+        normalizeRRule(occurrence.record.recurrence?.rrule ?? undefined) ===
+          normalizeRRule(rrule) &&
         startsAtTheSameMoment(occurrence.timing, timing),
     );
   }
@@ -507,7 +512,7 @@ export function createEveTools(
           title: input.title,
           timing,
           recurrence: input.rrule
-            ? { rrule: input.rrule, excludedStarts: [] }
+            ? { rrule: normalizeRRule(input.rrule)!, excludedStarts: [] }
             : null,
           location: input.location,
           notes: input.notes,

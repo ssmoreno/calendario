@@ -238,6 +238,18 @@ describe("Eve calendar tools", () => {
       expect(service.getDocument().events).toHaveLength(2);
     });
 
+    it("recognizes the same series with or without the RRULE prefix", async () => {
+      const first = await asJson(
+        tools.createEvent.run({ ...cumple, rrule: "FREQ=WEEKLY;BYDAY=WE" }),
+      );
+      const again = await asJson(
+        tools.createEvent.run({ ...cumple, rrule: "RRULE:FREQ=WEEKLY;BYDAY=WE" }),
+      );
+
+      expect(again.alreadyExists.eventId).toBe(first.created.eventId);
+      expect(service.getDocument().events).toHaveLength(1);
+    });
+
     it("reports an all-day event that already covers that day", async () => {
       const first = await asJson(
         tools.createEvent.run({
