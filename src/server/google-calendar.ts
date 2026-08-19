@@ -623,6 +623,9 @@ export class GoogleCalendarService implements CalendarService {
         key: `${event.id}:${occurrenceStart}`,
         eventId: event.id,
         rootEventId: event.recurringEventId ?? event.id,
+        rootTiming: parent
+          ? timingFor(parent, this.viewerTimeZone)
+          : record.timing,
         occurrenceStart,
         record,
         timing: record.timing,

@@ -25,6 +25,10 @@ async function main() {
     create: { userId: LOCAL_DEV_USER_ID, timeZone: LOCAL_DEV_TIME_ZONE },
     update: {},
   });
+  await prisma.userSettings.updateMany({
+    where: { userId: LOCAL_DEV_USER_ID, timeZone: null },
+    data: { timeZone: LOCAL_DEV_TIME_ZONE },
+  });
 
   for (const account of Object.values(E2E_ACCOUNTS)) {
     const existing = await prisma.user.findUnique({

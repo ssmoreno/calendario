@@ -471,7 +471,7 @@ export function createEveTools(
         occurrence.record.title.trim().toLowerCase() === wanted &&
         normalizeRRule(occurrence.record.recurrence?.rrule ?? undefined) ===
           normalizeRRule(rrule) &&
-        startsAtTheSameMoment(occurrence.timing, timing),
+        startsAtTheSameMoment(occurrence.rootTiming, timing),
     );
   }
 

@@ -69,6 +69,7 @@ export interface Occurrence {
   key: string;
   eventId: string;
   rootEventId: string;
+  rootTiming: EventTiming;
   occurrenceStart: string;
   record: EventRecord;
   timing: EventTiming;

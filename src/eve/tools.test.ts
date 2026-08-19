@@ -250,6 +250,24 @@ describe("Eve calendar tools", () => {
       expect(service.getDocument().events).toHaveLength(1);
     });
 
+    it("allows a new series to start on a later occurrence", async () => {
+      await tools.createEvent.run({
+        ...cumple,
+        timing: { ...cumple.timing, date: "2026-08-03" },
+        rrule: "FREQ=WEEKLY;COUNT=2",
+      });
+      const later = await asJson(
+        tools.createEvent.run({
+          ...cumple,
+          timing: { ...cumple.timing, date: "2026-08-10" },
+          rrule: "FREQ=WEEKLY;COUNT=2",
+        }),
+      );
+
+      expect(later.created).toBeTruthy();
+      expect(service.getDocument().events).toHaveLength(2);
+    });
+
     it("reports an all-day event that already covers that day", async () => {
       const first = await asJson(
         tools.createEvent.run({
