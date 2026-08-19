@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { isTimeZone } from "./date-time";
 import { MAX_REMINDER_MINUTES } from "./reminders";
 import { EVENT_COLORS, type EventColor, type ThemePreference } from "./types";
 
@@ -12,6 +13,8 @@ export interface UserSettings {
   defaultReminderMinutes: number | null;
   defaultColor: EventColor;
   theme: ThemePreference;
+  /** null until the agent has resolved the user's IANA timezone. */
+  timeZone: string | null;
 }
 
 export const DEFAULT_USER_SETTINGS: UserSettings = {
@@ -19,6 +22,7 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
   defaultReminderMinutes: null,
   defaultColor: "coral",
   theme: "system",
+  timeZone: null,
 };
 
 export const defaultDurationMinutesSchema = z
@@ -36,12 +40,18 @@ export const defaultReminderMinutesSchema = z
 
 export const themePreferenceSchema = z.enum(THEME_PREFERENCES);
 
+export const timeZoneSchema = z
+  .string()
+  .trim()
+  .refine(isTimeZone, "Use an IANA timezone like Europe/Madrid.");
+
 export const settingsPatchSchema = z
   .object({
     defaultDurationMinutes: defaultDurationMinutesSchema.optional(),
     defaultReminderMinutes: defaultReminderMinutesSchema.optional(),
     defaultColor: z.enum(EVENT_COLORS).optional(),
     theme: themePreferenceSchema.optional(),
+    timeZone: timeZoneSchema.optional(),
   })
   .refine(
     (patch) => Object.values(patch).some((value) => value !== undefined),
@@ -55,6 +65,7 @@ export interface StoredUserSettings {
   defaultReminderMinutes: number | null;
   defaultColor: string;
   theme: string;
+  timeZone: string | null;
 }
 
 /**
@@ -71,6 +82,7 @@ export function toUserSettings(row: StoredUserSettings | null): UserSettings {
   );
   const color = z.enum(EVENT_COLORS).safeParse(row.defaultColor);
   const theme = themePreferenceSchema.safeParse(row.theme);
+  const timeZone = timeZoneSchema.safeParse(row.timeZone);
   return {
     defaultDurationMinutes: duration.success
       ? duration.data
@@ -82,6 +94,7 @@ export function toUserSettings(row: StoredUserSettings | null): UserSettings {
       ? color.data
       : DEFAULT_USER_SETTINGS.defaultColor,
     theme: theme.success ? theme.data : DEFAULT_USER_SETTINGS.theme,
+    timeZone: timeZone.success ? timeZone.data : DEFAULT_USER_SETTINGS.timeZone,
   };
 }
 

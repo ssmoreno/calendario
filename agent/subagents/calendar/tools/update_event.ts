@@ -1,7 +1,7 @@
 import { defineTool } from "eve/tools";
 
-import { calendarToolMetadata } from "../lib/calendar-tool-metadata";
-import { runCalendar } from "../lib/calendar-state";
+import { calendarToolMetadata } from "../../../lib/calendar-tool-metadata";
+import { runCalendar } from "../../../lib/calendar";
 
 const metadata = calendarToolMetadata.updateEvent;
 

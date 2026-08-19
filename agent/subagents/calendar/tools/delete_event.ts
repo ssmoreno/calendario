@@ -1,8 +1,8 @@
 import { defineTool } from "eve/tools";
 
-import { deleteEventApproval } from "../../src/eve/delete-approval";
-import { calendarToolMetadata } from "../lib/calendar-tool-metadata";
-import { runCalendar } from "../lib/calendar-state";
+import { deleteEventApproval } from "../../../../src/eve/delete-approval";
+import { calendarToolMetadata } from "../../../lib/calendar-tool-metadata";
+import { runCalendar } from "../../../lib/calendar";
 
 const metadata = calendarToolMetadata.deleteEvent;
 

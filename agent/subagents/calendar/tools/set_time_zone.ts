@@ -1,9 +1,9 @@
 import { defineTool } from "eve/tools";
 
-import { currentCalendarTime } from "../../src/eve/calendar-context";
-import { setTimeZoneSchema } from "../../src/eve/time-zone";
-import { updateUserSettings } from "../../src/server/settings-store";
-import { requireUserId } from "../lib/auth";
+import { currentCalendarTime } from "../../../../src/eve/calendar-context";
+import { setTimeZoneSchema } from "../../../../src/eve/time-zone";
+import { updateUserSettings } from "../../../../src/server/settings-store";
+import { requireUserId } from "../../../lib/auth";
 
 export default defineTool({
   description:
