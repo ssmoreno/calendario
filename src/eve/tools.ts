@@ -312,6 +312,27 @@ function normalizeRRule(rrule: string | undefined): string | undefined {
   return rrule?.replace(/^RRULE:/, "");
 }
 
+function hasSameReminder(record: EventRecord, input: EventInput): boolean {
+  if (
+    Boolean(record.usesDefaultReminder) !==
+    Boolean(input.usesDefaultReminder)
+  ) {
+    return false;
+  }
+  if (record.usesDefaultReminder) return true;
+  if (!record.reminderOverrides) {
+    return record.reminderMinutesBefore === input.reminderMinutesBefore;
+  }
+  if (input.reminderMinutesBefore === undefined) {
+    return record.reminderOverrides.length === 0;
+  }
+  return (
+    record.reminderOverrides.length === 1 &&
+    record.reminderOverrides[0].method === "popup" &&
+    record.reminderOverrides[0].minutes === input.reminderMinutesBefore
+  );
+}
+
 function isSameEvent(record: EventRecord, input: EventInput): boolean {
   return (
     record.title.trim().toLowerCase() === input.title.trim().toLowerCase() &&
@@ -320,9 +341,7 @@ function isSameEvent(record: EventRecord, input: EventInput): boolean {
     record.location === input.location &&
     record.notes === input.notes &&
     record.color === input.color &&
-    record.reminderMinutesBefore === input.reminderMinutesBefore &&
-    Boolean(record.usesDefaultReminder) ===
-      Boolean(input.usesDefaultReminder)
+    hasSameReminder(record, input)
   );
 }
 

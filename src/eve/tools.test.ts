@@ -283,6 +283,23 @@ describe("Eve calendar tools", () => {
       expect(longer.created).toBeTruthy();
       expect(service.getDocument().events).toHaveLength(2);
     });
+
+    it("allows an event when the saved one has an extra reminder", async () => {
+      const event = {
+        ...cumple,
+        reminder: { amount: 15, unit: "minutes" as const },
+      };
+      await tools.createEvent.run(event);
+      service.getDocument().events[0].reminderOverrides = [
+        { method: "popup", minutes: 15 },
+        { method: "email", minutes: 60 },
+      ];
+
+      const withOnlyThePopup = await asJson(tools.createEvent.run(event));
+
+      expect(withOnlyThePopup.created).toBeTruthy();
+      expect(service.getDocument().events).toHaveLength(2);
+    });
   });
 
   it("expands repeating events when listing and reports the rule", async () => {
