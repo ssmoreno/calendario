@@ -309,28 +309,26 @@ function hasSameTiming(a: EventTiming, b: EventTiming): boolean {
 }
 
 function normalizeRRule(rrule: string | undefined): string | undefined {
-  return rrule?.replace(/^RRULE:/, "");
+  const source = rrule?.replace(/^RRULE:/, "");
+  if (!source) return undefined;
+  return source
+    .split(";")
+    .map((part) => {
+      const [name, ...rawValue] = part.split("=");
+      const value = rawValue.join("=").split(",").sort().join(",");
+      return `${name}=${value}`;
+    })
+    .sort((a, b) => {
+      if (a.startsWith("FREQ=")) return -1;
+      if (b.startsWith("FREQ=")) return 1;
+      return a.localeCompare(b);
+    })
+    .join(";");
 }
 
-function hasSameReminder(record: EventRecord, input: EventInput): boolean {
-  if (
-    Boolean(record.usesDefaultReminder) !==
-    Boolean(input.usesDefaultReminder)
-  ) {
-    return false;
-  }
-  if (record.usesDefaultReminder) return true;
-  if (!record.reminderOverrides) {
-    return record.reminderMinutesBefore === input.reminderMinutesBefore;
-  }
-  if (input.reminderMinutesBefore === undefined) {
-    return record.reminderOverrides.length === 0;
-  }
-  return (
-    record.reminderOverrides.length === 1 &&
-    record.reminderOverrides[0].method === "popup" &&
-    record.reminderOverrides[0].minutes === input.reminderMinutesBefore
-  );
+function optionalText(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed || undefined;
 }
 
 function isSameEvent(record: EventRecord, input: EventInput): boolean {
@@ -338,10 +336,10 @@ function isSameEvent(record: EventRecord, input: EventInput): boolean {
     record.title.trim().toLowerCase() === input.title.trim().toLowerCase() &&
     normalizeRRule(record.recurrence?.rrule ?? undefined) ===
       normalizeRRule(input.recurrence?.rrule ?? undefined) &&
-    record.location === input.location &&
-    record.notes === input.notes &&
+    optionalText(record.location) === input.location &&
+    optionalText(record.notes) === input.notes &&
     record.color === input.color &&
-    hasSameReminder(record, input)
+    hasExactReminder(record, input.reminderMinutesBefore)
   );
 }
 
@@ -543,8 +541,8 @@ export function createEveTools(
           recurrence: input.rrule
             ? { rrule: normalizeRRule(input.rrule)!, excludedStarts: [] }
             : null,
-          location: input.location,
-          notes: input.notes,
+          location: optionalText(input.location),
+          notes: optionalText(input.notes),
           color: input.color ? savedColor(input.color) : defaults.defaultColor,
           reminderMinutesBefore:
             input.reminder === undefined

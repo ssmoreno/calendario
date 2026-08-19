@@ -238,12 +238,12 @@ describe("Eve calendar tools", () => {
       expect(service.getDocument().events).toHaveLength(2);
     });
 
-    it("recognizes the same series with or without the RRULE prefix", async () => {
+    it("recognizes equivalent RRULE representations", async () => {
       const first = await asJson(
         tools.createEvent.run({ ...cumple, rrule: "FREQ=WEEKLY;BYDAY=WE" }),
       );
       const again = await asJson(
-        tools.createEvent.run({ ...cumple, rrule: "RRULE:FREQ=WEEKLY;BYDAY=WE" }),
+        tools.createEvent.run({ ...cumple, rrule: "RRULE:BYDAY=WE;FREQ=WEEKLY" }),
       );
 
       expect(again.alreadyExists.eventId).toBe(first.created.eventId);
@@ -299,6 +299,15 @@ describe("Eve calendar tools", () => {
 
       expect(withOnlyThePopup.created).toBeTruthy();
       expect(service.getDocument().events).toHaveLength(2);
+    });
+
+    it("recognizes empty optional text after Google omits it", async () => {
+      const emptyFields = { ...cumple, location: "  ", notes: "" };
+      const first = await asJson(tools.createEvent.run(emptyFields));
+      const again = await asJson(tools.createEvent.run(emptyFields));
+
+      expect(again.alreadyExists.eventId).toBe(first.created.eventId);
+      expect(service.getDocument().events).toHaveLength(1);
     });
   });
 
