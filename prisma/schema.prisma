@@ -19,6 +19,7 @@ model User {
   accounts      Account[]
   settings      UserSettings?
   memories      UserMemory[]
+  savedItems    SavedItem[]
 
   @@unique([email])
   @@map("user")
@@ -80,6 +81,9 @@ model UserSettings {
   defaultReminderMinutes Int?
   defaultColor           String   @default("coral")
   theme                  String   @default("system")
+  /// IANA timezone. null until the agent resolves one; every agent reads it
+  /// from here because durable session state is not shared with subagents.
+  timeZone               String?
   updatedAt              DateTime @updatedAt
 
   @@map("user_settings")
@@ -95,6 +99,27 @@ model UserMemory {
 
   @@index([userId, createdAt])
   @@map("user_memory")
+}
+
+/// Links the user sends to read, cook, or watch later. Title and summary come
+/// from the page itself at save time and stay null when that fetch fails.
+model SavedItem {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  url       String
+  domain    String
+  title     String?
+  summary   String?
+  kind      String   @default("link")
+  /// What the user said when they sent it.
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, url])
+  @@index([userId, createdAt])
+  @@map("saved_item")
 }
 
 /// Eve does not enforce session ownership, so the channel checks this table on

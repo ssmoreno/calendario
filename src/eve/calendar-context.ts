@@ -1,7 +1,5 @@
 import { todayKey } from "@/calendar/date-time";
 
-import type { CalendarSessionState } from "./calendar-session";
-
 export interface CurrentCalendarTime {
   timeZone: string;
   today: string;
@@ -30,12 +28,12 @@ export function currentCalendarTime(
 }
 
 export function buildCalendarContext(
-  state: CalendarSessionState,
+  timeZone: string | null,
   now = new Date(),
 ): string {
-  if (!state.timeZone) {
+  if (!timeZone) {
     return "The user's timezone is not configured. If a device timezone is reported in the conversation context, call set_time_zone with it immediately, without asking. Otherwise ask for their location or IANA timezone, then call set_time_zone.";
   }
-  const current = currentCalendarTime(state.timeZone, now);
+  const current = currentCalendarTime(timeZone, now);
   return `Today is ${current.weekday}, ${current.today}, and the local time is ${current.localTime} in ${current.timeZone}. Resolve relative dates and times against this context.`;
 }

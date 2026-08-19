@@ -1,14 +1,16 @@
 # SS Calendar
 
-SS Calendar is a focused Google Calendar agent. Its authenticated home combines a compact agent conversation, the next four events from the user's primary Google Calendar, and account controls.
+SS Calendar is a personal assistant built around Eve, a delegating agent. Eve holds the conversation and routes each request to a specialist. Its authenticated home combines a compact agent conversation, the next four events from the user's primary Google Calendar, and account controls.
 
 The current milestone includes:
 
 - Google Calendar sign-in through Better Auth.
 - OAuth connection to the user's primary Google Calendar with automatic token refresh.
+- A root agent that identifies what a message is about and delegates to a declared subagent.
 - Agent-driven listing, creation, editing, deletion, recurring-event scopes, and reminders.
+- Saved links — articles, recipes, and videos kept for later, with titles read from the page itself.
 - A responsive upcoming-event summary with expandable details and no calendar editor UI.
-- Server-backed event defaults, appearance, and cross-session agent memory.
+- Server-backed event defaults, appearance, timezone, and cross-session agent memory.
 
 See [DESIGN.md](./DESIGN.md) for the visual system and responsive behaviour.
 
@@ -39,13 +41,22 @@ The Docker commands require Docker Desktop, OrbStack, or another compatible Comp
 
 Open [http://localhost:3000](http://localhost:3000).
 
-Enable the Google Calendar API for the OAuth project and register `http://localhost:3000/api/auth/callback/google` as a local redirect URI. Calendar events stay in Google; PostgreSQL stores accounts, settings, memories, Eve session ownership, and provider tokens. `calendario.preferences.v1` remains only the pre-paint theme cache.
+Enable the Google Calendar API for the OAuth project and register `http://localhost:3000/api/auth/callback/google` as a local redirect URI. Calendar events stay in Google; PostgreSQL stores accounts, settings, memories, saved links, Eve session ownership, and provider tokens. `calendario.preferences.v1` remains only the pre-paint theme cache.
 
 For deployment, configure the database variables, Better Auth variables, Google OAuth credentials, and the production `/api/auth/callback/google` redirect URI. Apply checked-in migrations with `pnpm exec prisma migrate deploy` before serving traffic.
 
-## Calendar agent
+## The agent
 
-The project includes an [Eve](https://eve.dev) agent mounted at `/eve/v1`. It uses `zai/glm-5.2` through Vercel AI Gateway, receives the browser's IANA timezone, and manages the signed-in user's connected primary Google Calendar. User memories and event-creation defaults persist in PostgreSQL.
+The project includes an [Eve](https://eve.dev) agent mounted at `/eve/v1`. It uses `zai/glm-5.2` through Vercel AI Gateway and receives the browser's IANA timezone. User memories, event-creation defaults, the resolved timezone, and saved links persist in PostgreSQL.
+
+The root agent is a router: it owns the conversation, the voice, and personalization (`remember`, `forget`, `update_settings`, `set_time_zone`), and delegates domain work to declared subagents under `agent/subagents/`.
+
+- `calendar` manages the connected primary Google Calendar.
+- `library` keeps links the user wants to come back to and finds them again.
+
+A declared subagent inherits nothing from the root — its directory is its own agent root, with its own instructions, tools, and disabled built-ins. It also starts with fresh durable state, which is why the timezone lives in `user_settings` rather than in session state: every agent reads the same saved value. A child never sees the parent's conversation, so the root packs everything a specialist needs into the message it sends. Specialists report outcomes as facts; the root writes the single reply the user reads.
+
+Adding a domain is a directory drop under `agent/subagents/`. Note-taking is deliberately absent pending a decision on an Obsidian-backed store.
 
 For local development, authenticate AI Gateway by linking the project with Vercel and pulling its environment, or set `AI_GATEWAY_API_KEY` in the ignored local environment file. Then run either the combined app or the standalone agent:
 
@@ -81,7 +92,9 @@ The Playwright suite runs both desktop Chromium and a 390px-class mobile viewpor
 - `src/app/page.tsx` is the authenticated Server Component shell.
 - `src/components/dashboard/` and `src/components/agent/` own the client interaction boundary.
 - `src/calendar/` owns shared event contracts, recurrence, timezone conversion, reminders, and validation.
+- `src/library/` owns the saved-link contract.
 - `src/server/google-calendar.ts` owns Google REST access and implements `CalendarService`.
-- `src/server/` owns Prisma, Better Auth session resolution, user settings, Eve memories, and Eve session ownership.
-- `agent/` owns Eve's GLM 5.2 configuration, per-session timezone, authenticated channel, dynamic user context, instructions, and tools.
+- `src/server/link-metadata.ts` reads a page's title and description, and is the only place the app fetches a user-supplied URL.
+- `src/server/` owns Prisma, Better Auth session resolution, user settings, Eve memories, saved links, and Eve session ownership.
+- `agent/` owns Eve's GLM 5.2 configuration, authenticated channel, routing instructions, personalization tools, and the `subagents/` specialists.
 - Both the upcoming-events API and Eve resolve Google access on the server; OAuth tokens never cross into browser code.

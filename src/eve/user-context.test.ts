@@ -14,6 +14,18 @@ describe("buildUserContext", () => {
     expect(context).toContain("You have not saved anything about this user yet.");
   });
 
+  it("asks for a silent timezone save only while none is stored", () => {
+    expect(buildUserContext(DEFAULT_USER_SETTINGS, [])).toContain(
+      "Timezone: not saved yet",
+    );
+    expect(
+      buildUserContext(
+        { ...DEFAULT_USER_SETTINGS, timeZone: "Europe/Madrid" },
+        [],
+      ),
+    ).toContain("Timezone: Europe/Madrid");
+  });
+
   it("describes a custom reminder in the user's own units", () => {
     const context = buildUserContext(
       { ...DEFAULT_USER_SETTINGS, defaultReminderMinutes: 2_880 },

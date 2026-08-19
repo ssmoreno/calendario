@@ -54,12 +54,14 @@ describe("toUserSettings", () => {
         defaultReminderMinutes: 8,
         defaultColor: "mint",
         theme: "dark",
+        timeZone: "Europe/Madrid",
       }),
     ).toEqual({
       defaultDurationMinutes: 30,
       defaultReminderMinutes: 8,
       defaultColor: "mint",
       theme: "dark",
+      timeZone: "Europe/Madrid",
     });
   });
 
@@ -70,12 +72,14 @@ describe("toUserSettings", () => {
         defaultReminderMinutes: 15,
         defaultColor: "chartreuse",
         theme: "sepia",
+        timeZone: "Buenos Aires",
       }),
     ).toEqual({
       defaultDurationMinutes: 60,
       defaultReminderMinutes: 15,
       defaultColor: "coral",
       theme: "system",
+      timeZone: null,
     });
   });
 });

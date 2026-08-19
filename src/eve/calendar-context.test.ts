@@ -4,16 +4,12 @@ import { buildCalendarContext, currentCalendarTime } from "./calendar-context";
 
 describe("Eve calendar context", () => {
   it("requires timezone setup before date interpretation", () => {
-    expect(
-      buildCalendarContext({ timeZone: null }),
-    ).toContain("timezone is not configured");
+    expect(buildCalendarContext(null)).toContain("timezone is not configured");
   });
 
   it("describes the current date and time in the saved timezone", () => {
     const context = buildCalendarContext(
-      {
-        timeZone: "America/Argentina/Buenos_Aires",
-      },
+      "America/Argentina/Buenos_Aires",
       new Date("2026-08-13T15:45:00.000Z"),
     );
 
