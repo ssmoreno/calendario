@@ -12,7 +12,7 @@
     "db:seed": "prisma db seed",
     "dev:eve": "eve dev",
     "prebuild": "prisma generate",
-    "build": "next build",
+    "build": "if [ \"$VERCEL_ENV\" = production ]; then prisma migrate deploy; fi && next build",
     "build:eve": "eve build",
     "start": "next start",
     "start:eve": "eve start",
