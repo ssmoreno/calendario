@@ -229,7 +229,7 @@ export function Dashboard({ initialConnected, user }: DashboardProps) {
             <div className={styles.stateCard}>
               <p>
                 {connection === "authorization"
-                  ? "Google Calendar access has expired. Reconnect it to continue."
+                  ? "SS needs you to reconnect Google Calendar to restore access."
                   : "Connect Google Calendar to see upcoming events and let SS manage them."}
               </p>
               <button disabled={connecting} type="button" onClick={() => void connectGoogle()}>

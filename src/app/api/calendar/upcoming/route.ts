@@ -37,9 +37,15 @@ export async function GET(request: Request) {
     );
   } catch (error) {
     if (error instanceof GoogleCalendarError) {
-      if (error.kind === "authorization" || error.kind === "not_connected") {
+      if (error.kind === "authorization") {
         return Response.json(
           { status: "not_connected", reason: "authorization", events: [] },
+          { headers: NO_STORE },
+        );
+      }
+      if (error.kind === "not_connected") {
+        return Response.json(
+          { status: "not_connected", events: [] },
           { headers: NO_STORE },
         );
       }
