@@ -19,6 +19,9 @@ export const auth = betterAuth({
             clientId: googleClientId,
             clientSecret: googleClientSecret,
             accessType: "offline",
+            // Google only returns a refresh token when it asks for consent, so
+            // without this the calendar stops working an hour after each login.
+            prompt: "consent",
             scope: [GOOGLE_CALENDAR_SCOPE],
           },
         }
