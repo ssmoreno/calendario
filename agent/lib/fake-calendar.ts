@@ -10,9 +10,11 @@ import type {
 /**
  * A calendar in a JSON file instead of Google, so `eve eval` can drive real
  * turns and then read what the run actually saved. `CALENDARIO_FAKE_CALENDAR`
- * names the file; nothing reads it unless that variable is set.
+ * names the file. A production runtime ignores it: a variable that leaked into
+ * a deployment must never quietly reroute somebody's calendar to a file.
  */
 export function fakeCalendarPath(): string | undefined {
+  if (process.env.NODE_ENV === "production") return undefined;
   return process.env.CALENDARIO_FAKE_CALENDAR || undefined;
 }
 
@@ -28,8 +30,11 @@ function emptyDocument(): CalendarDocument {
 async function readDocument(path: string): Promise<CalendarDocument> {
   try {
     return JSON.parse(await readFile(path, "utf8")) as CalendarDocument;
-  } catch {
-    return emptyDocument();
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return emptyDocument();
+    }
+    throw error;
   }
 }
 

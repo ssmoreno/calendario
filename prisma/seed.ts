@@ -23,7 +23,7 @@ async function main() {
   await prisma.userSettings.upsert({
     where: { userId: LOCAL_DEV_USER_ID },
     create: { userId: LOCAL_DEV_USER_ID, timeZone: LOCAL_DEV_TIME_ZONE },
-    update: { timeZone: LOCAL_DEV_TIME_ZONE },
+    update: {},
   });
 
   for (const account of Object.values(E2E_ACCOUNTS)) {

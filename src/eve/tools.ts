@@ -444,28 +444,35 @@ export function createEveTools(
   /**
    * A subagent starts a fresh session for every task, so a task it has already
    * carried out looks new to it. Reading the target day before writing turns a
-   * repeated create into a report that the event is already there.
+   * repeated create into a report that the event is already there. Repetition
+   * counts, so adding a weekly series that starts where a one-off already sits
+   * still goes through. A failed read just means no answer here: the guard is a
+   * backstop, and losing it must not lose the event.
    */
-  async function occurrenceAlreadySaved(title: string, timing: EventTiming) {
+  async function occurrenceAlreadySaved(
+    title: string,
+    timing: EventTiming,
+    rrule: string | undefined,
+  ) {
     const dateKey =
       timing.kind === "timed"
         ? dateKeyInTimeZone(zonedTimestampToDate(timing.startsAt), timeZone)
         : timing.startDate;
-    const occurrences = await service.listOccurrences({
-      from: dateKey,
-      to: dateKey,
-    });
+    const occurrences = await service
+      .listOccurrences({ from: dateKey, to: dateKey })
+      .catch(() => []);
     const wanted = title.trim().toLowerCase();
     return occurrences.find(
       (occurrence) =>
         occurrence.record.title.trim().toLowerCase() === wanted &&
+        (occurrence.record.recurrence?.rrule ?? undefined) === rrule &&
         startsAtTheSameMoment(occurrence.timing, timing),
     );
   }
 
   const createEvent = calendarTool({
     description:
-      "Add a new event to the user's calendar, with a reminder when the user wants one. Call when the user wants to schedule, add, book, or block time. Do not use this to change an existing event — use update_event for that. When an event with the same title already starts at that moment nothing is added, and the saved one comes back as alreadyExists.",
+      "Add a new event to the user's calendar, with a reminder when the user wants one. Call when the user wants to schedule, add, book, or block time. Do not use this to change an existing event — use update_event for that. When an event with the same title and the same repetition already starts at that moment nothing is added, and the saved one comes back as alreadyExists.",
     inputSchema: z.object({
       title: z.string().trim().min(1).max(160).describe("Event title."),
       timing: newTimingSchema,
@@ -490,7 +497,11 @@ export function createEveTools(
           timeZone,
           defaults.defaultDurationMinutes,
         );
-        const saved = await occurrenceAlreadySaved(input.title, timing);
+        const saved = await occurrenceAlreadySaved(
+          input.title,
+          timing,
+          input.rrule,
+        );
         if (saved) return { alreadyExists: describeOccurrence(saved) };
         const record = await service.createEvent({
           title: input.title,

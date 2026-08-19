@@ -22,7 +22,7 @@ import {
   writeSavedAgent,
   type AgentSnapshot,
 } from "./agent-storage";
-import { plainText, replyText } from "./message-text";
+import { messageText } from "./message-text";
 import styles from "./agent.module.css";
 
 function pendingRequests(data: EveMessageData): readonly EveMessageInputRequest[] {
@@ -84,6 +84,29 @@ function WorkingMessage() {
   );
 }
 
+/**
+ * The turn still running, if any. Neither status on its own can say which
+ * message that is: the session reports `submitted` before the turn's messages
+ * exist, and a message's own status reads `complete` as soon as any text part
+ * finishes — including the narration the agent writes before a tool call.
+ */
+function activeTurnId(
+  events: readonly MessageStreamEvent[],
+): string | undefined {
+  for (let index = events.length - 1; index >= 0; index -= 1) {
+    const event = events[index];
+    if (event.type === "turn.started") return event.data.turnId;
+    if (
+      event.type === "turn.completed" ||
+      event.type === "turn.failed" ||
+      event.type === "turn.cancelled"
+    ) {
+      return undefined;
+    }
+  }
+  return undefined;
+}
+
 function HydratedAgentPanel({
   connected,
   onCalendarChanged,
@@ -115,17 +138,11 @@ function HydratedAgentPanel({
 
   const isBusy = agent.status === "submitted" || agent.status === "streaming";
   const request = pendingRequests(agent.data).at(-1);
-  /**
-   * Where the working indicator goes while a turn runs: over the assistant
-   * message being built, or after the user's message when it has none yet. The
-   * turn's own status can read `complete` mid-turn — the reducer sets it on
-   * every finished text part, narration included — so the session status is
-   * what says whether the answer has landed.
-   */
-  const running = !isBusy
-    ? -1
-    : agent.data.messages.length -
-      (agent.data.messages.at(-1)?.role === "assistant" ? 1 : 0);
+  const runningTurn = isBusy ? activeTurnId(agent.events) : undefined;
+  const isRunning = (message: EveMessage) =>
+    message.role === "assistant" &&
+    runningTurn !== undefined &&
+    message.metadata?.turnId === runningTurn;
 
   useEffect(() => {
     const transcript = transcriptRef.current;
@@ -180,18 +197,20 @@ function HydratedAgentPanel({
 
       {expanded ? (
         <div className={styles.transcript} ref={transcriptRef} aria-live="polite">
-          {agent.data.messages.map((message, index) => {
-            if (index === running) return <WorkingMessage key={message.id} />;
-            const text = replyText(message);
+          {agent.data.messages.map((message) => {
+            if (isRunning(message)) return <WorkingMessage key={message.id} />;
+            const text = messageText(message);
             if (!text) return null;
             return (
               <Message key={message.id} role={message.role}>
-                <p className={styles.messageText}>{plainText(text)}</p>
+                <p className={styles.messageText}>{text}</p>
               </Message>
             );
           })}
 
-          {running === agent.data.messages.length ? <WorkingMessage /> : null}
+          {isBusy && !agent.data.messages.some(isRunning) ? (
+            <WorkingMessage />
+          ) : null}
 
           {request ? (
             <fieldset className={styles.prompt}>

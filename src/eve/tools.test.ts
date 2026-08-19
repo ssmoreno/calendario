@@ -228,6 +228,16 @@ describe("Eve calendar tools", () => {
       expect(service.getDocument().events).toHaveLength(2);
     });
 
+    it("adds a series that starts where a one-off already sits", async () => {
+      await tools.createEvent.run(cumple);
+      const weekly = await asJson(
+        tools.createEvent.run({ ...cumple, rrule: "FREQ=WEEKLY;BYDAY=WE" }),
+      );
+
+      expect(weekly.created.repeats).toBe("FREQ=WEEKLY;BYDAY=WE");
+      expect(service.getDocument().events).toHaveLength(2);
+    });
+
     it("reports an all-day event that already covers that day", async () => {
       const first = await asJson(
         tools.createEvent.run({
