@@ -43,7 +43,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 Enable the Google Calendar API for the OAuth project and register `http://localhost:3000/api/auth/callback/google` as a local redirect URI. Calendar events stay in Google; PostgreSQL stores accounts, settings, memories, saved links, Eve session ownership, and provider tokens. `calendario.preferences.v1` remains only the pre-paint theme cache.
 
-For deployment, configure the database variables, Better Auth variables, Google OAuth credentials, and the production `/api/auth/callback/google` redirect URI. Apply checked-in migrations with `pnpm exec prisma migrate deploy` before serving traffic.
+For deployment, configure the database variables, Better Auth variables, Google OAuth credentials, and the production `/api/auth/callback/google` redirect URI. A production build applies the checked-in migrations before compiling, so `DIRECT_URL` has to be set wherever production builds run; preview builds and local builds skip that step and expect a database that is already migrated.
 
 ## The agent
 
