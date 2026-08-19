@@ -268,22 +268,20 @@ describe("Eve calendar tools", () => {
       expect(service.getDocument().events).toHaveLength(2);
     });
 
-    it("reports an all-day event that already covers that day", async () => {
-      const first = await asJson(
-        tools.createEvent.run({
-          title: "Offsite",
-          timing: { kind: "all-day", startDate: "2026-08-20" },
-        }),
-      );
-      const again = await asJson(
+    it("allows a longer all-day event to start on the same day", async () => {
+      await tools.createEvent.run({
+        title: "Offsite",
+        timing: { kind: "all-day", startDate: "2026-08-20" },
+      });
+      const longer = await asJson(
         tools.createEvent.run({
           title: "Offsite",
           timing: { kind: "all-day", startDate: "2026-08-20", endDate: "2026-08-21" },
         }),
       );
 
-      expect(again.alreadyExists.eventId).toBe(first.created.eventId);
-      expect(service.getDocument().events).toHaveLength(1);
+      expect(longer.created).toBeTruthy();
+      expect(service.getDocument().events).toHaveLength(2);
     });
   });
 
