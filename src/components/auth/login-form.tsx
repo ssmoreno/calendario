@@ -32,6 +32,11 @@ export function LoginForm() {
   return (
     <main className={styles.authStage}>
       <section className={styles.authCard}>
+        <div className={styles.wordmark} aria-hidden="true">
+          <span className={styles.mark} />
+          <span>{messages.appName}</span>
+        </div>
+
         <div className={styles.authIntro}>
           <h1>{authMessages.signInHeading}</h1>
           <p>{authMessages.signInIntro}</p>

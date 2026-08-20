@@ -16,7 +16,7 @@ export function loadPreferences(
   const fallback: PreferencesDocument = {
     version: 1,
     revision: 0,
-    theme: "system",
+    theme: "dark",
   };
   if (!storage) return fallback;
   let raw: string | null;

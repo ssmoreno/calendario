@@ -1,23 +1,36 @@
+/*
+ * Warm palette: Pumpkin Spice #ed7117 over Ink Black #0e1316, with Stone Brown
+ * #685b4e carrying secondary text. The accent is bright enough to fill but not
+ * to letter: --accent paints surfaces and indicators, --accent-ink is the
+ * text-and-focus-ring variant that clears contrast on each canvas, and any
+ * accent fill pairs with --on-accent.
+ */
 :root {
-  --canvas: #f7f7f5;
-  --surface: #ffffff;
-  --surface-2: #f1f3f5;
-  --ink: #1f2328;
-  --muted: #667085;
-  --line: #e4e7ec;
-  --accent: #2563eb;
-  --accent-solid: #2563eb;
-  --accent-soft: #eff6ff;
-  --danger: #b42318;
-  --overlay: rgb(16 24 40 / 42%);
+  --canvas: #faf6f1;
+  --surface: #fffdfa;
+  --surface-2: #f2ebe2;
+  --ink: #0e1316;
+  --muted: #685b4e;
+  --line: #e6ddd2;
+  --line-strong: #d5c9bb;
+  --accent: #ed7117;
+  --accent-ink: #a8480a;
+  --accent-soft: #fceadb;
+  --on-accent: #0e1316;
+  --danger: #b3261e;
+  --overlay: rgb(14 19 22 / 45%);
+  --glow: rgb(237 113 23 / 8%);
+  --shadow-sheet:
+    0 1px 2px rgb(14 19 22 / 4%), 0 28px 60px -44px rgb(104 91 78 / 55%);
   --ultramarine: #3157c8;
   --coral: #c44d38;
   --mint: #27856d;
   --gold: #9a6b16;
   --event-mix: 12%;
   --event-mix-hover: 20%;
-  --radius-control: 6px;
-  --radius-card: 10px;
+  --radius-control: 10px;
+  --radius-card: 16px;
+  --radius-pill: 999px;
   --ease-out: cubic-bezier(0.2, 0, 0, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
   --duration-fast: 120ms;
@@ -26,17 +39,21 @@
 }
 
 [data-theme="dark"] {
-  --canvas: #111315;
-  --surface: #181b1f;
-  --surface-2: #22262b;
-  --ink: #f2f4f7;
-  --muted: #98a2b3;
-  --line: #343a40;
-  --accent: #6ea8fe;
-  --accent-solid: #2563eb;
-  --accent-soft: #17243d;
-  --danger: #ff8a7a;
-  --overlay: rgb(0 0 0 / 64%);
+  --canvas: #0e1316;
+  --surface: #161b1e;
+  --surface-2: #1e2428;
+  --ink: #f4efe9;
+  --muted: #9d9086;
+  --line: #262c30;
+  --line-strong: #333a3f;
+  --accent: #ed7117;
+  --accent-ink: #ff8a33;
+  --accent-soft: #2a1710;
+  --on-accent: #0e1316;
+  --danger: #ff8577;
+  --overlay: rgb(0 0 0 / 70%);
+  --glow: rgb(237 113 23 / 14%);
+  --shadow-sheet: 0 1px 2px rgb(0 0 0 / 30%), 0 28px 60px -44px rgb(0 0 0 / 80%);
   --ultramarine: #8aa4ff;
   --coral: #ff9b87;
   --mint: #7ed6bd;
@@ -58,7 +75,12 @@ html {
 body {
   min-height: 100vh;
   margin: 0;
-  background: var(--canvas);
+  /* A static warm wash off the palette, echoing the reference gradient. */
+  background:
+    radial-gradient(900px 600px at 12% -10%, var(--glow), transparent 70%),
+    radial-gradient(700px 500px at 100% 105%, var(--glow), transparent 70%),
+    var(--canvas);
+  background-attachment: fixed;
   color: var(--ink);
   font-family: var(--font-ui), sans-serif;
   text-rendering: optimizeLegibility;
@@ -91,13 +113,13 @@ textarea:focus-visible,
 select:focus-visible,
 [role="button"]:focus-visible,
 [role="gridcell"]:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-ink);
   outline-offset: 2px;
 }
 
 ::selection {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 /*

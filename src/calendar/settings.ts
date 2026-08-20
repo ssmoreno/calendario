@@ -21,7 +21,7 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
   defaultDurationMinutes: 60,
   defaultReminderMinutes: null,
   defaultColor: "coral",
-  theme: "system",
+  theme: "dark",
   timeZone: null,
 };
 

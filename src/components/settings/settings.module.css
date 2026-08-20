@@ -1,25 +1,42 @@
 .settingsShell {
   display: flex;
-  width: min(100%, 1136px);
+  width: min(100%, 1080px);
   min-height: 100dvh;
   flex-direction: column;
-  padding: 20px 28px 32px;
+  padding: 24px 24px 56px;
   margin: 0 auto;
-  gap: 16px;
+  gap: 20px;
 }
 
 .settingsHeader {
   display: flex;
-  min-height: 56px;
+  min-height: 48px;
   align-items: center;
   justify-content: space-between;
+  padding: 0 4px;
   gap: 12px;
+}
+
+.brand {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+}
+
+.mark {
+  width: 10px;
+  height: 10px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--accent);
 }
 
 .settingsHeader h1 {
   margin: 0;
-  font-size: 18px;
-  font-weight: 650;
+  font-size: clamp(19px, 2.2vw, 24px);
+  font-weight: 600;
+  letter-spacing: -0.03em;
 }
 
 .backLink {
@@ -32,48 +49,68 @@
   color: var(--ink);
 }
 
-.settingsCard {
+.sheet {
   display: grid;
-  width: min(100%, 1080px);
-  padding: 4px 24px;
+  overflow: hidden;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: var(--radius-card);
   background: var(--surface);
+  box-shadow: var(--shadow-sheet);
 }
 
-.settingsGroup {
+/* Each setting is one row: what it is on the left, how to change it on the right. */
+.row {
   display: grid;
-  padding: 22px 0;
+  align-items: start;
+  padding: 26px 28px;
   border-bottom: 1px solid var(--line);
-  gap: 14px;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 360px);
 }
 
-.settingsGroup:last-child {
+.row:last-child {
   border-bottom: 0;
 }
 
-.groupIntro {
+.row[data-span="full"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.rowIntro {
   display: grid;
-  gap: 4px;
+  align-content: start;
+  gap: 5px;
 }
 
-.groupIntro h2 {
+.rowIntro h2 {
   margin: 0;
-  font-size: 13px;
-  font-weight: 650;
+  font-size: 14px;
+  font-weight: 600;
 }
 
-.groupIntro p {
+.rowIntro p {
+  max-width: 46ch;
   margin: 0;
   color: var(--muted);
   font-size: 12px;
+  line-height: 1.5;
 }
 
-.controlRow {
+.rowControls {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  align-items: start;
-  gap: 14px;
+  gap: 16px;
+}
+
+.inlineControl {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.inlineControl[data-align="end"] {
+  justify-content: flex-end;
 }
 
 .colorChoices {
@@ -104,9 +141,11 @@
   align-items: center;
   padding: 0 12px;
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--swatch) var(--event-mix), var(--surface));
-  color: var(--swatch);
+  /* The hue is carried by the tint and the radio, never by the label text —
+     swatch-on-swatch text cannot clear AA at this size. */
+  color: var(--ink);
   cursor: pointer;
   font-size: 12px;
   font-weight: 600;
@@ -115,6 +154,11 @@
 
 .colorChoices label:has(input:checked) {
   border-color: var(--swatch);
+  background: color-mix(
+    in srgb,
+    var(--swatch) var(--event-mix-hover),
+    var(--surface)
+  );
 }
 
 .colorChoices input {
@@ -127,28 +171,26 @@
   padding: 0;
   margin: 0;
   list-style: none;
-  gap: 8px;
 }
 
 .memoryList li {
   display: flex;
   align-items: start;
   justify-content: space-between;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-control);
-  gap: 12px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+  gap: 16px;
 }
 
 .memoryList p {
   margin: 0;
   font-size: 13px;
-  line-height: 1.45;
+  line-height: 1.5;
 }
 
 .memoryList time {
   display: block;
-  margin-top: 4px;
+  margin-top: 5px;
   color: var(--muted);
   font-family: var(--font-mono), monospace;
   font-size: 10px;
@@ -161,30 +203,22 @@
 }
 
 .secondaryButton {
-  min-height: 32px;
+  min-height: 34px;
   flex: none;
-  padding: 0 12px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-control);
+  padding: 0 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-pill);
   background: var(--surface);
   font-size: 12px;
   font-weight: 600;
 }
 
 .secondaryButton:hover:not(:disabled) {
-  background: var(--surface-2);
+  border-color: var(--accent);
 }
 
 .secondaryButton:disabled {
   opacity: 0.6;
-}
-
-.accountRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
 }
 
 .accountEmail {
@@ -196,8 +230,11 @@
   display: inline-flex;
   align-items: center;
   color: var(--muted);
-  font-size: 12px;
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
   gap: 7px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .connectionStatus::before {
@@ -214,7 +251,9 @@
 
 .statusLine {
   min-height: 16px;
+  padding: 0 4px;
   color: var(--muted);
+  font-family: var(--font-mono), monospace;
   font-size: 11px;
 }
 
@@ -222,12 +261,15 @@
   color: var(--danger);
 }
 
-@media (max-width: 680px) {
+@media (max-width: 720px) {
   .settingsShell {
-    padding: 12px 8px 24px;
+    padding: 16px 12px 40px;
+    gap: 16px;
   }
 
-  .settingsCard {
-    padding: 4px 16px;
+  .row,
+  .row[data-span="full"] {
+    padding: 22px 20px;
+    grid-template-columns: minmax(0, 1fr);
   }
 }

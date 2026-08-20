@@ -44,6 +44,14 @@ interface UpcomingResponse {
   events: UpcomingEvent[];
 }
 
+const connectionLabels: Record<Connection, string> = {
+  checking: "Checking…",
+  connected: "Connected",
+  not_connected: "Not connected",
+  authorization: "Reconnect needed",
+  error: "Unavailable",
+};
+
 function initials(name: string, email: string) {
   const words = name.trim().split(/\s+/).filter(Boolean);
   if (words.length) return words.slice(0, 2).map((word) => word[0]).join("").toUpperCase();
@@ -88,31 +96,75 @@ function eventEndLabel(event: UpcomingEvent) {
   }).format(new Date(event.timing.endsAt))}`;
 }
 
-function UpcomingCard({ event }: { event: UpcomingEvent }) {
+/**
+ * How far off the next event is. All-day events have no meaningful countdown,
+ * so they fall back to their date.
+ */
+function leadLabel(event: UpcomingEvent, now: number) {
+  if (event.timing.kind === "all-day") return dateLabel(event.timing.startDate);
+  const minutes = Math.round(
+    (new Date(event.timing.startsAt).getTime() - now) / 60_000,
+  );
+  if (minutes <= 0) return "Now";
+  return `In ${formatDuration(minutes)}`;
+}
+
+function rowDay(event: UpcomingEvent) {
+  const allDay = event.timing.kind === "all-day";
+  return new Intl.DateTimeFormat(undefined, {
+    weekday: "short",
+    day: "numeric",
+    timeZone: allDay ? "UTC" : event.timing.timeZone,
+  }).format(
+    allDay
+      ? new Date(`${event.timing.startDate}T12:00:00Z`)
+      : new Date(event.timing.startsAt),
+  );
+}
+
+function rowTime(event: UpcomingEvent) {
+  if (event.timing.kind === "all-day") return "All day";
+  return new Intl.DateTimeFormat(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: event.timing.timeZone,
+  }).format(new Date(event.timing.startsAt));
+}
+
+function EventDetails({ event }: { event: UpcomingEvent }) {
   const end = eventEndLabel(event);
   return (
+    <div className={styles.eventDetails}>
+      {end ? <span>{end}</span> : null}
+      {event.location ? <span>{event.location}</span> : null}
+      {event.recurrence ? <span>{event.recurrence}</span> : null}
+      {event.reminderMinutes.length ? (
+        <span>
+          {event.reminderMinutes
+            .map((minutes) => `${formatDuration(minutes)} before`)
+            .join(" · ")}
+        </span>
+      ) : event.usesDefaultReminder ? (
+        <span>Uses your Google Calendar default reminder</span>
+      ) : null}
+      {event.notes ? <p>{event.notes}</p> : null}
+    </div>
+  );
+}
+
+function LedgerRow({ event }: { event: UpcomingEvent }) {
+  return (
     <li>
-      <details className={styles.eventCard}>
+      <details className={styles.eventRow}>
         <summary>
-          <span className={styles.eventWhen}>{eventSummary(event)}</span>
+          <span className={styles.rowWhen}>
+            <span>{rowDay(event)}</span>
+            <span>{rowTime(event)}</span>
+          </span>
           <strong>{event.title}</strong>
           <span className={styles.expandMark} aria-hidden="true">+</span>
         </summary>
-        <div className={styles.eventDetails}>
-          {end ? <span>{end}</span> : null}
-          {event.location ? <span>{event.location}</span> : null}
-          {event.recurrence ? <span>{event.recurrence}</span> : null}
-          {event.reminderMinutes.length ? (
-            <span>
-              {event.reminderMinutes
-                .map((minutes) => `${formatDuration(minutes)} before`)
-                .join(" · ")}
-            </span>
-          ) : event.usesDefaultReminder ? (
-            <span>Uses your Google Calendar default reminder</span>
-          ) : null}
-          {event.notes ? <p>{event.notes}</p> : null}
-        </div>
+        <EventDetails event={event} />
       </details>
     </li>
   );
@@ -126,6 +178,7 @@ export function Dashboard({ initialConnected, user }: DashboardProps) {
   const [events, setEvents] = useState<UpcomingEvent[]>([]);
   const [connecting, setConnecting] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
   const avatarText = useMemo(() => initials(user.name, user.email), [user]);
 
   const refreshUpcoming = useCallback(async () => {
@@ -155,6 +208,12 @@ export function Dashboard({ initialConnected, user }: DashboardProps) {
     };
   }, [refreshUpcoming]);
 
+  /* The lead time would otherwise sit stale between calendar refreshes. */
+  useEffect(() => {
+    const tick = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(tick);
+  }, []);
+
   async function connectGoogle() {
     setConnecting(true);
     const result = await authClient.linkSocial({
@@ -179,78 +238,136 @@ export function Dashboard({ initialConnected, user }: DashboardProps) {
   }
 
   const connected = connection === "connected" || (connection === "checking" && initialConnected);
+  const [next, ...later] = events;
+  const needsGoogle =
+    connection === "not_connected" || connection === "authorization";
 
   return (
     <main className={styles.shell}>
-      <header className={styles.header}>
-        <div aria-hidden="true" />
-        <h1>SS Calendar</h1>
-        <DialogTrigger isOpen={profileOpen} onOpenChange={setProfileOpen}>
-          <Button className={styles.avatarButton} aria-label="Open profile menu">
-            {avatarText}
-          </Button>
-          <Popover className={styles.profilePopover} placement="bottom end" offset={8}>
-            <Dialog className={styles.profileDialog} aria-label="Profile">
-              <div className={styles.profileIdentity}>
-                <strong>{user.name}</strong>
-                <span>{user.email}</span>
-              </div>
-              <Link href="/settings" onClick={() => setProfileOpen(false)}>
-                Settings
-              </Link>
-              <button type="button" onClick={() => void signOut()}>
-                Log out
-              </button>
-            </Dialog>
-          </Popover>
-        </DialogTrigger>
+      <header className={styles.topbar}>
+        <div className={styles.brand}>
+          <span className={styles.mark} aria-hidden="true" />
+          <h1>SS Calendar</h1>
+        </div>
+        <div className={styles.topbarEnd}>
+          <span className={styles.connectionPill} data-state={connection}>
+            {connectionLabels[connection]}
+          </span>
+          <DialogTrigger isOpen={profileOpen} onOpenChange={setProfileOpen}>
+            <Button className={styles.avatarButton} aria-label="Open profile menu">
+              {avatarText}
+            </Button>
+            <Popover className={styles.profilePopover} placement="bottom end" offset={10}>
+              <Dialog className={styles.profileDialog} aria-label="Profile">
+                <div className={styles.profileIdentity}>
+                  <strong>{user.name}</strong>
+                  <span>{user.email}</span>
+                </div>
+                <Link href="/settings" onClick={() => setProfileOpen(false)}>
+                  Settings
+                </Link>
+                <button type="button" onClick={() => void signOut()}>
+                  Log out
+                </button>
+              </Dialog>
+            </Popover>
+          </DialogTrigger>
+        </div>
       </header>
 
-      <div className={styles.workspace}>
-        <AgentPanel
-          connected={connected}
-          onCalendarChanged={() => void refreshUpcoming()}
-          userId={user.id}
-        />
+      <div className={styles.sheet}>
+        <div className={styles.mainColumn}>
+          <section className={styles.now} aria-labelledby="now-heading">
+            <h2 className={styles.eyebrow} id="now-heading">
+              {needsGoogle || connection === "error" ? "Google Calendar" : "Next"}
+            </h2>
+
+            {connection === "checking" ? (
+              <div className={styles.nowSkeleton} role="status" aria-label="Loading your calendar…">
+                <span />
+                <span />
+              </div>
+            ) : needsGoogle ? (
+              <>
+                <p className={styles.nowProse}>
+                  {connection === "authorization"
+                    ? "SS needs you to reconnect Google Calendar to restore access."
+                    : "Connect Google Calendar to see upcoming events and let SS manage them."}
+                </p>
+                <button
+                  className={styles.primaryButton}
+                  disabled={connecting}
+                  type="button"
+                  onClick={() => void connectGoogle()}
+                >
+                  {connecting
+                    ? "Connecting…"
+                    : connection === "authorization"
+                      ? "Reconnect Google Calendar"
+                      : "Connect Google Calendar"}
+                </button>
+              </>
+            ) : connection === "error" ? (
+              <>
+                <p className={styles.nowProse} role="alert">
+                  Google Calendar is unavailable right now.
+                </p>
+                <button
+                  className={styles.primaryButton}
+                  type="button"
+                  onClick={() => void refreshUpcoming()}
+                >
+                  Try again
+                </button>
+              </>
+            ) : next ? (
+              <>
+                <p className={styles.lead}>{leadLabel(next, now)}</p>
+                <p className={styles.nowTitle}>{next.title}</p>
+                <p className={styles.nowMeta}>
+                  {[eventSummary(next), eventEndLabel(next), next.location]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              </>
+            ) : (
+              <p className={styles.nowTitle} data-quiet="true">Nothing scheduled</p>
+            )}
+          </section>
+
+          <AgentPanel
+            connected={connected}
+            onCalendarChanged={() => void refreshUpcoming()}
+            userId={user.id}
+          />
+        </div>
 
         <section className={styles.upcoming} aria-labelledby="upcoming-heading">
           <div className={styles.sectionHeading}>
-            <h2 id="upcoming-heading">Upcoming events</h2>
+            <h2 className={styles.eyebrow} id="upcoming-heading">Upcoming events</h2>
             {connection === "connected" ? (
-              <button type="button" onClick={() => void refreshUpcoming()}>
+              <button className={styles.quietButton} type="button" onClick={() => void refreshUpcoming()}>
                 Refresh
               </button>
             ) : null}
           </div>
 
           {connection === "checking" ? (
-            <div className={styles.stateCard} role="status">Loading your calendar…</div>
-          ) : connection === "not_connected" || connection === "authorization" ? (
-            <div className={styles.stateCard}>
-              <p>
-                {connection === "authorization"
-                  ? "SS needs you to reconnect Google Calendar to restore access."
-                  : "Connect Google Calendar to see upcoming events and let SS manage them."}
-              </p>
-              <button disabled={connecting} type="button" onClick={() => void connectGoogle()}>
-                {connecting
-                  ? "Connecting…"
-                  : connection === "authorization"
-                    ? "Reconnect Google Calendar"
-                    : "Connect Google Calendar"}
-              </button>
+            <div className={styles.ledgerSkeleton} aria-hidden="true">
+              <span />
+              <span />
+              <span />
             </div>
-          ) : connection === "error" ? (
-            <div className={styles.stateCard} role="alert">
-              <p>Google Calendar is unavailable right now.</p>
-              <button type="button" onClick={() => void refreshUpcoming()}>Try again</button>
-            </div>
-          ) : events.length ? (
-            <ul className={styles.eventList}>
-              {events.map((event) => <UpcomingCard event={event} key={event.id} />)}
+          ) : later.length ? (
+            <ul className={styles.ledger}>
+              {later.map((event) => <LedgerRow event={event} key={event.id} />)}
             </ul>
           ) : (
-            <div className={styles.stateCard}>No upcoming events.</div>
+            <p className={styles.ledgerNote}>
+              {connection === "connected"
+                ? "Nothing else scheduled."
+                : "Your schedule appears here."}
+            </p>
           )}
         </section>
       </div>

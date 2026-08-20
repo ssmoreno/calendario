@@ -38,7 +38,7 @@ describe("theme preference storage", () => {
     expect(loadPreferences(storage, recoveryTime)).toEqual({
       version: 1,
       revision: 0,
-      theme: "system",
+      theme: "dark",
     });
     expect(storage.getItem(PREFERENCES_STORAGE_KEY)).toBeNull();
   });
