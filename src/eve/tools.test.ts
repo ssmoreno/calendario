@@ -316,6 +316,19 @@ describe("Eve calendar tools", () => {
       expect(service.getDocument().events).toHaveLength(1);
     });
 
+    it("allows a pristine series when the saved one has an exclusion", async () => {
+      const series = { ...cumple, rrule: "FREQ=WEEKLY;COUNT=2" };
+      await tools.createEvent.run(series);
+      service.getDocument().events[0].recurrence?.excludedStarts.push(
+        localDateTimeToZoned("2026-08-26", "20:00", TIME_ZONE),
+      );
+
+      const pristine = await asJson(tools.createEvent.run(series));
+
+      expect(pristine.created).toBeTruthy();
+      expect(service.getDocument().events).toHaveLength(2);
+    });
+
     it("allows a new series to start on a later occurrence", async () => {
       await tools.createEvent.run({
         ...cumple,

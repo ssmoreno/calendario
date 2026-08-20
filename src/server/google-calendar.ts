@@ -623,6 +623,11 @@ export class GoogleCalendarService implements CalendarService {
         key: `${event.id}:${occurrenceStart}`,
         eventId: event.id,
         rootEventId: event.recurringEventId ?? event.id,
+        rootHasRecurrenceExceptions: Boolean(
+          (parent ?? event).recurrence?.some((line) =>
+            line.startsWith("EXDATE"),
+          ),
+        ),
         rootTiming: parent
           ? timingFor(parent, this.viewerTimeZone)
           : record.timing,
