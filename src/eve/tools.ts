@@ -407,6 +407,8 @@ export interface EveToolsOptions {
   timeZone: string;
   /** Fills in whatever the user did not spell out when creating an event. */
   defaults?: UserSettings;
+  /** Serializes duplicate-check-plus-create across concurrent user requests. */
+  serializeCreate?<Result>(create: () => Promise<Result>): Promise<Result>;
 }
 
 function calendarTool<Schema extends z.ZodType, Output>(definition: {
@@ -422,7 +424,11 @@ function calendarTool<Schema extends z.ZodType, Output>(definition: {
 
 export function createEveTools(
   service: CalendarService,
-  { timeZone, defaults = DEFAULT_USER_SETTINGS }: EveToolsOptions,
+  {
+    timeZone,
+    defaults = DEFAULT_USER_SETTINGS,
+    serializeCreate = (create) => create(),
+  }: EveToolsOptions,
 ) {
   const listEvents = calendarTool({
     description:
@@ -537,39 +543,40 @@ export function createEveTools(
           "Set true only when the user explicitly asks to create another identical event even though one already exists.",
         ),
     }),
-    run: async (input) => {
-      try {
-        const timing = toEventTiming(
-          input.timing,
-          timeZone,
-          defaults.defaultDurationMinutes,
-        );
-        const event: EventInput = {
-          title: input.title,
-          timing,
-          recurrence: input.rrule
-            ? { rrule: normalizeRRule(input.rrule)!, excludedStarts: [] }
-            : null,
-          location: optionalText(input.location),
-          notes: optionalText(input.notes),
-          color: input.color ? savedColor(input.color) : defaults.defaultColor,
-          reminderMinutesBefore:
-            input.reminder === undefined
-              ? (defaults.defaultReminderMinutes ?? undefined)
-              : input.reminder === null
-                ? undefined
-                : reminderMinutes(input.reminder),
-        };
-        const saved = input.allowDuplicate
-          ? undefined
-          : await occurrenceAlreadySaved(event);
-        if (saved) return { alreadyExists: describeOccurrence(saved) };
-        const record = await service.createEvent(event);
-        return { created: describeRecord(record) };
-      } catch (error) {
-        toReadableError(error);
-      }
-    },
+    run: async (input) =>
+      serializeCreate(async () => {
+        try {
+          const timing = toEventTiming(
+            input.timing,
+            timeZone,
+            defaults.defaultDurationMinutes,
+          );
+          const event: EventInput = {
+            title: input.title,
+            timing,
+            recurrence: input.rrule
+              ? { rrule: normalizeRRule(input.rrule)!, excludedStarts: [] }
+              : null,
+            location: optionalText(input.location),
+            notes: optionalText(input.notes),
+            color: input.color ? savedColor(input.color) : defaults.defaultColor,
+            reminderMinutesBefore:
+              input.reminder === undefined
+                ? (defaults.defaultReminderMinutes ?? undefined)
+                : input.reminder === null
+                  ? undefined
+                  : reminderMinutes(input.reminder),
+          };
+          const saved = input.allowDuplicate
+            ? undefined
+            : await occurrenceAlreadySaved(event);
+          if (saved) return { alreadyExists: describeOccurrence(saved) };
+          const record = await service.createEvent(event);
+          return { created: describeRecord(record) };
+        } catch (error) {
+          toReadableError(error);
+        }
+      }),
   });
 
   const updateEvent = calendarTool({

@@ -1,9 +1,28 @@
 import type { EveTools } from "../../src/eve/tools";
 import { createEveTools } from "../../src/eve/tools";
 import { googleCalendarForUser } from "../../src/server/google-calendar";
+import { prisma } from "../../src/server/db";
 import { getUserSettings } from "../../src/server/settings-store";
 import { requireUserId } from "./auth";
 import { fakeCalendar, fakeCalendarPath } from "./fake-calendar";
+
+function serializeCreateForUser<Result>(
+  userId: string,
+  create: () => Promise<Result>,
+): Promise<Result> {
+  return prisma.$transaction(
+    async (transaction) => {
+      await transaction.$queryRaw`
+        SELECT pg_advisory_xact_lock(
+          hashtext('calendario-calendar-create'),
+          hashtext(${userId})
+        )
+      `;
+      return await create();
+    },
+    { maxWait: 10_000, timeout: 60_000 },
+  );
+}
 
 /**
  * The timezone lives in the user's saved settings rather than durable session
@@ -26,5 +45,11 @@ export async function runCalendar<Result>(
   const service = storePath
     ? fakeCalendar(storePath, timeZone)
     : await googleCalendarForUser(userId, timeZone);
-  return await run(createEveTools(service, { timeZone, defaults }));
+  return await run(
+    createEveTools(service, {
+      timeZone,
+      defaults,
+      serializeCreate: (create) => serializeCreateForUser(userId, create),
+    }),
+  );
 }

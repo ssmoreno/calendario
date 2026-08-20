@@ -36,6 +36,23 @@ async function asJson(result: unknown) {
   return typeof resolved === "string" ? JSON.parse(resolved) : resolved;
 }
 
+function serializeCalls() {
+  let tail = Promise.resolve();
+  return async <Result>(create: () => Promise<Result>): Promise<Result> => {
+    const previous = tail;
+    let release!: () => void;
+    tail = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await previous;
+    try {
+      return await create();
+    } finally {
+      release();
+    }
+  };
+}
+
 describe("Eve calendar tools", () => {
   let service: CalendarDocumentEngine;
   let tools: EveTools;
@@ -202,6 +219,22 @@ describe("Eve calendar tools", () => {
 
       expect(again.created).toBeUndefined();
       expect(again.alreadyExists.eventId).toBe(first.created.eventId);
+      expect(service.getDocument().events).toHaveLength(1);
+    });
+
+    it("serializes concurrent duplicate checks and creates", async () => {
+      const serialized = createEveTools(calendarServiceFor(service), {
+        timeZone: TIME_ZONE,
+        serializeCreate: serializeCalls(),
+      });
+
+      const results = await Promise.all([
+        asJson(serialized.createEvent.run(cumple)),
+        asJson(serialized.createEvent.run(cumple)),
+      ]);
+
+      expect(results.filter((result) => result.created)).toHaveLength(1);
+      expect(results.filter((result) => result.alreadyExists)).toHaveLength(1);
       expect(service.getDocument().events).toHaveLength(1);
     });
 
