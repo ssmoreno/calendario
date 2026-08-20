@@ -110,16 +110,18 @@ function leadLabel(event: UpcomingEvent, now: number) {
 }
 
 function rowDay(event: UpcomingEvent) {
-  const allDay = event.timing.kind === "all-day";
+  if (event.timing.kind === "all-day") {
+    return new Intl.DateTimeFormat(undefined, {
+      weekday: "short",
+      day: "numeric",
+      timeZone: "UTC",
+    }).format(new Date(`${event.timing.startDate}T12:00:00Z`));
+  }
   return new Intl.DateTimeFormat(undefined, {
     weekday: "short",
     day: "numeric",
-    timeZone: allDay ? "UTC" : event.timing.timeZone,
-  }).format(
-    allDay
-      ? new Date(`${event.timing.startDate}T12:00:00Z`)
-      : new Date(event.timing.startsAt),
-  );
+    timeZone: event.timing.timeZone,
+  }).format(new Date(event.timing.startsAt));
 }
 
 function rowTime(event: UpcomingEvent) {
