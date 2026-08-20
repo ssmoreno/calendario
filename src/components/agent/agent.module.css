@@ -68,6 +68,21 @@
   background: var(--accent-soft);
 }
 
+.working {
+  padding: 9px 11px;
+  margin: 0;
+  animation: workingPulse 1.6s ease-in-out infinite;
+  color: var(--muted);
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+}
+
+@keyframes workingPulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
 .prompt {
   display: grid;
   padding: 12px;

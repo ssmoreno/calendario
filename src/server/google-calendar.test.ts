@@ -132,6 +132,28 @@ describe("GoogleCalendarService", () => {
     ]);
   });
 
+  it("uses the occurrence timing when listing a recurring event", async () => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(json({ items: [recurringInstance] }))
+      .mockResolvedValueOnce(json(recurringParent));
+    const service = new GoogleCalendarService(
+      "token",
+      "America/Argentina/Buenos_Aires",
+      fetcher,
+    );
+
+    const [occurrence] = await service.listOccurrences({
+      from: "2026-08-24",
+      to: "2026-08-24",
+    });
+
+    expect(occurrence.timing).toMatchObject({
+      startsAt:
+        "2026-08-24T17:00:00-03:00[America/Argentina/Buenos_Aires]",
+    });
+  });
+
   it("paginates event-record reads", async () => {
     const fetcher = vi
       .fn<typeof fetch>()

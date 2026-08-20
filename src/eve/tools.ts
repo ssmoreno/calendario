@@ -2,10 +2,13 @@ import { z } from "zod";
 
 import {
   addDays,
+  dateKeyInTimeZone,
   daysBetween,
   isDateKey,
   isTimeZone,
   localDateTimeToZoned,
+  timezoneFromZoned,
+  zonedTimestampToDate,
 } from "@/calendar/date-time";
 import {
   MAX_REMINDER_MINUTES,
@@ -19,6 +22,7 @@ import {
 import { EVENT_COLORS } from "@/calendar/types";
 import type {
   EventColor,
+  EventInput,
   EventPatch,
   EventRecord,
   EventTiming,
@@ -289,6 +293,58 @@ function toEventTiming(
   };
 }
 
+function hasSameTiming(a: EventTiming, b: EventTiming): boolean {
+  if (a.kind === "timed") {
+    return (
+      b.kind === "timed" &&
+      zonedTimestampToDate(a.startsAt).getTime() ===
+        zonedTimestampToDate(b.startsAt).getTime() &&
+      timezoneFromZoned(a.startsAt) === timezoneFromZoned(b.startsAt) &&
+      a.durationMinutes === b.durationMinutes
+    );
+  }
+  return (
+    b.kind === "all-day" &&
+    a.startDate === b.startDate &&
+    a.endDateExclusive === b.endDateExclusive
+  );
+}
+
+function normalizeRRule(rrule: string | undefined): string | undefined {
+  const source = rrule?.replace(/^RRULE:/, "");
+  if (!source) return undefined;
+  return source
+    .split(";")
+    .map((part) => {
+      const [name, ...rawValue] = part.split("=");
+      const value = rawValue.join("=").split(",").sort().join(",");
+      return `${name}=${value}`;
+    })
+    .sort((a, b) => {
+      if (a.startsWith("FREQ=")) return -1;
+      if (b.startsWith("FREQ=")) return 1;
+      return a.localeCompare(b);
+    })
+    .join(";");
+}
+
+function optionalText(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed || undefined;
+}
+
+function isSameEvent(record: EventRecord, input: EventInput): boolean {
+  return (
+    record.title.trim().toLowerCase() === input.title.trim().toLowerCase() &&
+    normalizeRRule(record.recurrence?.rrule ?? undefined) ===
+      normalizeRRule(input.recurrence?.rrule ?? undefined) &&
+    optionalText(record.location) === input.location &&
+    optionalText(record.notes) === input.notes &&
+    record.color === input.color &&
+    hasExactReminder(record, input.reminderMinutesBefore)
+  );
+}
+
 function describeTiming(timing: EventTiming) {
   if (timing.kind === "timed") {
     return {
@@ -351,6 +407,8 @@ export interface EveToolsOptions {
   timeZone: string;
   /** Fills in whatever the user did not spell out when creating an event. */
   defaults?: UserSettings;
+  /** Serializes duplicate-check-plus-create across concurrent user requests. */
+  serializeCreate?<Result>(create: () => Promise<Result>): Promise<Result>;
 }
 
 function calendarTool<Schema extends z.ZodType, Output>(definition: {
@@ -366,7 +424,11 @@ function calendarTool<Schema extends z.ZodType, Output>(definition: {
 
 export function createEveTools(
   service: CalendarService,
-  { timeZone, defaults = DEFAULT_USER_SETTINGS }: EveToolsOptions,
+  {
+    timeZone,
+    defaults = DEFAULT_USER_SETTINGS,
+    serializeCreate = (create) => create(),
+  }: EveToolsOptions,
 ) {
   const listEvents = calendarTool({
     description:
@@ -428,9 +490,48 @@ export function createEveTools(
     },
   });
 
+  /**
+   * A subagent starts a fresh session for every task, so a task it has already
+   * carried out looks new to it. Reading the target day before writing turns a
+   * repeated create into a report that the event is already there. All resolved
+   * details count, so a different span, repetition, or other field still goes
+   * through. A failed read fails the create too: when duplicate protection is
+   * required, an unknown calendar state is not safe to write into.
+   */
+  async function eventAlreadySaved(input: EventInput) {
+    if (input.recurrence) {
+      const records = await service.listEventRecords();
+      const record = records.find(
+        (candidate) =>
+          !candidate.seriesId &&
+          isSameEvent(candidate, input) &&
+          hasSameTiming(candidate.timing, input.timing),
+      );
+      return record ? describeRecord(record) : undefined;
+    }
+
+    const dateKey =
+      input.timing.kind === "timed"
+        ? dateKeyInTimeZone(
+            zonedTimestampToDate(input.timing.startsAt),
+            timeZone,
+          )
+        : input.timing.startDate;
+    const occurrences = await service.listOccurrences({
+      from: dateKey,
+      to: dateKey,
+    });
+    const occurrence = occurrences.find(
+      (occurrence) =>
+        isSameEvent(occurrence.record, input) &&
+        hasSameTiming(occurrence.timing, input.timing),
+    );
+    return occurrence ? describeOccurrence(occurrence) : undefined;
+  }
+
   const createEvent = calendarTool({
     description:
-      "Add a new event to the user's calendar, with a reminder when the user wants one. Call when the user wants to schedule, add, book, or block time. Do not use this to change an existing event — use update_event for that.",
+      "Add a new event to the user's calendar, with a reminder when the user wants one. Call when the user wants to schedule, add, book, or block time. Do not use this to change an existing event — use update_event for that. When the same event with the same resolved details is already saved nothing is added, and the saved one comes back as alreadyExists, unless the user explicitly asks for another identical event.",
     inputSchema: z.object({
       title: z.string().trim().min(1).max(160).describe("Event title."),
       timing: newTimingSchema,
@@ -447,34 +548,47 @@ export function createEveTools(
         .describe(
           "When to remind before the event starts. Omit to use the user's default reminder, or pass null when they ask for no reminder at all.",
         ),
+      allowDuplicate: z
+        .boolean()
+        .optional()
+        .describe(
+          "Set true only when the user explicitly asks to create another identical event even though one already exists.",
+        ),
     }),
-    run: async (input) => {
-      try {
-        const record = await service.createEvent({
-          title: input.title,
-          timing: toEventTiming(
+    run: async (input) =>
+      serializeCreate(async () => {
+        try {
+          const timing = toEventTiming(
             input.timing,
             timeZone,
             defaults.defaultDurationMinutes,
-          ),
-          recurrence: input.rrule
-            ? { rrule: input.rrule, excludedStarts: [] }
-            : null,
-          location: input.location,
-          notes: input.notes,
-          color: input.color ? savedColor(input.color) : defaults.defaultColor,
-          reminderMinutesBefore:
-            input.reminder === undefined
-              ? (defaults.defaultReminderMinutes ?? undefined)
-              : input.reminder === null
-                ? undefined
-                : reminderMinutes(input.reminder),
-        });
-        return { created: describeRecord(record) };
-      } catch (error) {
-        toReadableError(error);
-      }
-    },
+          );
+          const event: EventInput = {
+            title: input.title,
+            timing,
+            recurrence: input.rrule
+              ? { rrule: normalizeRRule(input.rrule)!, excludedStarts: [] }
+              : null,
+            location: optionalText(input.location),
+            notes: optionalText(input.notes),
+            color: input.color ? savedColor(input.color) : defaults.defaultColor,
+            reminderMinutesBefore:
+              input.reminder === undefined
+                ? (defaults.defaultReminderMinutes ?? undefined)
+                : input.reminder === null
+                  ? undefined
+                  : reminderMinutes(input.reminder),
+          };
+          const saved = input.allowDuplicate
+            ? undefined
+            : await eventAlreadySaved(event);
+          if (saved) return { alreadyExists: saved };
+          const record = await service.createEvent(event);
+          return { created: describeRecord(record) };
+        } catch (error) {
+          toReadableError(error);
+        }
+      }),
   });
 
   const updateEvent = calendarTool({

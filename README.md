@@ -87,6 +87,8 @@ pnpm build
 
 The Playwright suite runs both desktop Chromium and a 390px-class mobile viewport. Install its browser once with `pnpm exec playwright install chromium` if needed.
 
+`pnpm eval` runs the agent evals in `evals/`, which cover the delegation behaviour a unit test cannot see: that one request reaches the calendar through one delegation, and that asking whether it happened is answered from the conversation instead of doing it again. They drive real model calls, so they need the database up, a seeded `local-dev` principal, and `AI_GATEWAY_API_KEY`. The script points `CALENDARIO_FAKE_CALENDAR` at an ignored JSON file so the runs never touch a real Google Calendar and the assertions can read what was actually saved; a production runtime ignores that variable.
+
 ## Architecture
 
 - `src/app/page.tsx` is the authenticated Server Component shell.

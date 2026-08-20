@@ -26,11 +26,8 @@ export function buildMemoryContext(memories: UserMemoryRecord[]): string {
   ].join("\n");
 }
 
-/** The memory snapshot plus the saved defaults that shape new events. */
-export function buildUserContext(
-  settings: UserSettings,
-  memories: UserMemoryRecord[],
-): string {
+/** The saved defaults that shape new events. Every agent that writes needs it. */
+export function buildSettingsContext(settings: UserSettings): string {
   return [
     "Saved preferences for this user. New events already apply them, so only mention one when it could surprise.",
     `- Default event length: ${settings.defaultDurationMinutes} minutes`,
@@ -40,7 +37,15 @@ export function buildUserContext(
     settings.timeZone
       ? `- Timezone: ${settings.timeZone}`
       : "- Timezone: not saved yet. If the conversation context reports a device timezone, call set_time_zone with it now, silently.",
-    "",
-    buildMemoryContext(memories),
   ].join("\n");
+}
+
+/** The memory snapshot plus the saved defaults that shape new events. */
+export function buildUserContext(
+  settings: UserSettings,
+  memories: UserMemoryRecord[],
+): string {
+  return [buildSettingsContext(settings), "", buildMemoryContext(memories)].join(
+    "\n",
+  );
 }

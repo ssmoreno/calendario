@@ -17,6 +17,7 @@
     "start": "next start",
     "start:eve": "eve start",
     "eve:info": "eve info --json",
+    "eval": "CALENDARIO_FAKE_CALENDAR=.eval-calendar.json eve eval",
     "lint": "eslint",
     "test": "NODE_OPTIONS=--no-experimental-webstorage vitest run",
     "test:watch": "NODE_OPTIONS=--no-experimental-webstorage vitest",

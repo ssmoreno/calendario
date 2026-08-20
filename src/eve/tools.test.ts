@@ -36,6 +36,23 @@ async function asJson(result: unknown) {
   return typeof resolved === "string" ? JSON.parse(resolved) : resolved;
 }
 
+function serializeCalls() {
+  let tail = Promise.resolve();
+  return async <Result>(create: () => Promise<Result>): Promise<Result> => {
+    const previous = tail;
+    let release!: () => void;
+    tail = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await previous;
+    try {
+      return await create();
+    } finally {
+      release();
+    }
+  };
+}
+
 describe("Eve calendar tools", () => {
   let service: CalendarDocumentEngine;
   let tools: EveTools;
@@ -181,6 +198,217 @@ describe("Eve calendar tools", () => {
       }),
     );
     expect(singleDay.created.timing.lastDay).toBe("2026-08-25");
+  });
+
+  describe("repeated creates", () => {
+    const cumple = {
+      title: "Cumple Teo",
+      timing: {
+        kind: "timed",
+        date: "2026-08-19",
+        time: "20:00",
+        durationMinutes: 300,
+      },
+    } as const;
+
+    it("reports the saved event instead of adding it twice", async () => {
+      const first = await asJson(tools.createEvent.run(cumple));
+      const again = await asJson(
+        tools.createEvent.run({ ...cumple, title: "cumple teo" }),
+      );
+
+      expect(again.created).toBeUndefined();
+      expect(again.alreadyExists.eventId).toBe(first.created.eventId);
+      expect(service.getDocument().events).toHaveLength(1);
+    });
+
+    it("serializes concurrent duplicate checks and creates", async () => {
+      const serialized = createEveTools(calendarServiceFor(service), {
+        timeZone: TIME_ZONE,
+        serializeCreate: serializeCalls(),
+      });
+
+      const results = await Promise.all([
+        asJson(serialized.createEvent.run(cumple)),
+        asJson(serialized.createEvent.run(cumple)),
+      ]);
+
+      expect(results.filter((result) => result.created)).toHaveLength(1);
+      expect(results.filter((result) => result.alreadyExists)).toHaveLength(1);
+      expect(service.getDocument().events).toHaveLength(1);
+    });
+
+    it("adds an identical event when the user explicitly allows it", async () => {
+      await tools.createEvent.run(cumple);
+      const duplicate = await asJson(
+        tools.createEvent.run({ ...cumple, allowDuplicate: true }),
+      );
+
+      expect(duplicate.created).toBeTruthy();
+      expect(service.getDocument().events).toHaveLength(2);
+    });
+
+    it("fails closed when duplicate protection cannot read the calendar", async () => {
+      const unavailable = createEveTools(
+        {
+          ...calendarServiceFor(service),
+          listOccurrences: async () => {
+            throw new Error("Calendar unavailable");
+          },
+        },
+        { timeZone: TIME_ZONE },
+      );
+
+      await expect(unavailable.createEvent.run(cumple)).rejects.toThrow(
+        "Calendar unavailable",
+      );
+      expect(service.getDocument().events).toHaveLength(0);
+
+      const explicit = await asJson(
+        unavailable.createEvent.run({ ...cumple, allowDuplicate: true }),
+      );
+      expect(explicit.created).toBeTruthy();
+      expect(service.getDocument().events).toHaveLength(1);
+    });
+
+    it("adds the same title again at a different time", async () => {
+      await tools.createEvent.run(cumple);
+      const later = await asJson(
+        tools.createEvent.run({
+          ...cumple,
+          timing: { ...cumple.timing, time: "22:00" },
+        }),
+      );
+
+      expect(later.created).toBeTruthy();
+      expect(service.getDocument().events).toHaveLength(2);
+    });
+
+    it("adds a different title at the same time", async () => {
+      await tools.createEvent.run(cumple);
+      const other = await asJson(
+        tools.createEvent.run({ ...cumple, title: "Cena" }),
+      );
+
+      expect(other.created).toBeTruthy();
+      expect(service.getDocument().events).toHaveLength(2);
+    });
+
+    it("adds a series that starts where a one-off already sits", async () => {
+      await tools.createEvent.run(cumple);
+      const weekly = await asJson(
+        tools.createEvent.run({ ...cumple, rrule: "FREQ=WEEKLY;BYDAY=WE" }),
+      );
+
+      expect(weekly.created.repeats).toBe("FREQ=WEEKLY;BYDAY=WE");
+      expect(service.getDocument().events).toHaveLength(2);
+    });
+
+    it("recognizes equivalent RRULE representations", async () => {
+      const first = await asJson(
+        tools.createEvent.run({ ...cumple, rrule: "FREQ=WEEKLY;BYDAY=WE" }),
+      );
+      const again = await asJson(
+        tools.createEvent.run({ ...cumple, rrule: "RRULE:BYDAY=WE;FREQ=WEEKLY" }),
+      );
+
+      expect(again.alreadyExists.eventId).toBe(first.created.eventId);
+      expect(service.getDocument().events).toHaveLength(1);
+    });
+
+    it("does not duplicate a series whose first occurrence was excluded", async () => {
+      const series = { ...cumple, rrule: "FREQ=WEEKLY;COUNT=2" };
+      const first = await asJson(tools.createEvent.run(series));
+      service.getDocument().events[0].recurrence?.excludedStarts.push(
+        localDateTimeToZoned("2026-08-19", "20:00", TIME_ZONE),
+      );
+
+      const again = await asJson(tools.createEvent.run(series));
+
+      expect(again.alreadyExists.eventId).toBe(first.created.eventId);
+      expect(service.getDocument().events).toHaveLength(1);
+    });
+
+    it("allows a new series to start on a later occurrence", async () => {
+      await tools.createEvent.run({
+        ...cumple,
+        timing: { ...cumple.timing, date: "2026-08-03" },
+        rrule: "FREQ=WEEKLY;COUNT=2",
+      });
+      const later = await asJson(
+        tools.createEvent.run({
+          ...cumple,
+          timing: { ...cumple.timing, date: "2026-08-10" },
+          rrule: "FREQ=WEEKLY;COUNT=2",
+        }),
+      );
+
+      expect(later.created).toBeTruthy();
+      expect(service.getDocument().events).toHaveLength(2);
+    });
+
+    it("allows series at the same instant in different timezones", async () => {
+      const series = { ...cumple, rrule: "FREQ=WEEKLY;COUNT=2" };
+      await tools.createEvent.run({
+        ...series,
+        timing: { ...series.timing, timeZone: "UTC" },
+      });
+      const argentina = await asJson(
+        tools.createEvent.run({
+          ...series,
+          timing: {
+            ...series.timing,
+            time: "17:00",
+            timeZone: "America/Argentina/Buenos_Aires",
+          },
+        }),
+      );
+
+      expect(argentina.created).toBeTruthy();
+      expect(service.getDocument().events).toHaveLength(2);
+    });
+
+    it("allows a longer all-day event to start on the same day", async () => {
+      await tools.createEvent.run({
+        title: "Offsite",
+        timing: { kind: "all-day", startDate: "2026-08-20" },
+      });
+      const longer = await asJson(
+        tools.createEvent.run({
+          title: "Offsite",
+          timing: { kind: "all-day", startDate: "2026-08-20", endDate: "2026-08-21" },
+        }),
+      );
+
+      expect(longer.created).toBeTruthy();
+      expect(service.getDocument().events).toHaveLength(2);
+    });
+
+    it("allows an event when the saved one has an extra reminder", async () => {
+      const event = {
+        ...cumple,
+        reminder: { amount: 15, unit: "minutes" as const },
+      };
+      await tools.createEvent.run(event);
+      service.getDocument().events[0].reminderOverrides = [
+        { method: "popup", minutes: 15 },
+        { method: "email", minutes: 60 },
+      ];
+
+      const withOnlyThePopup = await asJson(tools.createEvent.run(event));
+
+      expect(withOnlyThePopup.created).toBeTruthy();
+      expect(service.getDocument().events).toHaveLength(2);
+    });
+
+    it("recognizes empty optional text after Google omits it", async () => {
+      const emptyFields = { ...cumple, location: "  ", notes: "" };
+      const first = await asJson(tools.createEvent.run(emptyFields));
+      const again = await asJson(tools.createEvent.run(emptyFields));
+
+      expect(again.alreadyExists.eventId).toBe(first.created.eventId);
+      expect(service.getDocument().events).toHaveLength(1);
+    });
   });
 
   it("expands repeating events when listing and reports the rule", async () => {
