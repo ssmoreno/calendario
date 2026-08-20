@@ -498,7 +498,18 @@ export function createEveTools(
    * through. A failed read fails the create too: when duplicate protection is
    * required, an unknown calendar state is not safe to write into.
    */
-  async function occurrenceAlreadySaved(input: EventInput) {
+  async function eventAlreadySaved(input: EventInput) {
+    if (input.recurrence) {
+      const records = await service.listEventRecords();
+      const record = records.find(
+        (candidate) =>
+          !candidate.seriesId &&
+          isSameEvent(candidate, input) &&
+          hasSameTiming(candidate.timing, input.timing),
+      );
+      return record ? describeRecord(record) : undefined;
+    }
+
     const dateKey =
       input.timing.kind === "timed"
         ? dateKeyInTimeZone(
@@ -510,11 +521,12 @@ export function createEveTools(
       from: dateKey,
       to: dateKey,
     });
-    return occurrences.find(
+    const occurrence = occurrences.find(
       (occurrence) =>
         isSameEvent(occurrence.record, input) &&
-        hasSameTiming(occurrence.rootTiming, input.timing),
+        hasSameTiming(occurrence.timing, input.timing),
     );
+    return occurrence ? describeOccurrence(occurrence) : undefined;
   }
 
   const createEvent = calendarTool({
@@ -569,8 +581,8 @@ export function createEveTools(
           };
           const saved = input.allowDuplicate
             ? undefined
-            : await occurrenceAlreadySaved(event);
-          if (saved) return { alreadyExists: describeOccurrence(saved) };
+            : await eventAlreadySaved(event);
+          if (saved) return { alreadyExists: saved };
           const record = await service.createEvent(event);
           return { created: describeRecord(record) };
         } catch (error) {

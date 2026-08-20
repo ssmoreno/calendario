@@ -1,27 +1,30 @@
+import { Client } from "pg";
+
 import type { EveTools } from "../../src/eve/tools";
 import { createEveTools } from "../../src/eve/tools";
 import { googleCalendarForUser } from "../../src/server/google-calendar";
-import { prisma } from "../../src/server/db";
 import { getUserSettings } from "../../src/server/settings-store";
 import { requireUserId } from "./auth";
 import { fakeCalendar, fakeCalendarPath } from "./fake-calendar";
 
-function serializeCreateForUser<Result>(
+async function serializeCreateForUser<Result>(
   userId: string,
   create: () => Promise<Result>,
 ): Promise<Result> {
-  return prisma.$transaction(
-    async (transaction) => {
-      await transaction.$queryRaw`
-        SELECT pg_advisory_xact_lock(
-          hashtext('calendario-calendar-create'),
-          hashtext(${userId})
-        )
-      `;
-      return await create();
-    },
-    { maxWait: 10_000, timeout: 60_000 },
-  );
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) throw new Error("DATABASE_URL is not configured.");
+
+  const client = new Client({ connectionString });
+  await client.connect();
+  try {
+    await client.query(
+      "SELECT pg_advisory_lock(hashtext($1), hashtext($2))",
+      ["calendario-calendar-create", userId],
+    );
+    return await create();
+  } finally {
+    await client.end();
+  }
 }
 
 /**

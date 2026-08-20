@@ -316,11 +316,11 @@ describe("Eve calendar tools", () => {
       expect(service.getDocument().events).toHaveLength(1);
     });
 
-    it("does not duplicate a series whose occurrence was excluded", async () => {
+    it("does not duplicate a series whose first occurrence was excluded", async () => {
       const series = { ...cumple, rrule: "FREQ=WEEKLY;COUNT=2" };
       const first = await asJson(tools.createEvent.run(series));
       service.getDocument().events[0].recurrence?.excludedStarts.push(
-        localDateTimeToZoned("2026-08-26", "20:00", TIME_ZONE),
+        localDateTimeToZoned("2026-08-19", "20:00", TIME_ZONE),
       );
 
       const again = await asJson(tools.createEvent.run(series));

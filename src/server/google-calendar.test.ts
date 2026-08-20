@@ -132,7 +132,7 @@ describe("GoogleCalendarService", () => {
     ]);
   });
 
-  it("keeps the series start when listing a recurring occurrence", async () => {
+  it("uses the occurrence timing when listing a recurring event", async () => {
     const fetcher = vi
       .fn<typeof fetch>()
       .mockResolvedValueOnce(json({ items: [recurringInstance] }))
@@ -151,10 +151,6 @@ describe("GoogleCalendarService", () => {
     expect(occurrence.timing).toMatchObject({
       startsAt:
         "2026-08-24T17:00:00-03:00[America/Argentina/Buenos_Aires]",
-    });
-    expect(occurrence.rootTiming).toMatchObject({
-      startsAt:
-        "2026-08-17T17:00:00-03:00[America/Argentina/Buenos_Aires]",
     });
   });
 
