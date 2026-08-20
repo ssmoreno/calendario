@@ -23,6 +23,7 @@ import {
   type AgentSnapshot,
 } from "./agent-storage";
 import { messageText } from "./message-text";
+import { failedTurns } from "./turn-failures";
 import styles from "./agent.module.css";
 
 function pendingRequests(data: EveMessageData): readonly EveMessageInputRequest[] {
@@ -85,6 +86,22 @@ function WorkingMessage() {
 }
 
 /**
+ * What a turn that produced no reply shows. Every turn is meant to end in text,
+ * so an empty settled turn is a failure whether or not the stream recorded one,
+ * and saying nothing is what makes it read as an agent that ignored the user.
+ */
+function FailedMessage() {
+  return (
+    <Message role="assistant">
+      <p className={styles.error}>
+        Something went wrong on my end and that didn’t go through. Try sending it
+        again.
+      </p>
+    </Message>
+  );
+}
+
+/**
  * The turn still running, if any. Neither status on its own can say which
  * message that is: the session reports `submitted` before the turn's messages
  * exist, and a message's own status reads `complete` as soon as any text part
@@ -122,6 +139,13 @@ function HydratedAgentPanel({
   const agent = useEveAgent({
     initialEvents: saved.events as readonly MessageStreamEvent[],
     initialSession: saved.session,
+    // The transcript says only that the turn failed. The reason belongs here,
+    // where it can be read while debugging, and not in front of the user.
+    onEvent: (event: MessageStreamEvent) => {
+      if (event.type === "turn.failed") {
+        console.error("[agent] turn failed", event.data);
+      }
+    },
     prepareSend: (payload) => ({
       ...payload,
       clientContext: `Device timezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}`,
@@ -143,6 +167,19 @@ function HydratedAgentPanel({
     message.role === "assistant" &&
     runningTurn !== undefined &&
     message.metadata?.turnId === runningTurn;
+
+  // A turn that fails before its first model call — a hook or a dynamic
+  // instruction that threw — never gets an assistant message to render into.
+  const turnsWithMessage = new Set(
+    agent.data.messages.flatMap((message) =>
+      message.role === "assistant" && message.metadata?.turnId
+        ? [message.metadata.turnId]
+        : [],
+    ),
+  );
+  const unshownFailures = [...failedTurns(agent.events)].filter(
+    (turnId) => !turnsWithMessage.has(turnId),
+  );
 
   useEffect(() => {
     const transcript = transcriptRef.current;
@@ -200,13 +237,21 @@ function HydratedAgentPanel({
           {agent.data.messages.map((message) => {
             if (isRunning(message)) return <WorkingMessage key={message.id} />;
             const text = messageText(message);
-            if (!text) return null;
+            if (!text) {
+              return message.role === "assistant" ? (
+                <FailedMessage key={message.id} />
+              ) : null;
+            }
             return (
               <Message key={message.id} role={message.role}>
                 <p className={styles.messageText}>{text}</p>
               </Message>
             );
           })}
+
+          {unshownFailures.map((turnId) => (
+            <FailedMessage key={turnId} />
+          ))}
 
           {isBusy && !agent.data.messages.some(isRunning) ? (
             <WorkingMessage />

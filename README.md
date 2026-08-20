@@ -47,7 +47,7 @@ For deployment, configure the database variables, Better Auth variables, Google 
 
 ## The agent
 
-The project includes an [Eve](https://eve.dev) agent mounted at `/eve/v1`. It uses `zai/glm-5.2` through Vercel AI Gateway and receives the browser's IANA timezone. User memories, event-creation defaults, the resolved timezone, and saved links persist in PostgreSQL.
+The project includes an [Eve](https://eve.dev) agent mounted at `/eve/v1`. It uses `zai/glm-4.6` through Vercel AI Gateway and receives the browser's IANA timezone. User memories, event-creation defaults, the resolved timezone, and saved links persist in PostgreSQL.
 
 The root agent is a router: it owns the conversation, the voice, and personalization (`remember`, `forget`, `update_settings`, `set_time_zone`), and delegates domain work to declared subagents under `agent/subagents/`.
 
@@ -73,7 +73,7 @@ The app uses Better Auth with Prisma for email/password accounts. Every page res
 
 The inline Agent area on `/` streams turns and handles approval and clarification prompts without exposing tool diagnostics. Its account-scoped browser cursor preserves the conversation across reloads; calendar data never enters browser storage.
 
-GLM 5.2 is free for Eve agents through August 27, 2026 under [Vercel's promotion](https://vercel.com/changelog/glm-5-2-free-for-eve-agents-through-august-27-via-blackbox-on-ai-gateway). The offer excludes `zai/glm-5.2-fast`; standard AI Gateway rates apply afterward.
+All three agents run `zai/glm-4.6`. AI Gateway needs paid credits either way: the GLM 5.x models answer `403 no_providers_available` on a free balance, and 4.6 answers `429` after a handful of calls, which one message cannot stay under — it costs four sequential model calls.
 
 ## Quality gates
 
@@ -98,5 +98,5 @@ The Playwright suite runs both desktop Chromium and a 390px-class mobile viewpor
 - `src/server/google-calendar.ts` owns Google REST access and implements `CalendarService`.
 - `src/server/link-metadata.ts` reads a page's title and description, and is the only place the app fetches a user-supplied URL.
 - `src/server/` owns Prisma, Better Auth session resolution, user settings, Eve memories, saved links, and Eve session ownership.
-- `agent/` owns Eve's GLM 5.2 configuration, authenticated channel, routing instructions, personalization tools, and the `subagents/` specialists.
+- `agent/` owns Eve's GLM 4.6 configuration, authenticated channel, routing instructions, personalization tools, and the `subagents/` specialists.
 - Both the upcoming-events API and Eve resolve Google access on the server; OAuth tokens never cross into browser code.
