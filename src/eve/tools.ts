@@ -7,6 +7,7 @@ import {
   isDateKey,
   isTimeZone,
   localDateTimeToZoned,
+  timezoneFromZoned,
   zonedTimestampToDate,
 } from "@/calendar/date-time";
 import {
@@ -298,6 +299,7 @@ function hasSameTiming(a: EventTiming, b: EventTiming): boolean {
       b.kind === "timed" &&
       zonedTimestampToDate(a.startsAt).getTime() ===
         zonedTimestampToDate(b.startsAt).getTime() &&
+      timezoneFromZoned(a.startsAt) === timezoneFromZoned(b.startsAt) &&
       a.durationMinutes === b.durationMinutes
     );
   }
@@ -487,8 +489,8 @@ export function createEveTools(
    * carried out looks new to it. Reading the target day before writing turns a
    * repeated create into a report that the event is already there. All resolved
    * details count, so a different span, repetition, or other field still goes
-   * through. A failed read just means no answer here: the guard is a backstop,
-   * and losing it must not lose the event.
+   * through. A failed read fails the create too: when duplicate protection is
+   * required, an unknown calendar state is not safe to write into.
    */
   async function occurrenceAlreadySaved(input: EventInput) {
     const dateKey =
@@ -498,9 +500,10 @@ export function createEveTools(
             timeZone,
           )
         : input.timing.startDate;
-    const occurrences = await service
-      .listOccurrences({ from: dateKey, to: dateKey })
-      .catch(() => []);
+    const occurrences = await service.listOccurrences({
+      from: dateKey,
+      to: dateKey,
+    });
     return occurrences.find(
       (occurrence) =>
         isSameEvent(occurrence.record, input) &&

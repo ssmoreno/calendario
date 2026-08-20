@@ -215,6 +215,29 @@ describe("Eve calendar tools", () => {
       expect(service.getDocument().events).toHaveLength(2);
     });
 
+    it("fails closed when duplicate protection cannot read the calendar", async () => {
+      const unavailable = createEveTools(
+        {
+          ...calendarServiceFor(service),
+          listOccurrences: async () => {
+            throw new Error("Calendar unavailable");
+          },
+        },
+        { timeZone: TIME_ZONE },
+      );
+
+      await expect(unavailable.createEvent.run(cumple)).rejects.toThrow(
+        "Calendar unavailable",
+      );
+      expect(service.getDocument().events).toHaveLength(0);
+
+      const explicit = await asJson(
+        unavailable.createEvent.run({ ...cumple, allowDuplicate: true }),
+      );
+      expect(explicit.created).toBeTruthy();
+      expect(service.getDocument().events).toHaveLength(1);
+    });
+
     it("adds the same title again at a different time", async () => {
       await tools.createEvent.run(cumple);
       const later = await asJson(
@@ -275,6 +298,27 @@ describe("Eve calendar tools", () => {
       );
 
       expect(later.created).toBeTruthy();
+      expect(service.getDocument().events).toHaveLength(2);
+    });
+
+    it("allows series at the same instant in different timezones", async () => {
+      const series = { ...cumple, rrule: "FREQ=WEEKLY;COUNT=2" };
+      await tools.createEvent.run({
+        ...series,
+        timing: { ...series.timing, timeZone: "UTC" },
+      });
+      const argentina = await asJson(
+        tools.createEvent.run({
+          ...series,
+          timing: {
+            ...series.timing,
+            time: "17:00",
+            timeZone: "America/Argentina/Buenos_Aires",
+          },
+        }),
+      );
+
+      expect(argentina.created).toBeTruthy();
       expect(service.getDocument().events).toHaveLength(2);
     });
 
