@@ -95,8 +95,6 @@ function buildOccurrence(
     key: `${event.id}:${occurrenceStart}`,
     eventId: event.id,
     rootEventId: event.seriesId ?? event.id,
-    rootHasRecurrenceExceptions:
-      (event.recurrence?.excludedStarts.length ?? 0) > 0,
     rootTiming: event.timing,
     occurrenceStart,
     record: event,

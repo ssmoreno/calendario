@@ -333,11 +333,7 @@ function optionalText(value: string | undefined): string | undefined {
   return trimmed || undefined;
 }
 
-function isSameEvent(
-  record: EventRecord,
-  input: EventInput,
-  rootHasRecurrenceExceptions: boolean,
-): boolean {
+function isSameEvent(record: EventRecord, input: EventInput): boolean {
   return (
     record.title.trim().toLowerCase() === input.title.trim().toLowerCase() &&
     normalizeRRule(record.recurrence?.rrule ?? undefined) ===
@@ -345,8 +341,6 @@ function isSameEvent(
     optionalText(record.location) === input.location &&
     optionalText(record.notes) === input.notes &&
     record.color === input.color &&
-    rootHasRecurrenceExceptions ===
-      Boolean(input.recurrence?.excludedStarts.length) &&
     hasExactReminder(record, input.reminderMinutesBefore)
   );
 }
@@ -518,11 +512,7 @@ export function createEveTools(
     });
     return occurrences.find(
       (occurrence) =>
-        isSameEvent(
-          occurrence.record,
-          input,
-          occurrence.rootHasRecurrenceExceptions,
-        ) &&
+        isSameEvent(occurrence.record, input) &&
         hasSameTiming(occurrence.rootTiming, input.timing),
     );
   }

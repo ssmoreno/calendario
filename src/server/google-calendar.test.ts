@@ -133,17 +133,10 @@ describe("GoogleCalendarService", () => {
   });
 
   it("keeps the series start when listing a recurring occurrence", async () => {
-    const parentWithExclusion = {
-      ...recurringParent,
-      recurrence: [
-        ...recurringParent.recurrence,
-        "EXDATE;TZID=America/Argentina/Buenos_Aires:20260831T170000",
-      ],
-    };
     const fetcher = vi
       .fn<typeof fetch>()
       .mockResolvedValueOnce(json({ items: [recurringInstance] }))
-      .mockResolvedValueOnce(json(parentWithExclusion));
+      .mockResolvedValueOnce(json(recurringParent));
     const service = new GoogleCalendarService(
       "token",
       "America/Argentina/Buenos_Aires",
@@ -163,7 +156,6 @@ describe("GoogleCalendarService", () => {
       startsAt:
         "2026-08-17T17:00:00-03:00[America/Argentina/Buenos_Aires]",
     });
-    expect(occurrence.rootHasRecurrenceExceptions).toBe(true);
   });
 
   it("paginates event-record reads", async () => {
