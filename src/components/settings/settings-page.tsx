@@ -214,20 +214,23 @@ export function SettingsPage({
   return (
     <div className={styles.settingsShell}>
       <header className={styles.settingsHeader}>
-        <h1>{settingsMessages.title}</h1>
+        <div className={styles.brand}>
+          <span className={styles.mark} aria-hidden="true" />
+          <h1>{settingsMessages.title}</h1>
+        </div>
         <Link className={styles.backLink} href="/">
           {settingsMessages.backToCalendar}
         </Link>
       </header>
 
-      <main className={styles.settingsCard}>
-        <section className={styles.settingsGroup}>
-          <div className={styles.groupIntro}>
+      <main className={styles.sheet}>
+        <section className={styles.row}>
+          <div className={styles.rowIntro}>
             <h2>{settingsMessages.defaultsHeading}</h2>
             <p>{settingsMessages.defaultsBody}</p>
           </div>
 
-          <div className={styles.controlRow}>
+          <div className={styles.rowControls}>
             <label className={formStyles.field}>
               <span>{settingsMessages.duration}</span>
               <input
@@ -296,52 +299,54 @@ export function SettingsPage({
                 </div>
               ) : null}
             </div>
-          </div>
 
-          <fieldset className={formStyles.colorFieldset}>
-            <legend>{settingsMessages.color}</legend>
-            <div className={styles.colorChoices}>
-              {EVENT_COLORS.map((color) => (
-                <label key={color} data-color={color}>
-                  <input
-                    type="radio"
-                    name="defaultColor"
-                    value={color}
-                    checked={settings.defaultColor === color}
-                    onChange={() => void save({ defaultColor: color })}
-                  />
-                  <span>{color}</span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
+            <fieldset className={formStyles.colorFieldset}>
+              <legend>{settingsMessages.color}</legend>
+              <div className={styles.colorChoices}>
+                {EVENT_COLORS.map((color) => (
+                  <label key={color} data-color={color}>
+                    <input
+                      type="radio"
+                      name="defaultColor"
+                      value={color}
+                      checked={settings.defaultColor === color}
+                      onChange={() => void save({ defaultColor: color })}
+                    />
+                    <span>{color}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          </div>
         </section>
 
-        <section className={styles.settingsGroup}>
-          <div className={styles.groupIntro}>
+        <section className={styles.row}>
+          <div className={styles.rowIntro}>
             <h2>{settingsMessages.appearanceHeading}</h2>
             <p>{settingsMessages.appearanceBody}</p>
           </div>
-          <div
-            className={formStyles.segmented}
-            role="group"
-            aria-label={messages.header.themeGroup}
-          >
-            {THEME_PREFERENCES.map((option) => (
-              <button
-                key={option}
-                type="button"
-                aria-pressed={settings.theme === option}
-                onClick={() => void selectTheme(option)}
-              >
-                {themeLabels[option]}
-              </button>
-            ))}
+          <div className={styles.rowControls}>
+            <div
+              className={formStyles.segmented}
+              role="group"
+              aria-label={messages.header.themeGroup}
+            >
+              {THEME_PREFERENCES.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  aria-pressed={settings.theme === option}
+                  onClick={() => void selectTheme(option)}
+                >
+                  {themeLabels[option]}
+                </button>
+              ))}
+            </div>
           </div>
         </section>
 
-        <section className={styles.settingsGroup}>
-          <div className={styles.groupIntro}>
+        <section className={styles.row}>
+          <div className={styles.rowIntro}>
             <h2>{settingsMessages.googleHeading}</h2>
             <p>
               {googleConnected
@@ -349,23 +354,25 @@ export function SettingsPage({
                 : settingsMessages.googleDisconnected}
             </p>
           </div>
-          <div className={styles.accountRow}>
-            <span className={styles.connectionStatus} data-connected={googleConnected}>
-              {googleConnected ? "Connected" : "Not connected"}
-            </span>
-            <button
-              className={styles.secondaryButton}
-              type="button"
-              disabled={busy}
-              onClick={() => void connectGoogle()}
-            >
-              {googleConnected ? "Reconnect" : "Connect Google Calendar"}
-            </button>
+          <div className={styles.rowControls}>
+            <div className={styles.inlineControl}>
+              <span className={styles.connectionStatus} data-connected={googleConnected}>
+                {googleConnected ? "Connected" : "Not connected"}
+              </span>
+              <button
+                className={styles.secondaryButton}
+                type="button"
+                disabled={busy}
+                onClick={() => void connectGoogle()}
+              >
+                {googleConnected ? "Reconnect" : "Connect Google Calendar"}
+              </button>
+            </div>
           </div>
         </section>
 
-        <section className={styles.settingsGroup}>
-          <div className={styles.groupIntro}>
+        <section className={styles.row} data-span="full">
+          <div className={styles.rowIntro}>
             <h2>{settingsMessages.memoriesHeading}</h2>
             <p>{settingsMessages.memoriesBody}</p>
           </div>
@@ -395,22 +402,24 @@ export function SettingsPage({
           )}
         </section>
 
-        <section className={styles.settingsGroup}>
-          <div className={styles.groupIntro}>
+        <section className={styles.row}>
+          <div className={styles.rowIntro}>
             <h2>{settingsMessages.accountHeading}</h2>
-          </div>
-          <div className={styles.accountRow}>
-            <span className={styles.accountEmail}>
+            <p className={styles.accountEmail}>
               {settingsMessages.signedInAs(email)}
-            </span>
-            <button
-              className={styles.secondaryButton}
-              type="button"
-              disabled={busy}
-              onClick={() => void signOut()}
-            >
-              {messages.auth.signOut}
-            </button>
+            </p>
+          </div>
+          <div className={styles.rowControls}>
+            <div className={styles.inlineControl} data-align="end">
+              <button
+                className={styles.secondaryButton}
+                type="button"
+                disabled={busy}
+                onClick={() => void signOut()}
+              >
+                {messages.auth.signOut}
+              </button>
+            </div>
           </div>
         </section>
       </main>

@@ -78,7 +78,7 @@ describe("toUserSettings", () => {
       defaultDurationMinutes: 60,
       defaultReminderMinutes: 15,
       defaultColor: "coral",
-      theme: "system",
+      theme: "dark",
       timeZone: null,
     });
   });

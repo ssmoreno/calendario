@@ -178,7 +178,7 @@ function HydratedAgentPanel({
   return (
     <section className={styles.panel} aria-labelledby="agent-heading">
       <div className={styles.panelHeading}>
-        <h2 id="agent-heading">Agent</h2>
+        <h2 className={styles.eyebrow} id="agent-heading">Agent</h2>
         {expanded ? (
           <button
             className={styles.quietButton}
@@ -272,11 +272,16 @@ function HydratedAgentPanel({
           onChange={(event) => setDraft(event.target.value)}
         />
         {isBusy ? (
-          <button type="button" onClick={() => agent.stop()}>
+          <button className={styles.stopButton} type="button" onClick={() => agent.stop()}>
             Stop
           </button>
         ) : (
-          <button type="submit" disabled={!connected || !draft.trim()} aria-label="Send">
+          <button
+            className={styles.sendButton}
+            type="submit"
+            disabled={!connected || !draft.trim()}
+            aria-label="Send"
+          >
             <span aria-hidden="true">↗</span>
           </button>
         )}

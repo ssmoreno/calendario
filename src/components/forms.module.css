@@ -1,14 +1,17 @@
 .field {
   display: grid;
   min-width: 0;
-  gap: 6px;
+  gap: 7px;
 }
 
 .field > span,
 .colorFieldset legend {
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 650;
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .field input,
@@ -16,10 +19,16 @@
 .field textarea {
   width: 100%;
   min-height: 40px;
-  padding: 8px 10px;
+  padding: 8px 12px;
   border: 1px solid var(--line);
   border-radius: var(--radius-control);
-  background: var(--surface);
+  background: var(--surface-2);
+}
+
+.field input:hover,
+.field select:hover,
+.field textarea:hover {
+  border-color: var(--line-strong);
 }
 
 .field small {
@@ -35,38 +44,43 @@
 }
 
 .colorFieldset {
+  display: grid;
   padding: 0;
-  margin: 0;
   border: 0;
+  margin: 0;
+  gap: 7px;
 }
 
 .segmented {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  padding: 2px;
+  padding: 3px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius-pill);
   background: var(--surface-2);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .segmented button {
-  min-height: 30px;
+  min-height: 32px;
   border: 0;
-  border-radius: 5px;
+  border-radius: var(--radius-pill);
   background: transparent;
+  color: var(--muted);
   font-size: 12px;
   font-weight: 600;
 }
 
 .segmented button[aria-pressed="true"] {
   background: var(--surface);
+  color: var(--accent-ink);
+  box-shadow: 0 1px 2px rgb(14 19 22 / 8%);
 }
 
 .formError {
-  padding: 10px;
-  margin: 0;
+  padding: 10px 12px;
   border: 1px solid color-mix(in srgb, var(--danger) 35%, var(--line));
   border-radius: var(--radius-control);
+  margin: 0;
   color: var(--danger);
   font-size: 12px;
 }
