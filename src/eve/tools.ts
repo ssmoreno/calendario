@@ -510,7 +510,7 @@ export function createEveTools(
 
   const createEvent = calendarTool({
     description:
-      "Add a new event to the user's calendar, with a reminder when the user wants one. Call when the user wants to schedule, add, book, or block time. Do not use this to change an existing event — use update_event for that. When the same event with the same resolved details is already saved nothing is added, and the saved one comes back as alreadyExists.",
+      "Add a new event to the user's calendar, with a reminder when the user wants one. Call when the user wants to schedule, add, book, or block time. Do not use this to change an existing event — use update_event for that. When the same event with the same resolved details is already saved nothing is added, and the saved one comes back as alreadyExists, unless the user explicitly asks for another identical event.",
     inputSchema: z.object({
       title: z.string().trim().min(1).max(160).describe("Event title."),
       timing: newTimingSchema,
@@ -526,6 +526,12 @@ export function createEveTools(
         .nullish()
         .describe(
           "When to remind before the event starts. Omit to use the user's default reminder, or pass null when they ask for no reminder at all.",
+        ),
+      allowDuplicate: z
+        .boolean()
+        .optional()
+        .describe(
+          "Set true only when the user explicitly asks to create another identical event even though one already exists.",
         ),
     }),
     run: async (input) => {
@@ -551,7 +557,9 @@ export function createEveTools(
                 ? undefined
                 : reminderMinutes(input.reminder),
         };
-        const saved = await occurrenceAlreadySaved(event);
+        const saved = input.allowDuplicate
+          ? undefined
+          : await occurrenceAlreadySaved(event);
         if (saved) return { alreadyExists: describeOccurrence(saved) };
         const record = await service.createEvent(event);
         return { created: describeRecord(record) };

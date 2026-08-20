@@ -205,6 +205,16 @@ describe("Eve calendar tools", () => {
       expect(service.getDocument().events).toHaveLength(1);
     });
 
+    it("adds an identical event when the user explicitly allows it", async () => {
+      await tools.createEvent.run(cumple);
+      const duplicate = await asJson(
+        tools.createEvent.run({ ...cumple, allowDuplicate: true }),
+      );
+
+      expect(duplicate.created).toBeTruthy();
+      expect(service.getDocument().events).toHaveLength(2);
+    });
+
     it("adds the same title again at a different time", async () => {
       await tools.createEvent.run(cumple);
       const later = await asJson(
