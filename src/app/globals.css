@@ -4,6 +4,10 @@
  * to letter: --accent paints surfaces and indicators, --accent-ink is the
  * text-and-focus-ring variant that clears contrast on each canvas, and any
  * accent fill pairs with --on-accent.
+ *
+ * Everything below the palette is the shared system: one type scale, one
+ * spacing scale, one radius set, one easing curve. Components read these
+ * tokens instead of inventing values, so the two pages cannot drift apart.
  */
 :root {
   --canvas: #faf6f1;
@@ -19,7 +23,6 @@
   --on-accent: #0e1316;
   --danger: #b3261e;
   --overlay: rgb(14 19 22 / 45%);
-  --glow: rgb(237 113 23 / 8%);
   --shadow-sheet:
     0 1px 2px rgb(14 19 22 / 4%), 0 28px 60px -44px rgb(104 91 78 / 55%);
   --ultramarine: #3157c8;
@@ -28,10 +31,55 @@
   --gold: #9a6b16;
   --event-mix: 12%;
   --event-mix-hover: 20%;
-  --radius-control: 10px;
-  --radius-card: 16px;
+
+  /* Canvas composition: two pumpkin blooms, an edge vignette, and film grain. */
+  --bloom-warm: rgb(237 113 23 / 13%);
+  --bloom-cool: rgb(237 113 23 / 9%);
+  --vignette: rgb(104 91 78 / 12%);
+  --grain-opacity: 0.03;
+
+  /* Type scale. Tailwind steps, each size carrying its paired line height. */
+  --text-xs: 12px;
+  --leading-xs: 16px;
+  --text-sm: 14px;
+  --leading-sm: 20px;
+  --text-base: 16px;
+  --leading-base: 24px;
+  --text-lg: 18px;
+  --leading-lg: 28px;
+  --text-xl: 20px;
+  --leading-xl: 28px;
+  --text-2xl: 24px;
+  --leading-2xl: 32px;
+  --text-3xl: 30px;
+  --leading-3xl: 36px;
+  --text-4xl: 36px;
+  --leading-4xl: 40px;
+
+  /* Spacing scale. Nothing between these values, nothing outside them. */
+  --space-25: 2px;
+  --space-50: 4px;
+  --space-75: 8px;
+  --space-100: 12px;
+  --space-200: 16px;
+  --space-300: 24px;
+  --space-400: 32px;
+  --space-500: 40px;
+  --space-600: 48px;
+  --space-700: 64px;
+  --space-800: 80px;
+  --space-900: 96px;
+
+  /*
+   * Radii are sized so the nested formula lands on the scale: a 16px sheet
+   * with 8px of padding gives its rows 8px, a 12px card with 4px gives 8px.
+   */
+  --radius-sheet: 16px;
+  --radius-card: 12px;
+  --radius-control: 8px;
   --radius-pill: 999px;
-  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+
+  --ease-fluid: cubic-bezier(0.32, 0.72, 0, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
   --duration-fast: 120ms;
   --duration-base: 200ms;
@@ -52,7 +100,6 @@
   --on-accent: #0e1316;
   --danger: #ff8577;
   --overlay: rgb(0 0 0 / 70%);
-  --glow: rgb(237 113 23 / 14%);
   --shadow-sheet: 0 1px 2px rgb(0 0 0 / 30%), 0 28px 60px -44px rgb(0 0 0 / 80%);
   --ultramarine: #8aa4ff;
   --coral: #ff9b87;
@@ -60,6 +107,12 @@
   --gold: #f2c66d;
   --event-mix: 18%;
   --event-mix-hover: 28%;
+
+  /* Ink takes a much heavier hand than cream before the blooms read at all. */
+  --bloom-warm: rgb(237 113 23 / 22%);
+  --bloom-cool: rgb(255 138 51 / 13%);
+  --vignette: rgb(0 0 0 / 55%);
+  --grain-opacity: 0.05;
 }
 
 * {
@@ -75,15 +128,39 @@ html {
 body {
   min-height: 100vh;
   margin: 0;
-  /* A static warm wash off the palette, echoing the reference gradient. */
-  background:
-    radial-gradient(900px 600px at 12% -10%, var(--glow), transparent 70%),
-    radial-gradient(700px 500px at 100% 105%, var(--glow), transparent 70%),
-    var(--canvas);
-  background-attachment: fixed;
   color: var(--ink);
   font-family: var(--font-ui), sans-serif;
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
   text-rendering: optimizeLegibility;
+}
+
+/*
+ * The canvas is two fixed layers rather than a body background: the blooms
+ * have to stay put while the page scrolls, and background-attachment: fixed
+ * is unreliable on iOS. Both sit at z-index -1, above the html background and
+ * below every in-flow element.
+ */
+body::before,
+body::after {
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+}
+
+body::before {
+  background:
+    radial-gradient(circle at 50% 45%, transparent 38%, var(--vignette) 100%),
+    radial-gradient(900px 620px at 6% -14%, var(--bloom-warm), transparent 68%),
+    radial-gradient(760px 560px at 106% 110%, var(--bloom-cool), transparent 66%);
+}
+
+/* Fine grain keeps the large flat fields from banding. */
+body::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  opacity: var(--grain-opacity);
 }
 
 button,
@@ -93,9 +170,10 @@ select {
   color: inherit;
   font: inherit;
   transition:
-    background-color var(--duration-fast) var(--ease-out),
-    border-color var(--duration-fast) var(--ease-out),
-    color var(--duration-fast) var(--ease-out);
+    background-color var(--duration-fast) var(--ease-fluid),
+    border-color var(--duration-fast) var(--ease-fluid),
+    color var(--duration-fast) var(--ease-fluid),
+    transform var(--duration-fast) var(--ease-fluid);
 }
 
 button,
@@ -111,8 +189,10 @@ button:focus-visible,
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible,
+a:focus-visible,
 [role="button"]:focus-visible,
-[role="gridcell"]:focus-visible {
+[role="gridcell"]:focus-visible,
+summary:focus-visible {
   outline: 2px solid var(--accent-ink);
   outline-offset: 2px;
 }
@@ -141,5 +221,10 @@ select:focus-visible,
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+  }
+
+  /* A press that cannot animate should still not jump. */
+  *:active {
+    transform: none !important;
   }
 }

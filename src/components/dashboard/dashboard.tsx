@@ -9,6 +9,11 @@ import {
   DialogTrigger,
   Popover,
 } from "react-aria-components";
+import { ArrowClockwise } from "@phosphor-icons/react/dist/ssr/ArrowClockwise";
+import { CalendarBlank } from "@phosphor-icons/react/dist/ssr/CalendarBlank";
+import { CaretDown } from "@phosphor-icons/react/dist/ssr/CaretDown";
+import { GearSix } from "@phosphor-icons/react/dist/ssr/GearSix";
+import { SignOut } from "@phosphor-icons/react/dist/ssr/SignOut";
 
 import { formatDuration } from "@/calendar/date-time";
 import { authClient } from "@/lib/auth-client";
@@ -157,14 +162,15 @@ function EventDetails({ event }: { event: UpcomingEvent }) {
 function LedgerRow({ event }: { event: UpcomingEvent }) {
   return (
     <li>
-      <details className={styles.eventRow}>
+      <details className={styles.eventRow} data-color={event.color}>
         <summary>
+          <span className={styles.swatch} aria-hidden="true" />
           <span className={styles.rowWhen}>
             <span>{rowDay(event)}</span>
             <span>{rowTime(event)}</span>
           </span>
           <strong>{event.title}</strong>
-          <span className={styles.expandMark} aria-hidden="true">+</span>
+          <CaretDown className={styles.expandMark} size={16} aria-hidden="true" />
         </summary>
         <EventDetails event={event} />
       </details>
@@ -253,6 +259,7 @@ export function Dashboard({ initialConnected, user }: DashboardProps) {
         </div>
         <div className={styles.topbarEnd}>
           <span className={styles.connectionPill} data-state={connection}>
+            <span className={styles.connectionDot} aria-hidden="true" />
             {connectionLabels[connection]}
           </span>
           <DialogTrigger isOpen={profileOpen} onOpenChange={setProfileOpen}>
@@ -265,10 +272,20 @@ export function Dashboard({ initialConnected, user }: DashboardProps) {
                   <strong>{user.name}</strong>
                   <span>{user.email}</span>
                 </div>
-                <Link href="/settings" onClick={() => setProfileOpen(false)}>
+                <Link
+                  className={styles.profileItem}
+                  href="/settings"
+                  onClick={() => setProfileOpen(false)}
+                >
+                  <GearSix size={16} aria-hidden="true" />
                   Settings
                 </Link>
-                <button type="button" onClick={() => void signOut()}>
+                <button
+                  className={styles.profileItem}
+                  type="button"
+                  onClick={() => void signOut()}
+                >
+                  <SignOut size={16} aria-hidden="true" />
                   Log out
                 </button>
               </Dialog>
@@ -315,16 +332,24 @@ export function Dashboard({ initialConnected, user }: DashboardProps) {
                   Google Calendar is unavailable right now.
                 </p>
                 <button
-                  className={styles.primaryButton}
+                  className={styles.retryButton}
                   type="button"
                   onClick={() => void refreshUpcoming()}
                 >
+                  <ArrowClockwise size={16} aria-hidden="true" />
                   Try again
                 </button>
               </>
             ) : next ? (
               <>
-                <p className={styles.lead}>{leadLabel(next, now)}</p>
+                <p className={styles.lead}>
+                  <span
+                    className={styles.swatch}
+                    data-color={next.color}
+                    aria-hidden="true"
+                  />
+                  {leadLabel(next, now)}
+                </p>
                 <p className={styles.nowTitle}>{next.title}</p>
                 <p className={styles.nowMeta}>
                   {[eventSummary(next), eventEndLabel(next), next.location]
@@ -348,7 +373,12 @@ export function Dashboard({ initialConnected, user }: DashboardProps) {
           <div className={styles.sectionHeading}>
             <h2 className={styles.eyebrow} id="upcoming-heading">Upcoming events</h2>
             {connection === "connected" ? (
-              <button className={styles.quietButton} type="button" onClick={() => void refreshUpcoming()}>
+              <button
+                className={styles.quietButton}
+                type="button"
+                onClick={() => void refreshUpcoming()}
+              >
+                <ArrowClockwise size={14} aria-hidden="true" />
                 Refresh
               </button>
             ) : null}
@@ -365,11 +395,14 @@ export function Dashboard({ initialConnected, user }: DashboardProps) {
               {later.map((event) => <LedgerRow event={event} key={event.id} />)}
             </ul>
           ) : (
-            <p className={styles.ledgerNote}>
-              {connection === "connected"
-                ? "Nothing else scheduled."
-                : "Your schedule appears here."}
-            </p>
+            <div className={styles.ledgerEmpty}>
+              <CalendarBlank size={28} aria-hidden="true" />
+              <p>
+                {connection === "connected"
+                  ? "Nothing else scheduled. Ask SS to add something."
+                  : "Once Google Calendar is connected, your schedule reads here."}
+              </p>
+            </div>
           )}
         </section>
       </div>

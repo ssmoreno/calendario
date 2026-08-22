@@ -24,6 +24,11 @@ import {
 } from "./agent-storage";
 import { messageText } from "./message-text";
 import { failedTurns } from "./turn-failures";
+import { ArrowsClockwise } from "@phosphor-icons/react/dist/ssr/ArrowsClockwise";
+import { PaperPlaneTilt } from "@phosphor-icons/react/dist/ssr/PaperPlaneTilt";
+import { Stop } from "@phosphor-icons/react/dist/ssr/Stop";
+import { WarningCircle } from "@phosphor-icons/react/dist/ssr/WarningCircle";
+
 import styles from "./agent.module.css";
 
 function pendingRequests(data: EveMessageData): readonly EveMessageInputRequest[] {
@@ -94,6 +99,7 @@ function FailedMessage() {
   return (
     <Message role="assistant">
       <p className={styles.error}>
+        <WarningCircle size={16} aria-hidden="true" />
         Something went wrong on my end and that didn’t go through. Try sending it
         again.
       </p>
@@ -227,6 +233,7 @@ function HydratedAgentPanel({
               setExpanded(false);
             }}
           >
+            <ArrowsClockwise size={14} aria-hidden="true" />
             New conversation
           </button>
         ) : null}
@@ -266,6 +273,7 @@ function HydratedAgentPanel({
               <div className={styles.promptOptions}>
                 {request.options?.map((option) => (
                   <button
+                    className={styles.promptButton}
                     key={option.id}
                     type="button"
                     onClick={() =>
@@ -286,17 +294,25 @@ function HydratedAgentPanel({
                   }}
                 >
                   <input
+                    className={styles.answerInput}
                     aria-label="Answer"
                     value={freeform}
                     onChange={(event) => setFreeform(event.target.value)}
                   />
-                  <button type="submit">Answer</button>
+                  <button className={styles.promptButton} type="submit">
+                    Answer
+                  </button>
                 </form>
               ) : null}
             </fieldset>
           ) : null}
 
-          {agent.error ? <p className={styles.error}>{agent.error.message}</p> : null}
+          {agent.error ? (
+            <p className={styles.error}>
+              <WarningCircle size={16} aria-hidden="true" />
+              {agent.error.message}
+            </p>
+          ) : null}
         </div>
       ) : null}
 
@@ -317,7 +333,12 @@ function HydratedAgentPanel({
           onChange={(event) => setDraft(event.target.value)}
         />
         {isBusy ? (
-          <button className={styles.stopButton} type="button" onClick={() => agent.stop()}>
+          <button
+            className={styles.stopButton}
+            type="button"
+            onClick={() => agent.stop()}
+          >
+            <Stop size={14} weight="fill" aria-hidden="true" />
             Stop
           </button>
         ) : (
@@ -327,7 +348,7 @@ function HydratedAgentPanel({
             disabled={!connected || !draft.trim()}
             aria-label="Send"
           >
-            <span aria-hidden="true">↗</span>
+            <PaperPlaneTilt size={18} aria-hidden="true" />
           </button>
         )}
       </form>

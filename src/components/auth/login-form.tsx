@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { WarningCircle } from "@phosphor-icons/react/dist/ssr/WarningCircle";
 
 import { messages } from "@/calendar/messages";
 import { authClient } from "@/lib/auth-client";
@@ -38,13 +39,14 @@ export function LoginForm() {
         </div>
 
         <div className={styles.authIntro}>
-          <h1>{authMessages.signInHeading}</h1>
+          <h1 className={styles.authEyebrow}>{authMessages.signInHeading}</h1>
           <p>{authMessages.signInIntro}</p>
         </div>
 
         <div className={styles.authActions}>
           {error ? (
             <p className={formStyles.formError} role="alert">
+              <WarningCircle size={16} aria-hidden="true" />
               {error}
             </p>
           ) : null}

@@ -3,80 +3,59 @@
   min-height: 100dvh;
   align-items: center;
   justify-content: center;
-  padding: 28px;
+  padding: var(--space-300);
 }
 
-/* No card chrome: the canvas glow carries the page. */
+/* No card chrome: the canvas bloom carries the page. */
 .authCard {
   display: grid;
   width: min(100%, 360px);
-  gap: 28px;
+  gap: var(--space-400);
 }
 
 .wordmark {
   display: flex;
   align-items: center;
-  font-size: 26px;
+  font-size: var(--text-2xl);
   font-weight: 600;
-  gap: 12px;
+  gap: var(--space-100);
   letter-spacing: -0.03em;
+  line-height: var(--leading-2xl);
 }
 
 .mark {
+  composes: mark from "../primitives.module.css";
   width: 12px;
   height: 12px;
-  flex: none;
-  border-radius: 50%;
-  background: var(--accent);
 }
 
 .authIntro {
   display: grid;
-  gap: 8px;
+  gap: var(--space-75);
 }
 
-.authIntro h1 {
-  margin: 0;
-  color: var(--muted);
-  font-family: var(--font-mono), monospace;
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+.authEyebrow {
+  composes: eyebrow from "../primitives.module.css";
 }
 
 .authIntro p {
   margin: 0;
-  font-size: 14px;
-  line-height: 1.55;
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
+  text-wrap: pretty;
 }
 
 .authActions {
   display: grid;
-  gap: 14px;
+  gap: var(--space-200);
 }
 
 .googleButton {
-  display: flex;
+  composes: button from "../button.module.css";
+  composes: secondary from "../button.module.css";
   min-height: 48px;
-  align-items: center;
-  justify-content: center;
-  padding: 8px 16px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-pill);
-  background: var(--surface);
-  font-size: 13px;
-  font-weight: 600;
-  gap: 10px;
-  transition: border-color var(--duration-fast) var(--ease-out);
-}
-
-.googleButton:hover:not(:disabled) {
-  border-color: var(--accent);
-}
-
-.googleButton:disabled {
-  opacity: 0.6;
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
 }
 
 .googleCalendarLogo {
