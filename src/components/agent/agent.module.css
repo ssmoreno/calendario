@@ -1,41 +1,25 @@
 .panel {
   display: grid;
   align-content: start;
-  gap: 14px;
+  gap: var(--space-200);
 }
 
 .panelHeading {
   display: flex;
-  min-height: 20px;
+  min-height: 32px;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-100);
 }
 
 .eyebrow {
-  margin: 0;
-  color: var(--muted);
-  font-family: var(--font-mono), monospace;
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  composes: eyebrow from "../primitives.module.css";
 }
 
 .quietButton {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--muted);
-  font-size: 11px;
-}
-
-.quietButton:hover:not(:disabled) {
-  color: var(--ink);
-}
-
-.quietButton:disabled {
-  opacity: 0.5;
+  composes: button from "../button.module.css";
+  composes: quiet from "../button.module.css";
+  margin-right: calc(var(--space-100) * -1);
 }
 
 /* No box: the transcript already sits inside the workspace sheet. */
@@ -43,13 +27,13 @@
   display: grid;
   max-height: 340px;
   overflow-y: auto;
-  gap: 18px;
+  gap: var(--space-200);
 }
 
 .message {
   display: grid;
   max-width: 88%;
-  gap: 5px;
+  gap: var(--space-50);
 }
 
 .message[data-role="user"] {
@@ -59,8 +43,9 @@
 .message > span {
   color: var(--muted);
   font-family: var(--font-mono), monospace;
-  font-size: 9px;
+  font-size: var(--text-xs);
   letter-spacing: 0.12em;
+  line-height: var(--leading-xs);
   text-transform: uppercase;
 }
 
@@ -70,24 +55,27 @@
 
 .messageText {
   margin: 0;
-  font-size: 14px;
-  line-height: 1.55;
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
+  text-wrap: pretty;
   white-space: pre-wrap;
 }
 
+/* A 12px bubble keeping its tail, per the nested radius formula. */
 .message[data-role="user"] .messageText {
-  padding: 10px 13px;
-  border-radius: 14px 14px 4px 14px;
+  padding: var(--space-75) var(--space-100);
+  border-radius: var(--radius-card) var(--radius-card) var(--space-50)
+    var(--radius-card);
   background: var(--accent-soft);
-  font-size: 13px;
 }
 
 .working {
   margin: 0;
-  animation: workingPulse 1.6s ease-in-out infinite;
+  animation: workingPulse 1.6s var(--ease-in-out) infinite;
   color: var(--muted);
   font-family: var(--font-mono), monospace;
-  font-size: 11px;
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
 }
 
 @keyframes workingPulse {
@@ -98,86 +86,86 @@
 
 .prompt {
   display: grid;
-  padding: 14px;
+  padding: var(--space-200);
   border: 1px solid var(--accent);
-  border-radius: var(--radius-control);
+  border-radius: var(--radius-card);
   margin: 0;
   background: var(--accent-soft);
-  gap: 10px;
+  gap: var(--space-100);
 }
 
 .prompt legend {
-  padding: 0 6px;
+  padding: 0 var(--space-75);
   color: var(--accent-ink);
   font-family: var(--font-mono), monospace;
-  font-size: 10px;
+  font-size: var(--text-xs);
   letter-spacing: 0.12em;
+  line-height: var(--leading-xs);
   text-transform: uppercase;
 }
 
 .prompt p {
   margin: 0;
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  text-wrap: pretty;
 }
 
 .promptOptions,
 .answerForm {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-75);
 }
 
-.prompt button,
-.answerForm button {
-  min-height: 36px;
-  padding: 0 14px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-pill);
-  background: var(--surface);
-  font-size: 12px;
-  font-weight: 600;
+.promptButton {
+  composes: button from "../button.module.css";
+  composes: secondary from "../button.module.css";
 }
 
-.prompt button:hover,
-.answerForm button:hover {
-  border-color: var(--accent);
-}
-
-.answerForm input {
+.answerInput {
   min-width: 0;
-  min-height: 36px;
+  min-height: 40px;
   flex: 1;
-  padding: 0 14px;
+  padding: 0 var(--space-200);
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-pill);
   background: var(--surface);
+  font-size: var(--text-sm);
 }
 
 /* The composer is the anchor of the page: one pill, one orange action. */
 .composer {
   display: flex;
   align-items: center;
-  padding: 5px 5px 5px 6px;
+  padding: var(--space-50);
   border: 1px solid var(--line);
   border-radius: var(--radius-pill);
   background: var(--surface-2);
-  gap: 8px;
-  transition: border-color var(--duration-fast) var(--ease-out);
+  gap: var(--space-75);
+  transition:
+    border-color var(--duration-base) var(--ease-fluid),
+    outline-color var(--duration-base) var(--ease-fluid);
 }
 
+/*
+ * The input's own ring is suppressed so the whole pill lights up instead, but
+ * it lights up with the same 2px accent outline used everywhere else.
+ */
 .composer:focus-within {
   border-color: var(--accent-ink);
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 2px;
 }
 
 .composer input {
   min-width: 0;
-  min-height: 38px;
+  min-height: 40px;
   flex: 1;
-  padding: 0 12px;
+  padding: 0 var(--space-100);
   border: 0;
   background: transparent;
-  font-size: 14px;
+  font-size: var(--text-base);
 }
 
 .composer input:focus-visible {
@@ -185,41 +173,32 @@
 }
 
 .sendButton {
-  display: grid;
-  width: 38px;
-  height: 38px;
-  flex: none;
-  padding: 0;
-  border: 0;
+  composes: button from "../button.module.css";
+  composes: primary from "../button.module.css";
+  composes: icon from "../button.module.css";
   border-radius: 50%;
-  background: var(--accent);
-  color: var(--on-accent);
-  font-size: 17px;
-  place-items: center;
-}
-
-.sendButton:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--accent) 88%, var(--ink));
 }
 
 .stopButton {
-  min-height: 38px;
-  flex: none;
-  padding: 0 16px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-pill);
-  background: var(--surface);
-  font-size: 12px;
-  font-weight: 600;
+  composes: button from "../button.module.css";
+  composes: secondary from "../button.module.css";
 }
 
-.sendButton:disabled,
 .composer input:disabled {
   opacity: 0.55;
 }
 
 .error {
+  display: flex;
+  align-items: start;
   margin: 0;
   color: var(--danger);
-  font-size: 12px;
+  font-size: var(--text-sm);
+  gap: var(--space-75);
+  line-height: var(--leading-sm);
+}
+
+.error svg {
+  flex: none;
+  margin-top: var(--space-25);
 }

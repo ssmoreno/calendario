@@ -1,16 +1,17 @@
 .field {
   display: grid;
   min-width: 0;
-  gap: 7px;
+  gap: var(--space-75);
 }
 
 .field > span,
 .colorFieldset legend {
   color: var(--muted);
   font-family: var(--font-mono), monospace;
-  font-size: 10px;
+  font-size: var(--text-xs);
   font-weight: 500;
   letter-spacing: 0.12em;
+  line-height: var(--leading-xs);
   text-transform: uppercase;
 }
 
@@ -19,10 +20,11 @@
 .field textarea {
   width: 100%;
   min-height: 40px;
-  padding: 8px 12px;
+  padding: var(--space-75) var(--space-100);
   border: 1px solid var(--line);
   border-radius: var(--radius-control);
   background: var(--surface-2);
+  font-size: var(--text-sm);
 }
 
 .field input:hover,
@@ -33,14 +35,14 @@
 
 .field small {
   color: var(--muted);
-  font-size: 10px;
-  line-height: 1.4;
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
 }
 
 .reminderCustomFields {
   display: grid;
+  gap: var(--space-75);
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
-  gap: 6px;
 }
 
 .colorFieldset {
@@ -48,12 +50,13 @@
   padding: 0;
   border: 0;
   margin: 0;
-  gap: 7px;
+  gap: var(--space-75);
 }
 
+/* A 999px track with 4px of padding, so the thumbs stay pills inside it. */
 .segmented {
   display: grid;
-  padding: 3px;
+  padding: var(--space-50);
   border: 1px solid var(--line);
   border-radius: var(--radius-pill);
   background: var(--surface-2);
@@ -66,8 +69,21 @@
   border-radius: var(--radius-pill);
   background: transparent;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--text-sm);
   font-weight: 600;
+  line-height: var(--leading-sm);
+  transition:
+    background-color var(--duration-base) var(--ease-fluid),
+    color var(--duration-base) var(--ease-fluid),
+    transform var(--duration-fast) var(--ease-fluid);
+}
+
+.segmented button:hover:not([aria-pressed="true"]) {
+  color: var(--ink);
+}
+
+.segmented button:active {
+  transform: scale(0.98);
 }
 
 .segmented button[aria-pressed="true"] {
@@ -77,10 +93,19 @@
 }
 
 .formError {
-  padding: 10px 12px;
+  display: flex;
+  align-items: start;
+  padding: var(--space-100);
   border: 1px solid color-mix(in srgb, var(--danger) 35%, var(--line));
   border-radius: var(--radius-control);
   margin: 0;
   color: var(--danger);
-  font-size: 12px;
+  font-size: var(--text-sm);
+  gap: var(--space-75);
+  line-height: var(--leading-sm);
+}
+
+.formError svg {
+  flex: none;
+  margin-top: var(--space-25);
 }

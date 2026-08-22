@@ -70,9 +70,9 @@ describe("SettingsPage", () => {
     globalThis.fetch = fetchMock;
     renderSettings();
 
-    fireEvent.click(screen.getByRole("radio", { name: "mint" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Mint" }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-    fireEvent.click(screen.getByRole("radio", { name: "gold" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Gold" }));
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     resolveFirst?.(
@@ -81,7 +81,7 @@ describe("SettingsPage", () => {
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
     await waitFor(() =>
-      expect(screen.getByRole("radio", { name: "gold" })).toHaveProperty(
+      expect(screen.getByRole("radio", { name: "Gold" })).toHaveProperty(
         "checked",
         true,
       ),

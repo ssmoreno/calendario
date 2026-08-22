@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import { ArrowLeft } from "@phosphor-icons/react/dist/ssr/ArrowLeft";
+import { LinkSimple } from "@phosphor-icons/react/dist/ssr/LinkSimple";
+import { SignOut } from "@phosphor-icons/react/dist/ssr/SignOut";
+import { Trash } from "@phosphor-icons/react/dist/ssr/Trash";
 
 import { messages } from "@/calendar/messages";
 import {
@@ -22,7 +26,11 @@ import {
 } from "@/calendar/settings";
 import { saveThemePreference } from "@/calendar/storage";
 import { applyThemePreference } from "@/calendar/theme";
-import { EVENT_COLORS, type ThemePreference } from "@/calendar/types";
+import {
+  EVENT_COLOR_LABELS,
+  EVENT_COLORS,
+  type ThemePreference,
+} from "@/calendar/types";
 import { authClient } from "@/lib/auth-client";
 import {
   GOOGLE_CALENDAR_PROVIDER,
@@ -219,6 +227,7 @@ export function SettingsPage({
           <h1>{settingsMessages.title}</h1>
         </div>
         <Link className={styles.backLink} href="/">
+          <ArrowLeft size={16} aria-hidden="true" />
           {settingsMessages.backToCalendar}
         </Link>
       </header>
@@ -312,7 +321,8 @@ export function SettingsPage({
                       checked={settings.defaultColor === color}
                       onChange={() => void save({ defaultColor: color })}
                     />
-                    <span>{color}</span>
+                    <span className={styles.colorSwatch} aria-hidden="true" />
+                    <span>{EVENT_COLOR_LABELS[color]}</span>
                   </label>
                 ))}
               </div>
@@ -356,7 +366,11 @@ export function SettingsPage({
           </div>
           <div className={styles.rowControls}>
             <div className={styles.inlineControl}>
-              <span className={styles.connectionStatus} data-connected={googleConnected}>
+              <span
+                className={styles.connectionStatus}
+                data-connected={googleConnected}
+              >
+                <span className={styles.connectionDot} aria-hidden="true" />
                 {googleConnected ? "Connected" : "Not connected"}
               </span>
               <button
@@ -365,6 +379,7 @@ export function SettingsPage({
                 disabled={busy}
                 onClick={() => void connectGoogle()}
               >
+                <LinkSimple size={16} aria-hidden="true" />
                 {googleConnected ? "Reconnect" : "Connect Google Calendar"}
               </button>
             </div>
@@ -392,6 +407,7 @@ export function SettingsPage({
                     disabled={busy}
                     onClick={() => void forget(memory.id)}
                   >
+                    <Trash size={16} aria-hidden="true" />
                     {settingsMessages.forget}
                   </button>
                 </li>
@@ -417,6 +433,7 @@ export function SettingsPage({
                 disabled={busy}
                 onClick={() => void signOut()}
               >
+                <SignOut size={16} aria-hidden="true" />
                 {messages.auth.signOut}
               </button>
             </div>

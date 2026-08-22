@@ -149,6 +149,7 @@ export type UpcomingEvent =
       location?: string;
       notes?: string;
       recurrence?: string;
+      color: EventColor;
       reminderMinutes: number[];
       usesDefaultReminder: boolean;
     }
@@ -163,6 +164,7 @@ export type UpcomingEvent =
       location?: string;
       notes?: string;
       recurrence?: string;
+      color: EventColor;
       reminderMinutes: number[];
       usesDefaultReminder: boolean;
     };
@@ -407,6 +409,7 @@ function upcomingEventFor(
     recurrence: rruleFor(parent ?? event)
       ? recurrenceDescription(rruleFor(parent ?? event)!)
       : undefined,
+    color: EVENT_COLORS_BY_GOOGLE_ID.get(event.colorId ?? "") ?? "ultramarine",
     reminderMinutes: reminderMinutes(event),
     usesDefaultReminder: event.reminders?.useDefault === true,
   };

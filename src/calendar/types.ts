@@ -6,6 +6,15 @@ export const EVENT_COLORS = [
 ] as const;
 
 export type EventColor = (typeof EVENT_COLORS)[number];
+
+/** Display names for the event hues, so no surface prints the raw enum. */
+export const EVENT_COLOR_LABELS: Record<EventColor, string> = {
+  ultramarine: "Ultramarine",
+  coral: "Coral",
+  mint: "Mint",
+  gold: "Gold",
+};
+
 export type ThemePreference = "system" | "light" | "dark";
 export type MutationScope = "occurrence" | "following" | "series";
 
