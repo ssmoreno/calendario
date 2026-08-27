@@ -108,6 +108,22 @@ export const messages = {
     googleConnected: "SS can read and manage events on your primary calendar.",
     googleDisconnected: "Connect your primary Google Calendar to use the agent.",
     googleConnectFailed: "Google Calendar could not be connected. Try again.",
+    whatsappHeading: "WhatsApp",
+    whatsappBody: "Text SS instead of using this app.",
+    whatsappLinked: (waId: string) => `Connected to +${waId}.`,
+    whatsappConnect: "Connect WhatsApp",
+    whatsappDisconnect: "Disconnect",
+    whatsappCode: (code: string) =>
+      `Text ${code} to the SS number from the phone you want to use.`,
+    whatsappCodeExpires: "The code stops working in 10 minutes.",
+    whatsappFailed: "WhatsApp could not be connected. Try again.",
+  },
+  whatsapp: {
+    paired:
+      "You're connected. Ask me about your calendar whenever you like — try \"what's on tomorrow?\"",
+    notConnected:
+      "I don't know whose calendar this is yet. Open SS settings on the web, press Connect WhatsApp, and text me the code.",
+    textOnly: "I can only read text — send me a message and I'll take it from there.",
   },
   footer: {
     eventsInView: (count: number) =>

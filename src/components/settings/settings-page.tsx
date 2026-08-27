@@ -6,6 +6,7 @@ import { useRef, useState } from "react";
 import { ArrowLeft } from "@phosphor-icons/react/dist/ssr/ArrowLeft";
 import { LinkSimple } from "@phosphor-icons/react/dist/ssr/LinkSimple";
 import { SignOut } from "@phosphor-icons/react/dist/ssr/SignOut";
+import { WhatsappLogo } from "@phosphor-icons/react/dist/ssr/WhatsappLogo";
 import { Trash } from "@phosphor-icons/react/dist/ssr/Trash";
 
 import { messages } from "@/calendar/messages";
@@ -31,6 +32,7 @@ import {
   EVENT_COLORS,
   type ThemePreference,
 } from "@/calendar/types";
+import type { WhatsAppLinkStatus } from "@/app/api/whatsapp/route";
 import { authClient } from "@/lib/auth-client";
 import {
   GOOGLE_CALENDAR_PROVIDER,
@@ -74,6 +76,7 @@ interface SettingsPageProps {
   userId: string;
   initialSettings: UserSettings;
   initialMemories: UserMemoryRecord[];
+  initialWhatsApp: WhatsAppLinkStatus;
 }
 
 export function SettingsPage({
@@ -82,10 +85,12 @@ export function SettingsPage({
   userId,
   initialSettings,
   initialMemories,
+  initialWhatsApp,
 }: SettingsPageProps) {
   const router = useRouter();
   const [settings, setSettings] = useState(initialSettings);
   const [memories, setMemories] = useState(initialMemories);
+  const [whatsApp, setWhatsApp] = useState(initialWhatsApp);
   const [duration, setDuration] = useState(
     String(initialSettings.defaultDurationMinutes),
   );
@@ -215,6 +220,19 @@ export function SettingsPage({
     });
     if (result?.error) {
       setStatus({ text: settingsMessages.googleConnectFailed, failed: true });
+      endOperation();
+    }
+  }
+
+  async function changeWhatsApp(method: "POST" | "DELETE") {
+    beginOperation();
+    try {
+      const response = await fetch("/api/whatsapp", { method });
+      if (!response.ok) throw new Error(settingsMessages.whatsappFailed);
+      setWhatsApp((await response.json()) as WhatsAppLinkStatus);
+    } catch {
+      setStatus({ text: settingsMessages.whatsappFailed, failed: true });
+    } finally {
       endOperation();
     }
   }
@@ -383,6 +401,44 @@ export function SettingsPage({
                 {googleConnected ? "Reconnect" : "Connect Google Calendar"}
               </button>
             </div>
+          </div>
+        </section>
+
+        <section className={styles.row}>
+          <div className={styles.rowIntro}>
+            <h2>{settingsMessages.whatsappHeading}</h2>
+            <p>
+              {whatsApp.waId
+                ? settingsMessages.whatsappLinked(whatsApp.waId)
+                : whatsApp.code
+                  ? settingsMessages.whatsappCode(whatsApp.code)
+                  : settingsMessages.whatsappBody}
+            </p>
+          </div>
+          <div className={styles.rowControls}>
+            <div className={styles.inlineControl}>
+              <span
+                className={styles.connectionStatus}
+                data-connected={Boolean(whatsApp.waId)}
+              >
+                <span className={styles.connectionDot} aria-hidden="true" />
+                {whatsApp.waId ? "Connected" : "Not connected"}
+              </span>
+              <button
+                className={styles.secondaryButton}
+                type="button"
+                disabled={busy}
+                onClick={() =>
+                  void changeWhatsApp(whatsApp.waId ? "DELETE" : "POST")
+                }
+              >
+                <WhatsappLogo size={16} aria-hidden="true" />
+                {whatsApp.waId
+                  ? settingsMessages.whatsappDisconnect
+                  : settingsMessages.whatsappConnect}
+              </button>
+            </div>
+            {whatsApp.code ? <p>{settingsMessages.whatsappCodeExpires}</p> : null}
           </div>
         </section>
 

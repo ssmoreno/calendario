@@ -8,18 +8,20 @@ datasource db {
 }
 
 model User {
-  id            String        @id
+  id            String               @id
   name          String
   email         String
-  emailVerified Boolean       @default(false)
+  emailVerified Boolean              @default(false)
   image         String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
   sessions      Session[]
   accounts      Account[]
   settings      UserSettings?
   memories      UserMemory[]
   savedItems    SavedItem[]
+  whatsAppLink  WhatsAppLink?
+  whatsAppCode  WhatsAppPairingCode?
 
   @@unique([email])
   @@map("user")
@@ -132,4 +134,29 @@ model EveSessionOwner {
 
   @@index([userId])
   @@map("eve_session_owner")
+}
+
+/// Binds a WhatsApp identity to an account. The Kapso channel resolves an
+/// inbound sender through this table before any turn reaches the agent, so an
+/// unlinked number never gets one. One number per account, both ways.
+model WhatsAppLink {
+  waId      String   @id
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@map("whatsapp_link")
+}
+
+/// A short-lived code a signed-in user texts to the WhatsApp number, proving
+/// the phone and the account are both theirs. One live code per account; a
+/// redeemed code is deleted rather than kept.
+model WhatsAppPairingCode {
+  code      String   @id
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("whatsapp_pairing_code")
 }

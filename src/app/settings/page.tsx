@@ -6,6 +6,10 @@ import { listMemories } from "@/server/memory-store";
 import { requireSession } from "@/server/session";
 import { hasGoogleCalendarConnection } from "@/server/google-calendar";
 import { getUserSettings } from "@/server/settings-store";
+import {
+  activePairingCode,
+  linkedWaId,
+} from "@/server/whatsapp-link-store";
 
 export const metadata: Metadata = {
   title: `${messages.settings.title} — ${messages.appName}`,
@@ -13,11 +17,14 @@ export const metadata: Metadata = {
 
 export default async function Settings() {
   const session = await requireSession();
-  const [settings, memories, googleConnected] = await Promise.all([
-    getUserSettings(session.user.id),
-    listMemories(session.user.id, { limit: null }),
-    hasGoogleCalendarConnection(session.user.id),
-  ]);
+  const [settings, memories, googleConnected, waId, pairing] =
+    await Promise.all([
+      getUserSettings(session.user.id),
+      listMemories(session.user.id, { limit: null }),
+      hasGoogleCalendarConnection(session.user.id),
+      linkedWaId(session.user.id),
+      activePairingCode(session.user.id),
+    ]);
 
   return (
     <SettingsPage
@@ -26,6 +33,7 @@ export default async function Settings() {
       userId={session.user.id}
       initialSettings={settings}
       initialMemories={memories}
+      initialWhatsApp={{ waId, code: waId ? null : (pairing?.code ?? null) }}
     />
   );
 }
