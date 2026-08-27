@@ -1,6 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { WhatsAppLinkStatus } from "@/app/api/whatsapp/route";
+import { messages } from "@/calendar/messages";
 import { DEFAULT_USER_SETTINGS, type UserSettings } from "@/calendar/settings";
 
 import { SettingsPage } from "./settings-page";
@@ -33,6 +35,7 @@ function settingsResponse(settings: UserSettings): Response {
 
 function renderSettings(
   memories: { id: string; content: string; createdAt: string }[] = [],
+  whatsApp: WhatsAppLinkStatus = { waId: null, code: null },
 ) {
   render(
     <SettingsPage
@@ -41,6 +44,7 @@ function renderSettings(
       userId="user-a"
       initialSettings={DEFAULT_USER_SETTINGS}
       initialMemories={memories}
+      initialWhatsApp={whatsApp}
     />,
   );
 }
@@ -115,6 +119,53 @@ describe("SettingsPage", () => {
       ),
     );
     expect(screen.getByText("No morning meetings")).toBeTruthy();
+  });
+
+  it("shows the code to text after asking to connect WhatsApp", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({ waId: null, code: "482913" }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    globalThis.fetch = fetchMock;
+    renderSettings();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: messages.settings.whatsappConnect }),
+    );
+
+    expect(
+      await screen.findByText(messages.settings.whatsappCode("482913")),
+    ).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledWith("/api/whatsapp", { method: "POST" });
+  });
+
+  it("offers to disconnect a number that is already linked", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({ waId: null, code: null }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    globalThis.fetch = fetchMock;
+    renderSettings([], { waId: "15551234567", code: null });
+
+    expect(
+      screen.getByText(messages.settings.whatsappLinked("15551234567")),
+    ).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole("button", { name: messages.settings.whatsappDisconnect }),
+    );
+
+    expect(
+      await screen.findByRole("button", {
+        name: messages.settings.whatsappConnect,
+      }),
+    ).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledWith("/api/whatsapp", {
+      method: "DELETE",
+    });
   });
 
   it("stays signed in when server-side logout fails", async () => {

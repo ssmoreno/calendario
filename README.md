@@ -43,6 +43,44 @@ Open [http://localhost:3000](http://localhost:3000).
 
 Enable the Google Calendar API for the OAuth project and register `http://localhost:3000/api/auth/callback/google` as a local redirect URI. Calendar events stay in Google; PostgreSQL stores accounts, settings, memories, saved links, Eve session ownership, and provider tokens. `calendario.preferences.v1` remains only the pre-paint theme cache.
 
+## WhatsApp
+
+The same agent answers on WhatsApp through [Kapso](https://kapso.ai). `agent/channels/kapso.ts`
+is an Eve channel built on the Chat SDK adapter, mounted at `/eve/v1/kapso`, and it needs:
+
+```dotenv
+KAPSO_API_KEY="<project api key>"
+KAPSO_PHONE_NUMBER_ID="<phone number id>"
+KAPSO_WEBHOOK_SECRET="<webhook secret>"
+```
+
+Point Kapso at the deployed origin, using the same secret:
+
+```bash
+kapso whatsapp webhooks new \
+  --phone-number-id $KAPSO_PHONE_NUMBER_ID \
+  --url "https://<host>/eve/v1/kapso" \
+  --event whatsapp.message.received \
+  --active
+```
+
+Locally, run `pnpm dev:eve` behind a public tunnel and register that tunnel's URL instead.
+
+A phone number is not an account, so an inbound sender reaches the agent only once it has
+been paired. The user presses **Connect WhatsApp** in settings, which mints a six-digit code
+valid for ten minutes, and texts that code to the number. Until then the channel answers with
+a short pointer and starts no session, so an unknown number costs nothing and sees nothing.
+Pairing binds one number to one account in both directions; texting a fresh code from another
+phone moves the link.
+
+Replies post once per turn rather than streaming, because WhatsApp cannot edit a sent message,
+and messages queue rather than steer, because a cancelled turn does not roll back a calendar
+write it already made. Approval prompts, such as deleting a whole recurring series, arrive as
+WhatsApp reply buttons.
+
+Chat SDK thread state uses the in-memory adapter, which is per-instance. Before real traffic,
+move it to `@chat-adapter/state-redis` so thread locks and webhook deduplication are shared.
+
 For deployment, configure the database variables, Better Auth variables, Google OAuth credentials, and the production `/api/auth/callback/google` redirect URI. A production build applies the checked-in migrations before compiling, so `DIRECT_URL` has to be set wherever production builds run; preview builds and local builds skip that step and expect a database that is already migrated.
 
 ## The agent
@@ -97,6 +135,6 @@ The Playwright suite runs both desktop Chromium and a 390px-class mobile viewpor
 - `src/library/` owns the saved-link contract.
 - `src/server/google-calendar.ts` owns Google REST access and implements `CalendarService`.
 - `src/server/link-metadata.ts` reads a page's title and description, and is the only place the app fetches a user-supplied URL.
-- `src/server/` owns Prisma, Better Auth session resolution, user settings, Eve memories, saved links, and Eve session ownership.
-- `agent/` owns Eve's GLM 4.6 configuration, authenticated channel, routing instructions, personalization tools, and the `subagents/` specialists.
+- `src/server/` owns Prisma, Better Auth session resolution, user settings, Eve memories, saved links, Eve session ownership, and WhatsApp pairing.
+- `agent/` owns Eve's GLM 4.6 configuration, its authenticated browser and WhatsApp channels, routing instructions, personalization tools, and the `subagents/` specialists.
 - Both the upcoming-events API and Eve resolve Google access on the server; OAuth tokens never cross into browser code.
