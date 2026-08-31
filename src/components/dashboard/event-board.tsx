@@ -8,7 +8,6 @@ import {
   dateKeyInTimeZone,
   formatDuration,
   todayKey,
-  zonedTimestampToDate,
 } from "@/calendar/date-time";
 import type { UpcomingEvent } from "@/server/google-calendar";
 
@@ -65,7 +64,7 @@ function blockTime(event: UpcomingEvent, timeZone: string) {
     hour: "numeric",
     minute: "2-digit",
     timeZone,
-  }).format(zonedTimestampToDate(event.timing.startsAt));
+  }).format(new Date(event.timing.startsAt));
 }
 
 function endLabel(event: UpcomingEvent, timeZone: string) {
@@ -81,7 +80,7 @@ function endLabel(event: UpcomingEvent, timeZone: string) {
     hour: "numeric",
     minute: "2-digit",
     timeZone,
-  }).format(zonedTimestampToDate(event.timing.endsAt))}`;
+  }).format(new Date(event.timing.endsAt))}`;
 }
 
 /**
@@ -91,7 +90,7 @@ function endLabel(event: UpcomingEvent, timeZone: string) {
 function leadLabel(event: UpcomingEvent, now: number) {
   if (event.timing.kind === "all-day") return null;
   const minutes = Math.round(
-    (zonedTimestampToDate(event.timing.startsAt).getTime() - now) / 60_000,
+    (new Date(event.timing.startsAt).getTime() - now) / 60_000,
   );
   if (minutes <= 0) return "Now";
   return `In ${formatDuration(minutes)}`;
@@ -112,10 +111,7 @@ function EventDetails({
         <span>{`${shortDayLabel(
           event.timing.kind === "all-day"
             ? event.timing.startDate
-            : dateKeyInTimeZone(
-                zonedTimestampToDate(event.timing.startsAt),
-                timeZone,
-              ),
+            : dateKeyInTimeZone(new Date(event.timing.startsAt), timeZone),
         )} · ${blockTime(event, timeZone)}`}</span>
         {end ? <span>{end}</span> : null}
         {event.location ? <span>{event.location}</span> : null}

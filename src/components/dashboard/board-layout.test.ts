@@ -46,7 +46,7 @@ function section(dateKey: string, count: number): DaySection {
   return {
     dateKey,
     events: Array.from({ length: count }, (_, index) =>
-      timed(`${dateKey}-${index}`, `${dateKey}T10:00:00+00:00[UTC]`),
+      timed(`${dateKey}-${index}`, `${dateKey}T10:00:00.000Z`),
     ),
     hiddenCount: 0,
   };
@@ -62,7 +62,7 @@ describe("groupByDay", () => {
     // 11pm in Buenos Aires is already the 2nd in UTC.
     const event = timed(
       "late",
-      "2026-09-01T23:30:00-03:00[America/Argentina/Buenos_Aires]",
+      "2026-09-02T02:30:00.000Z",
       "America/Argentina/Buenos_Aires",
     );
 
@@ -87,8 +87,8 @@ describe("groupByDay", () => {
   it("orders days forward and puts all-day events at the head of their day", () => {
     const sections = groupByDay(
       [
-        timed("later-day", "2026-09-03T09:00:00+00:00[UTC]"),
-        timed("standup", "2026-09-01T09:00:00+00:00[UTC]"),
+        timed("later-day", "2026-09-03T09:00:00.000Z"),
+        timed("standup", "2026-09-01T09:00:00.000Z"),
         allDay("holiday", "2026-09-01", "2026-09-02"),
       ],
       "UTC",
