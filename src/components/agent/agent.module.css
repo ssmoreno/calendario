@@ -1,15 +1,122 @@
-.panel {
-  display: grid;
-  align-content: start;
-  gap: var(--space-200);
+/*
+ * The Agent is summoned, not sited. It is one fixed-position surface in every
+ * state, so going from the centred Spotlight bar to the docked conversation is
+ * a plain transition between two sets of lengths — no FLIP, no view
+ * transition, no measuring. Every geometric property is set in both shapes and
+ * none of them is `auto`, because `auto` is what stops an interpolation.
+ *
+ * `data-shape` is the geometry and `data-mode` is the visibility: closing fades
+ * the panel where it stands instead of flying it back to the middle first.
+ */
+.layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+
+  /* Derived, so the Spotlight bar is exactly one composer tall. */
+  --composer-h: calc(40px + var(--space-50) * 2 + 2px);
+  --spotlight-h: calc(var(--composer-h) + var(--space-75) * 2 + 2px);
+  --docked-top: calc(var(--space-300) * 2 + 48px);
 }
 
+.backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: var(--overlay);
+  cursor: default;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-base) var(--ease-fluid);
+}
+
+.layer[data-mode="spotlight"] .backdrop {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.panel {
+  position: fixed;
+  display: flex;
+  overflow: hidden;
+  flex-direction: column;
+  padding: var(--space-75);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sheet);
+  background: var(--surface);
+  box-shadow: var(--shadow-sheet), 0 24px 48px -24px rgb(14 19 22 / 35%);
+  pointer-events: auto;
+  transition:
+    top var(--duration-base) var(--ease-fluid),
+    right var(--duration-base) var(--ease-fluid),
+    width var(--duration-base) var(--ease-fluid),
+    height var(--duration-base) var(--ease-fluid),
+    translate var(--duration-base) var(--ease-fluid),
+    scale var(--duration-base) var(--ease-fluid),
+    opacity var(--duration-fast) var(--ease-fluid);
+}
+
+.layer[data-shape="spotlight"] .panel {
+  top: 22vh;
+  right: 50%;
+  width: min(640px, 92vw);
+  height: var(--spotlight-h);
+  translate: 50% 0;
+}
+
+.layer[data-shape="docked"] .panel {
+  top: var(--docked-top);
+  right: var(--space-300);
+  width: min(400px, 92vw);
+  height: calc(100dvh - var(--docked-top) - var(--space-300));
+  translate: 0 0;
+}
+
+.layer[data-mode="closed"] {
+  visibility: hidden;
+  transition: visibility 0s var(--duration-base);
+}
+
+.layer[data-mode="closed"] .panel {
+  opacity: 0;
+  pointer-events: none;
+  scale: 0.97;
+}
+
+/* The heading and the transcript belong to the conversation, not to the bar. */
 .panelHeading {
   display: flex;
-  min-height: 32px;
+  height: 0;
+  flex: none;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-100);
+  opacity: 0;
+  transition:
+    height var(--duration-base) var(--ease-fluid),
+    margin-bottom var(--duration-base) var(--ease-fluid),
+    opacity var(--duration-base) var(--ease-fluid);
+}
+
+.layer[data-shape="docked"] .panelHeading {
+  height: 32px;
+  margin-bottom: var(--space-100);
+  opacity: 1;
+  transition-delay: var(--duration-fast);
+}
+
+.headingActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-50);
+}
+
+.closeButton {
+  composes: button from "../button.module.css";
+  composes: quiet from "../button.module.css";
+  composes: icon from "../button.module.css";
+  width: 32px;
+  height: 32px;
 }
 
 .eyebrow {
@@ -22,12 +129,23 @@
   margin-right: calc(var(--space-100) * -1);
 }
 
-/* No box: the transcript already sits inside the workspace sheet. */
+/* No box: the transcript is already inside the panel's own sheet. */
 .transcript {
   display: grid;
-  max-height: 340px;
+  min-height: 0;
+  flex: 1;
+  padding: 0 var(--space-75);
+  align-content: start;
   overflow-y: auto;
   gap: var(--space-200);
+  opacity: 0;
+  transition: opacity var(--duration-base) var(--ease-fluid);
+}
+
+.layer[data-shape="docked"] .transcript {
+  padding-bottom: var(--space-200);
+  opacity: 1;
+  transition-delay: var(--duration-fast);
 }
 
 .message {
@@ -134,9 +252,10 @@
   font-size: var(--text-sm);
 }
 
-/* The composer is the anchor of the page: one pill, one orange action. */
+/* The composer is the anchor of the panel: one pill, one orange action. */
 .composer {
   display: flex;
+  flex: none;
   align-items: center;
   padding: var(--space-50);
   border: 1px solid var(--line);
@@ -153,6 +272,26 @@
  * it lights up with the same 2px accent outline used everywhere else.
  */
 .composer:focus-within {
+  border-color: var(--accent-ink);
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 2px;
+}
+
+/*
+ * As a Spotlight bar the panel and the composer are the same object, so the
+ * composer gives up its own edge and the panel takes the focus ring — one
+ * control, one outline, rather than a ring drawn twice a pixel apart.
+ */
+.layer[data-shape="spotlight"] .composer {
+  border-color: transparent;
+  background: transparent;
+}
+
+.layer[data-shape="spotlight"] .composer:focus-within {
+  outline: 0;
+}
+
+.layer[data-shape="spotlight"] .panel:focus-within {
   border-color: var(--accent-ink);
   outline: 2px solid var(--accent-ink);
   outline-offset: 2px;
@@ -201,4 +340,14 @@
 .error svg {
   flex: none;
   margin-top: var(--space-25);
+}
+
+/* Below the tablet break the conversation is a sheet off the bottom instead. */
+@media (max-width: 720px) {
+  .layer[data-shape="docked"] .panel {
+    top: 26dvh;
+    right: var(--space-200);
+    width: calc(100vw - var(--space-200) * 2);
+    height: calc(74dvh - var(--space-200));
+  }
 }

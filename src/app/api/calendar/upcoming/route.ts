@@ -8,6 +8,9 @@ import {
 
 const NO_STORE = { "cache-control": "private, no-store" };
 
+/* How far ahead the board may look. It draws only what fits on one screen. */
+const UPCOMING_DAYS = 15;
+
 export async function GET(request: Request) {
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
@@ -31,10 +34,8 @@ export async function GET(request: Request) {
       : "UTC";
   try {
     const calendar = await googleCalendarForUser(session.user.id, timeZone);
-    return Response.json(
-      { status: "connected", events: await calendar.listUpcoming(4) },
-      { headers: NO_STORE },
-    );
+    const events = await calendar.listUpcoming({ days: UPCOMING_DAYS });
+    return Response.json({ status: "connected", events }, { headers: NO_STORE });
   } catch (error) {
     if (error instanceof GoogleCalendarError) {
       if (error.kind === "authorization") {

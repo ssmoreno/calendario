@@ -51,7 +51,7 @@ function renderPanel(
   messages: EveMessage[],
   events: MessageStreamEvent[] = [],
 ) {
-  // The transcript only opens for a conversation the panel already has.
+  // Docked is the shape the panel takes once a conversation exists.
   writeSavedAgent(USER_ID, { events: [turnFailed("turn_0")], session: SESSION });
   moduleMocks.useEveAgent.mockReturnValue({
     data: { messages },
@@ -65,7 +65,14 @@ function renderPanel(
     stop: vi.fn(),
   });
   render(
-    <AgentPanel connected onCalendarChanged={vi.fn()} userId={USER_ID} />,
+    <AgentPanel
+      connected
+      mode="docked"
+      onBusyChange={vi.fn()}
+      onCalendarChanged={vi.fn()}
+      onModeChange={vi.fn()}
+      userId={USER_ID}
+    />,
   );
 }
 

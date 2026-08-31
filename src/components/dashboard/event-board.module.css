@@ -1,0 +1,246 @@
+/*
+ * The board is the page. It fills the sheet and never scrolls: the packing in
+ * board-layout.ts decides how many days fit, and the heights it assumed are
+ * handed back down as custom properties so the two cannot drift.
+ */
+.board {
+  display: grid;
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: var(--space-200);
+}
+
+.boardHeading {
+  display: flex;
+  min-height: 32px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-200);
+}
+
+.eyebrow {
+  composes: eyebrow from "../primitives.module.css";
+}
+
+/* What the board could not draw, said once rather than per column. */
+.footnote {
+  overflow: hidden;
+  min-height: var(--leading-xs);
+  margin: 0;
+  color: var(--muted);
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quietButton {
+  composes: button from "../button.module.css";
+  composes: quiet from "../button.module.css";
+  margin-right: calc(var(--space-100) * -1);
+}
+
+/* Full width and full height whatever the columns do, so it can be measured. */
+.boardBody {
+  display: grid;
+  min-height: 0;
+}
+
+/*
+ * The tracks are explicit so every block is the same width whatever the day
+ * happens to hold, and the whole grid is capped so a board that only needs two
+ * columns does not stretch them halfway across the screen.
+ */
+.columns {
+  display: grid;
+  min-height: 0;
+  max-width: calc(
+    var(--column-count) * var(--column-max) + (var(--column-count) - 1) *
+      var(--column-gap)
+  );
+  column-gap: var(--column-gap);
+  grid-template-columns: repeat(var(--column-count), minmax(0, 1fr));
+}
+
+.column {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--section-gap);
+}
+
+/*
+ * A hairline between columns, the same divider the sheet used to carry. It
+ * rides in the middle of the gap so the space either side of it stays exactly
+ * the --column-gap the packer budgeted for.
+ */
+.column + .column::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--column-gap) / -2);
+  border-left: 1px solid var(--line);
+  content: "";
+}
+
+.day {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: var(--day-header-gap);
+}
+
+/* The day is a divider, not a card: a label sitting on a rule. */
+.dayHeading {
+  display: flex;
+  height: var(--day-header-h);
+  align-items: center;
+  padding-bottom: var(--space-75);
+  border-bottom: 1px solid var(--line);
+  margin: 0;
+  color: var(--muted);
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  line-height: var(--leading-xs);
+  text-transform: uppercase;
+}
+
+.blocks {
+  display: grid;
+  gap: var(--block-gap);
+}
+
+/*
+ * One event. Fixed height, because the packer budgeted for it — anything that
+ * grows here has to grow in board-layout.ts too.
+ */
+.block {
+  display: grid;
+  overflow: hidden;
+  height: var(--block-h);
+  align-content: center;
+  padding: 0 var(--space-100);
+  border: 0;
+  border-left: 2px solid var(--swatch-color, var(--accent));
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--swatch-color) var(--event-mix), transparent);
+  cursor: pointer;
+  gap: var(--space-25);
+  text-align: left;
+  transition: background-color var(--duration-base) var(--ease-fluid);
+}
+
+.block[data-color="ultramarine"] {
+  --swatch-color: var(--ultramarine);
+}
+
+.block[data-color="coral"] {
+  --swatch-color: var(--coral);
+}
+
+.block[data-color="mint"] {
+  --swatch-color: var(--mint);
+}
+
+.block[data-color="gold"] {
+  --swatch-color: var(--gold);
+}
+
+.block:hover {
+  background: color-mix(
+    in srgb,
+    var(--swatch-color) var(--event-mix-hover),
+    transparent
+  );
+}
+
+/* The next event is the only block that borrows the app's own accent. */
+.block[data-next] {
+  border-left-color: var(--accent);
+}
+
+.blockWhen {
+  display: flex;
+  align-items: baseline;
+  color: var(--muted);
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-xs);
+  gap: var(--space-75);
+  line-height: var(--leading-xs);
+}
+
+.lead {
+  color: var(--accent-ink);
+}
+
+.blockTitle {
+  overflow: hidden;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: var(--leading-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dayMore {
+  margin: 0;
+  color: var(--muted);
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
+}
+
+.detailsPopover {
+  width: min(320px, calc(100vw - var(--space-300)));
+  filter: drop-shadow(0 16px 32px rgb(14 19 22 / 18%));
+}
+
+.detailsDialog {
+  padding: var(--space-200);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sheet);
+  background: var(--surface);
+  outline: 0;
+}
+
+.details {
+  display: grid;
+  gap: var(--space-100);
+}
+
+.details h3 {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: 600;
+  line-height: var(--leading-base);
+  text-wrap: pretty;
+}
+
+.detailMeta {
+  display: grid;
+  color: var(--muted);
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-xs);
+  gap: var(--space-50);
+  line-height: var(--leading-xs);
+}
+
+.details p {
+  padding-top: var(--space-100);
+  border-top: 1px solid var(--line);
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  text-wrap: pretty;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 560px) {
+  .boardHeading {
+    gap: var(--space-100);
+  }
+}
