@@ -1,8 +1,4 @@
-import {
-  dateKeyInTimeZone,
-  todayKey,
-  zonedTimestampToDate,
-} from "@/calendar/date-time";
+import { dateKeyInTimeZone, todayKey } from "@/calendar/date-time";
 import type { UpcomingEvent } from "@/server/google-calendar";
 
 /*
@@ -53,9 +49,9 @@ function dayKeyFor(event: UpcomingEvent, timeZone: string, today: string): strin
   if (event.timing.kind === "all-day") {
     return event.timing.startDate < today ? today : event.timing.startDate;
   }
-  // Not `new Date`: a zoned timestamp carries a bracketed IANA name that the
-  // built-in parser rejects outright.
-  return dateKeyInTimeZone(zonedTimestampToDate(event.timing.startsAt), timeZone);
+  // `new Date`, not `zonedTimestampToDate`: the API sends a plain UTC instant,
+  // which `parseZonedDateTime` rejects for want of a bracketed IANA name.
+  return dateKeyInTimeZone(new Date(event.timing.startsAt), timeZone);
 }
 
 export function groupByDay(
