@@ -35,6 +35,14 @@ export function readSavedAgent(
   }
 }
 
+/** Whether reopening the Agent should land on a conversation already going. */
+export function hasSavedAgent(
+  userId: string,
+  storage: KeyValueStorage = localStorage,
+): boolean {
+  return readSavedAgent(userId, storage).events.length > 0;
+}
+
 export function writeSavedAgent(
   userId: string,
   snapshot: AgentSnapshot,

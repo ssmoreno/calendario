@@ -1,9 +1,11 @@
+/* The board fills the window exactly: it packs to fit rather than scrolling. */
 .shell {
   display: flex;
-  width: min(100%, 1180px);
-  min-height: 100dvh;
+  overflow: hidden;
+  width: min(100%, 1440px);
+  height: 100dvh;
   flex-direction: column;
-  padding: var(--space-300) var(--space-300) var(--space-600);
+  padding: var(--space-300);
   margin: 0 auto;
   gap: var(--space-300);
 }
@@ -11,6 +13,7 @@
 .topbar {
   display: flex;
   min-height: 48px;
+  flex: none;
   align-items: center;
   justify-content: space-between;
   padding: 0 var(--space-50);
@@ -37,6 +40,39 @@
   display: flex;
   align-items: center;
   gap: var(--space-200);
+}
+
+/* The Agent's only presence on the page now that it has left the sheet. */
+.askButton {
+  composes: button from "../button.module.css";
+  composes: secondary from "../button.module.css";
+  position: relative;
+}
+
+.shortcut {
+  color: var(--muted);
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
+}
+
+/* A turn that is still running while the panel is shut says so here. */
+.askButton[data-busy]::after {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: busyPulse 1.6s var(--ease-in-out) infinite;
+  background: var(--accent);
+  content: "";
+}
+
+@keyframes busyPulse {
+  50% {
+    opacity: 0.3;
+  }
 }
 
 .connectionPill {
@@ -122,71 +158,37 @@
   min-height: 40px;
 }
 
-/* One sheet holds the whole workspace; a hairline splits its two columns. */
+/* One sheet, one thing in it. */
 .sheet {
   display: grid;
+  min-height: 0;
   flex: 1;
-  overflow: hidden;
+  padding: var(--space-400);
   border: 1px solid var(--line);
   border-radius: var(--radius-sheet);
   background: var(--surface);
   box-shadow: var(--shadow-sheet);
-  grid-template-columns: minmax(0, 1.4fr) minmax(300px, 1fr);
-}
-
-.mainColumn {
-  display: grid;
-  align-content: start;
-  padding: var(--space-400);
-  gap: var(--space-400);
 }
 
 .eyebrow {
   composes: eyebrow from "../primitives.module.css";
 }
 
-.now {
+/* Everything that is not a board: connecting, failing, or nothing to show. */
+.notice {
   display: grid;
-  justify-items: start;
-  gap: var(--space-75);
+  align-content: center;
+  justify-items: center;
+  gap: var(--space-100);
+  text-align: center;
 }
 
-.lead {
-  display: inline-flex;
-  align-items: center;
-  margin: 0;
-  color: var(--accent-ink);
-  font-family: var(--font-mono), monospace;
-  font-size: var(--text-sm);
-  gap: var(--space-75);
-  line-height: var(--leading-sm);
+.notice svg {
+  color: var(--line-strong);
 }
 
-.nowTitle {
-  overflow-wrap: anywhere;
-  max-width: 20ch;
-  margin: 0;
-  font-size: var(--text-4xl);
-  font-weight: 600;
-  letter-spacing: -0.03em;
-  line-height: var(--leading-4xl);
-  text-wrap: balance;
-}
-
-.nowTitle[data-quiet="true"] {
-  color: var(--muted);
-}
-
-.nowMeta {
-  margin: 0;
-  color: var(--muted);
-  font-family: var(--font-mono), monospace;
-  font-size: var(--text-xs);
-  line-height: var(--leading-lg);
-}
-
-.nowProse {
-  max-width: 44ch;
+.noticeProse {
+  max-width: 40ch;
   margin: 0;
   font-size: var(--text-base);
   line-height: var(--leading-base);
@@ -205,43 +207,27 @@
   margin-top: var(--space-75);
 }
 
-.nowSkeleton {
+/* Three columns' worth of nothing, so the board does not arrive as a jump. */
+.skeleton {
   display: grid;
-  width: min(100%, 420px);
-  gap: var(--space-100);
+  align-content: start;
+  gap: var(--space-300);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.nowSkeleton span,
-.ledgerSkeleton span {
-  border-radius: var(--radius-pill);
+.skeleton span {
+  height: 96px;
+  border-radius: var(--radius-control);
   animation: skeletonPulse 1.6s var(--ease-in-out) infinite;
   background: var(--surface-2);
 }
 
-.nowSkeleton span:first-child {
-  height: 32px;
+.skeleton span:nth-child(2) {
+  height: 160px;
 }
 
-.nowSkeleton span:last-child {
-  width: 60%;
-  height: 12px;
-}
-
-.ledgerSkeleton {
-  display: grid;
-  gap: var(--space-200);
-}
-
-.ledgerSkeleton span {
-  height: 16px;
-}
-
-.ledgerSkeleton span:nth-child(2) {
-  width: 78%;
-}
-
-.ledgerSkeleton span:nth-child(3) {
-  width: 62%;
+.skeleton span:nth-child(3) {
+  height: 64px;
 }
 
 @keyframes skeletonPulse {
@@ -250,202 +236,24 @@
   }
 }
 
-.upcoming {
-  display: grid;
-  align-content: start;
-  padding: var(--space-400) var(--space-200);
-  border-left: 1px solid var(--line);
-  gap: var(--space-100);
-}
-
-.sectionHeading {
-  display: flex;
-  min-height: 32px;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 var(--space-100);
-  gap: var(--space-100);
-}
-
-.quietButton {
-  composes: button from "../button.module.css";
-  composes: quiet from "../button.module.css";
-  margin-right: calc(var(--space-100) * -1);
-}
-
-.ledger {
-  display: grid;
-  padding: 0;
-  margin: 0;
-  list-style: none;
-}
-
-.ledger li + li {
-  border-top: 1px solid var(--line);
-}
-
-.eventRow {
-  border-radius: var(--radius-control);
-  transition: background-color var(--duration-base) var(--ease-fluid);
-}
-
-/* The row publishes its hue; the swatch and the tints below all read it. */
-.eventRow[data-color="ultramarine"] {
-  --swatch-color: var(--ultramarine);
-}
-
-.eventRow[data-color="coral"] {
-  --swatch-color: var(--coral);
-}
-
-.eventRow[data-color="mint"] {
-  --swatch-color: var(--mint);
-}
-
-.eventRow[data-color="gold"] {
-  --swatch-color: var(--gold);
-}
-
-.eventRow summary {
-  display: grid;
-  align-items: center;
-  padding: var(--space-100);
-  border-radius: var(--radius-control);
-  cursor: pointer;
-  gap: var(--space-100);
-  grid-template-columns: 8px 64px minmax(0, 1fr) 16px;
-  list-style: none;
-}
-
-.eventRow summary::-webkit-details-marker {
-  display: none;
-}
-
-.swatch {
-  composes: swatch from "../primitives.module.css";
-}
-
-/* The row borrows the event's own hue rather than the app accent. */
-.eventRow:hover {
-  background: color-mix(in srgb, var(--swatch-color, var(--accent)) 6%, transparent);
-}
-
-.eventRow[open] {
-  background: color-mix(in srgb, var(--swatch-color, var(--accent)) 5%, transparent);
-  box-shadow: inset 2px 0 0 var(--swatch-color, var(--accent));
-}
-
-.rowWhen {
-  display: grid;
-  color: var(--muted);
-  font-family: var(--font-mono), monospace;
-  font-size: var(--text-xs);
-  gap: var(--space-25);
-  line-height: var(--leading-xs);
-}
-
-.rowWhen span:last-child {
-  color: var(--ink);
-}
-
-.eventRow strong {
-  overflow: hidden;
-  font-size: var(--text-sm);
-  font-weight: 600;
-  line-height: var(--leading-sm);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.expandMark {
-  display: grid;
-  color: var(--muted);
-  justify-self: end;
-  place-items: center;
-  transition: transform var(--duration-base) var(--ease-fluid);
-}
-
-.eventRow[open] .expandMark {
-  transform: rotate(180deg);
-}
-
-.eventDetails {
-  display: grid;
-  padding: 0 var(--space-100) var(--space-200) var(--space-500);
-  color: var(--muted);
-  font-size: var(--text-sm);
-  gap: var(--space-50);
-  line-height: var(--leading-sm);
-}
-
-.eventDetails p {
-  padding-top: var(--space-75);
-  border-top: 1px solid var(--line);
-  margin: var(--space-50) 0 0;
-  color: var(--ink);
-  line-height: var(--leading-base);
-  text-wrap: pretty;
-  white-space: pre-wrap;
-}
-
-/* Empty ledgers get a composed view, not a stray sentence. */
-.ledgerEmpty {
-  display: grid;
-  justify-items: center;
-  padding: var(--space-500) var(--space-100);
-  color: var(--muted);
-  gap: var(--space-100);
-  text-align: center;
-}
-
-.ledgerEmpty svg {
-  color: var(--line-strong);
-}
-
-.ledgerEmpty p {
-  max-width: 26ch;
-  margin: 0;
-  font-size: var(--text-sm);
-  line-height: var(--leading-sm);
-  text-wrap: pretty;
-}
-
-@media (max-width: 860px) {
+@media (max-width: 720px) {
   .sheet {
-    grid-template-columns: minmax(0, 1fr);
+    padding: var(--space-300) var(--space-200);
   }
 
-  .upcoming {
-    border-top: 1px solid var(--line);
-    border-left: 0;
+  .skeleton {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
 @media (max-width: 560px) {
   .shell {
-    padding: var(--space-200) var(--space-100) var(--space-500);
+    padding: var(--space-200) var(--space-100);
     gap: var(--space-200);
   }
 
-  .connectionPill {
+  .connectionPill,
+  .shortcut {
     display: none;
-  }
-
-  .mainColumn {
-    padding: var(--space-300) var(--space-200);
-    gap: var(--space-300);
-  }
-
-  .nowTitle {
-    font-size: var(--text-3xl);
-    line-height: var(--leading-3xl);
-  }
-
-  .upcoming {
-    padding: var(--space-300) var(--space-75);
-  }
-
-  .eventDetails {
-    padding-left: var(--space-100);
   }
 }

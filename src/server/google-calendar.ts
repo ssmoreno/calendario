@@ -2,6 +2,7 @@ import { fromDate } from "@internationalized/date";
 
 import {
   addDays,
+  dateKeyInTimeZone,
   localDateTimeToZoned,
   timingDateKeys,
   zonedTimestampToDate,
@@ -567,11 +568,22 @@ export class GoogleCalendarService implements CalendarService {
     await Promise.all(ids.map((id) => this.getGoogleEvent(id)));
   }
 
-  async listUpcoming(limit = 4): Promise<UpcomingEvent[]> {
+  /**
+   * The board walks forward through `days` and shows whatever fits, so the
+   * horizon is a search bound rather than a promise about how much is drawn.
+   */
+  async listUpcoming({ days = 15, limit = 100 } = {}): Promise<UpcomingEvent[]> {
+    const now = new Date();
+    const timeMax = localDateTimeToZoned(
+      addDays(dateKeyInTimeZone(now, this.viewerTimeZone), days),
+      "00:00",
+      this.viewerTimeZone,
+    );
     const query = new URLSearchParams({
       singleEvents: "true",
       orderBy: "startTime",
-      timeMin: new Date().toISOString(),
+      timeMin: now.toISOString(),
+      timeMax: zonedTimestampToDate(timeMax).toISOString(),
       maxResults: String(limit),
     });
     const page = await this.request<GoogleEventsPage>(`/events?${query}`);

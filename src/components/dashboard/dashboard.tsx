@@ -11,11 +11,10 @@ import {
 } from "react-aria-components";
 import { ArrowClockwise } from "@phosphor-icons/react/dist/ssr/ArrowClockwise";
 import { CalendarBlank } from "@phosphor-icons/react/dist/ssr/CalendarBlank";
-import { CaretDown } from "@phosphor-icons/react/dist/ssr/CaretDown";
 import { GearSix } from "@phosphor-icons/react/dist/ssr/GearSix";
+import { Sparkle } from "@phosphor-icons/react/dist/ssr/Sparkle";
 import { SignOut } from "@phosphor-icons/react/dist/ssr/SignOut";
 
-import { formatDuration } from "@/calendar/date-time";
 import { authClient } from "@/lib/auth-client";
 import {
   GOOGLE_CALENDAR_PROVIDER,
@@ -23,8 +22,9 @@ import {
 } from "@/lib/google-calendar";
 import type { UpcomingEvent } from "@/server/google-calendar";
 
-import { AgentPanel } from "../agent/agent-panel";
-import { clearSavedAgent } from "../agent/agent-storage";
+import { AgentPanel, type AgentMode } from "../agent/agent-panel";
+import { clearSavedAgent, hasSavedAgent } from "../agent/agent-storage";
+import { EventBoard } from "./event-board";
 import styles from "./dashboard.module.css";
 
 type Connection =
@@ -63,121 +63,6 @@ function initials(name: string, email: string) {
   return email.slice(0, 1).toUpperCase();
 }
 
-function dateLabel(dateKey: string) {
-  return new Intl.DateTimeFormat(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(`${dateKey}T12:00:00Z`));
-}
-
-function eventSummary(event: UpcomingEvent) {
-  if (event.timing.kind === "all-day") {
-    return `${dateLabel(event.timing.startDate)} · All day`;
-  }
-  const start = new Date(event.timing.startsAt);
-  return new Intl.DateTimeFormat(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    timeZone: event.timing.timeZone,
-  }).format(start);
-}
-
-function eventEndLabel(event: UpcomingEvent) {
-  if (event.timing.kind === "all-day") {
-    const lastDay = new Date(`${event.timing.endDateExclusive}T12:00:00Z`);
-    lastDay.setUTCDate(lastDay.getUTCDate() - 1);
-    const lastKey = lastDay.toISOString().slice(0, 10);
-    return lastKey === event.timing.startDate ? null : `Through ${dateLabel(lastKey)}`;
-  }
-  return `Ends ${new Intl.DateTimeFormat(undefined, {
-    hour: "numeric",
-    minute: "2-digit",
-    timeZone: event.timing.timeZone,
-  }).format(new Date(event.timing.endsAt))}`;
-}
-
-/**
- * How far off the next event is. All-day events have no meaningful countdown,
- * so they fall back to their date.
- */
-function leadLabel(event: UpcomingEvent, now: number) {
-  if (event.timing.kind === "all-day") return dateLabel(event.timing.startDate);
-  const minutes = Math.round(
-    (new Date(event.timing.startsAt).getTime() - now) / 60_000,
-  );
-  if (minutes <= 0) return "Now";
-  return `In ${formatDuration(minutes)}`;
-}
-
-function rowDay(event: UpcomingEvent) {
-  if (event.timing.kind === "all-day") {
-    return new Intl.DateTimeFormat(undefined, {
-      weekday: "short",
-      day: "numeric",
-      timeZone: "UTC",
-    }).format(new Date(`${event.timing.startDate}T12:00:00Z`));
-  }
-  return new Intl.DateTimeFormat(undefined, {
-    weekday: "short",
-    day: "numeric",
-    timeZone: event.timing.timeZone,
-  }).format(new Date(event.timing.startsAt));
-}
-
-function rowTime(event: UpcomingEvent) {
-  if (event.timing.kind === "all-day") return "All day";
-  return new Intl.DateTimeFormat(undefined, {
-    hour: "numeric",
-    minute: "2-digit",
-    timeZone: event.timing.timeZone,
-  }).format(new Date(event.timing.startsAt));
-}
-
-function EventDetails({ event }: { event: UpcomingEvent }) {
-  const end = eventEndLabel(event);
-  return (
-    <div className={styles.eventDetails}>
-      {end ? <span>{end}</span> : null}
-      {event.location ? <span>{event.location}</span> : null}
-      {event.recurrence ? <span>{event.recurrence}</span> : null}
-      {event.reminderMinutes.length ? (
-        <span>
-          {event.reminderMinutes
-            .map((minutes) => `${formatDuration(minutes)} before`)
-            .join(" · ")}
-        </span>
-      ) : event.usesDefaultReminder ? (
-        <span>Uses your Google Calendar default reminder</span>
-      ) : null}
-      {event.notes ? <p>{event.notes}</p> : null}
-    </div>
-  );
-}
-
-function LedgerRow({ event }: { event: UpcomingEvent }) {
-  return (
-    <li>
-      <details className={styles.eventRow} data-color={event.color}>
-        <summary>
-          <span className={styles.swatch} aria-hidden="true" />
-          <span className={styles.rowWhen}>
-            <span>{rowDay(event)}</span>
-            <span>{rowTime(event)}</span>
-          </span>
-          <strong>{event.title}</strong>
-          <CaretDown className={styles.expandMark} size={16} aria-hidden="true" />
-        </summary>
-        <EventDetails event={event} />
-      </details>
-    </li>
-  );
-}
-
 export function Dashboard({ initialConnected, user }: DashboardProps) {
   const router = useRouter();
   const [connection, setConnection] = useState<Connection>(
@@ -186,14 +71,21 @@ export function Dashboard({ initialConnected, user }: DashboardProps) {
   const [events, setEvents] = useState<UpcomingEvent[]>([]);
   const [connecting, setConnecting] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [agentMode, setAgentMode] = useState<AgentMode>("closed");
+  const [agentBusy, setAgentBusy] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const avatarText = useMemo(() => initials(user.name, user.email), [user]);
+  const timeZone = useMemo(
+    () => Intl.DateTimeFormat().resolvedOptions().timeZone,
+    [],
+  );
 
   const refreshUpcoming = useCallback(async () => {
     try {
-      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const response = await fetch(
-        `/api/calendar/upcoming?timeZone=${encodeURIComponent(timeZone)}`,
+        `/api/calendar/upcoming?timeZone=${encodeURIComponent(
+          Intl.DateTimeFormat().resolvedOptions().timeZone,
+        )}`,
         { cache: "no-store" },
       );
       if (!response.ok) throw new Error("Upcoming events could not be loaded.");
@@ -222,6 +114,29 @@ export function Dashboard({ initialConnected, user }: DashboardProps) {
     return () => window.clearInterval(tick);
   }, []);
 
+  /*
+   * The Agent is summoned rather than sited, so it needs a key of its own.
+   * Reopening lands on the conversation already in progress, if there is one.
+   */
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "k" && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
+        setAgentMode((mode) =>
+          mode === "closed"
+            ? hasSavedAgent(user.id)
+              ? "docked"
+              : "spotlight"
+            : "closed",
+        );
+        return;
+      }
+      if (event.key === "Escape") setAgentMode("closed");
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [user.id]);
+
   async function connectGoogle() {
     setConnecting(true);
     const result = await authClient.linkSocial({
@@ -246,7 +161,6 @@ export function Dashboard({ initialConnected, user }: DashboardProps) {
   }
 
   const connected = connection === "connected" || (connection === "checking" && initialConnected);
-  const [next, ...later] = events;
   const needsGoogle =
     connection === "not_connected" || connection === "authorization";
 
@@ -258,6 +172,24 @@ export function Dashboard({ initialConnected, user }: DashboardProps) {
           <h1>SS Calendar</h1>
         </div>
         <div className={styles.topbarEnd}>
+          <button
+            className={styles.askButton}
+            data-busy={agentBusy || undefined}
+            type="button"
+            onClick={() =>
+              setAgentMode((mode) =>
+                mode === "closed"
+                  ? hasSavedAgent(user.id)
+                    ? "docked"
+                    : "spotlight"
+                  : "closed",
+              )
+            }
+          >
+            <Sparkle size={16} aria-hidden="true" />
+            Ask SS
+            <kbd className={styles.shortcut}>⌘K</kbd>
+          </button>
           <span className={styles.connectionPill} data-state={connection}>
             <span className={styles.connectionDot} aria-hidden="true" />
             {connectionLabels[connection]}
@@ -295,117 +227,73 @@ export function Dashboard({ initialConnected, user }: DashboardProps) {
       </header>
 
       <div className={styles.sheet}>
-        <div className={styles.mainColumn}>
-          <section className={styles.now} aria-labelledby="now-heading">
-            <h2 className={styles.eyebrow} id="now-heading">
-              {needsGoogle || connection === "error" ? "Google Calendar" : "Next"}
-            </h2>
-
-            {connection === "checking" ? (
-              <div className={styles.nowSkeleton} role="status" aria-label="Loading your calendar…">
-                <span />
-                <span />
-              </div>
-            ) : needsGoogle ? (
-              <>
-                <p className={styles.nowProse}>
-                  {connection === "authorization"
-                    ? "SS needs you to reconnect Google Calendar to restore access."
-                    : "Connect Google Calendar to see upcoming events and let SS manage them."}
-                </p>
-                <button
-                  className={styles.primaryButton}
-                  disabled={connecting}
-                  type="button"
-                  onClick={() => void connectGoogle()}
-                >
-                  {connecting
-                    ? "Connecting…"
-                    : connection === "authorization"
-                      ? "Reconnect Google Calendar"
-                      : "Connect Google Calendar"}
-                </button>
-              </>
-            ) : connection === "error" ? (
-              <>
-                <p className={styles.nowProse} role="alert">
-                  Google Calendar is unavailable right now.
-                </p>
-                <button
-                  className={styles.retryButton}
-                  type="button"
-                  onClick={() => void refreshUpcoming()}
-                >
-                  <ArrowClockwise size={16} aria-hidden="true" />
-                  Try again
-                </button>
-              </>
-            ) : next ? (
-              <>
-                <p className={styles.lead}>
-                  <span
-                    className={styles.swatch}
-                    data-color={next.color}
-                    aria-hidden="true"
-                  />
-                  {leadLabel(next, now)}
-                </p>
-                <p className={styles.nowTitle}>{next.title}</p>
-                <p className={styles.nowMeta}>
-                  {[eventSummary(next), eventEndLabel(next), next.location]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </p>
-              </>
-            ) : (
-              <p className={styles.nowTitle} data-quiet="true">Nothing scheduled</p>
-            )}
-          </section>
-
-          <AgentPanel
-            connected={connected}
-            onCalendarChanged={() => void refreshUpcoming()}
-            userId={user.id}
-          />
-        </div>
-
-        <section className={styles.upcoming} aria-labelledby="upcoming-heading">
-          <div className={styles.sectionHeading}>
-            <h2 className={styles.eyebrow} id="upcoming-heading">Upcoming events</h2>
-            {connection === "connected" ? (
-              <button
-                className={styles.quietButton}
-                type="button"
-                onClick={() => void refreshUpcoming()}
-              >
-                <ArrowClockwise size={14} aria-hidden="true" />
-                Refresh
-              </button>
-            ) : null}
+        {connection === "checking" ? (
+          <div className={styles.skeleton} role="status" aria-label="Loading your calendar…">
+            <span />
+            <span />
+            <span />
           </div>
-
-          {connection === "checking" ? (
-            <div className={styles.ledgerSkeleton} aria-hidden="true">
-              <span />
-              <span />
-              <span />
-            </div>
-          ) : later.length ? (
-            <ul className={styles.ledger}>
-              {later.map((event) => <LedgerRow event={event} key={event.id} />)}
-            </ul>
-          ) : (
-            <div className={styles.ledgerEmpty}>
-              <CalendarBlank size={28} aria-hidden="true" />
-              <p>
-                {connection === "connected"
-                  ? "Nothing else scheduled. Ask SS to add something."
-                  : "Once Google Calendar is connected, your schedule reads here."}
-              </p>
-            </div>
-          )}
-        </section>
+        ) : needsGoogle ? (
+          <div className={styles.notice}>
+            <h2 className={styles.eyebrow}>Google Calendar</h2>
+            <p className={styles.noticeProse}>
+              {connection === "authorization"
+                ? "SS needs you to reconnect Google Calendar to restore access."
+                : "Connect Google Calendar to see upcoming events and let SS manage them."}
+            </p>
+            <button
+              className={styles.primaryButton}
+              disabled={connecting}
+              type="button"
+              onClick={() => void connectGoogle()}
+            >
+              {connecting
+                ? "Connecting…"
+                : connection === "authorization"
+                  ? "Reconnect Google Calendar"
+                  : "Connect Google Calendar"}
+            </button>
+          </div>
+        ) : connection === "error" ? (
+          <div className={styles.notice}>
+            <h2 className={styles.eyebrow}>Google Calendar</h2>
+            <p className={styles.noticeProse} role="alert">
+              Google Calendar is unavailable right now.
+            </p>
+            <button
+              className={styles.retryButton}
+              type="button"
+              onClick={() => void refreshUpcoming()}
+            >
+              <ArrowClockwise size={16} aria-hidden="true" />
+              Try again
+            </button>
+          </div>
+        ) : events.length ? (
+          <EventBoard
+            events={events}
+            now={now}
+            onRefresh={() => void refreshUpcoming()}
+            timeZone={timeZone}
+          />
+        ) : (
+          <div className={styles.notice}>
+            <CalendarBlank size={28} aria-hidden="true" />
+            <p className={styles.noticeProse}>
+              Nothing scheduled in the next two weeks. Ask SS to add something.
+            </p>
+          </div>
+        )}
       </div>
+
+      <AgentPanel
+        connected={connected}
+        mode={agentMode}
+        onBusyChange={setAgentBusy}
+        onCalendarChanged={() => void refreshUpcoming()}
+        onModeChange={setAgentMode}
+        userId={user.id}
+      />
     </main>
   );
 }

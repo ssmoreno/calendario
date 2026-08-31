@@ -27,6 +27,7 @@ import { failedTurns } from "./turn-failures";
 import { ArrowsClockwise } from "@phosphor-icons/react/dist/ssr/ArrowsClockwise";
 import { PaperPlaneTilt } from "@phosphor-icons/react/dist/ssr/PaperPlaneTilt";
 import { Stop } from "@phosphor-icons/react/dist/ssr/Stop";
+import { X } from "@phosphor-icons/react/dist/ssr/X";
 import { WarningCircle } from "@phosphor-icons/react/dist/ssr/WarningCircle";
 
 import styles from "./agent.module.css";
@@ -132,15 +133,24 @@ function activeTurnId(
 
 function HydratedAgentPanel({
   connected,
+  mode,
+  onBusyChange,
   onCalendarChanged,
+  onModeChange,
   userId,
 }: AgentPanelProps) {
   const [saved] = useState(() => readSavedAgent(userId));
   const [draft, setDraft] = useState("");
   const [freeform, setFreeform] = useState("");
-  const [expanded, setExpanded] = useState(saved.events.length > 0);
   const transcriptRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const appliedThemeCalls = useRef(new Set<string>());
+  const expanded = mode === "docked";
+  // Closing keeps the geometry it had, so the panel fades where it stands
+  // rather than flying back to the middle of the screen on its way out.
+  const [lastShape, setLastShape] = useState<"spotlight" | "docked">("spotlight");
+  if (mode !== "closed" && mode !== lastShape) setLastShape(mode);
+  const shape = mode === "closed" ? lastShape : mode;
 
   const agent = useEveAgent({
     initialEvents: saved.events as readonly MessageStreamEvent[],
@@ -192,6 +202,15 @@ function HydratedAgentPanel({
     if (transcript) transcript.scrollTop = transcript.scrollHeight;
   }, [agent.data.messages]);
 
+  /* Closed, the panel is invisible, so the trigger carries the running turn. */
+  useEffect(() => {
+    onBusyChange(isBusy);
+  }, [isBusy, onBusyChange]);
+
+  useEffect(() => {
+    if (mode !== "closed") inputRef.current?.focus();
+  }, [mode]);
+
   useEffect(() => {
     for (const { callId, theme } of themeChanges(agent.data)) {
       if (appliedThemeCalls.current.has(callId)) continue;
@@ -214,32 +233,60 @@ function HydratedAgentPanel({
     const message = draft.trim();
     if (!message || !connected || isBusy) return;
     setDraft("");
-    setExpanded(true);
+    // The first message is what turns the Spotlight bar into a conversation.
+    onModeChange("docked");
     void agent.send(message);
   }
 
   return (
-    <section className={styles.panel} aria-labelledby="agent-heading">
-      <div className={styles.panelHeading}>
-        <h2 className={styles.eyebrow} id="agent-heading">Agent</h2>
-        {expanded ? (
-          <button
-            className={styles.quietButton}
-            disabled={isBusy}
-            type="button"
-            onClick={() => {
-              agent.reset();
-              clearSavedAgent(userId);
-              setExpanded(false);
-            }}
-          >
-            <ArrowsClockwise size={14} aria-hidden="true" />
-            New conversation
-          </button>
-        ) : null}
-      </div>
+    <div
+      className={styles.layer}
+      data-mode={mode}
+      data-shape={shape}
+      inert={mode === "closed"}
+    >
+      {/*
+        * Spotlight is modal in feel but not in mechanics: the backdrop is a
+        * plain dismiss target, so the board underneath keeps its focus order.
+        */}
+      <button
+        className={styles.backdrop}
+        aria-label="Dismiss the agent"
+        tabIndex={-1}
+        type="button"
+        onClick={() => onModeChange("closed")}
+      />
 
-      {expanded ? (
+      <section className={styles.panel} aria-labelledby="agent-heading">
+        <div className={styles.panelHeading}>
+          <h2 className={styles.eyebrow} id="agent-heading">Agent</h2>
+          <div className={styles.headingActions}>
+            {expanded ? (
+              <button
+                className={styles.quietButton}
+                disabled={isBusy}
+                type="button"
+                onClick={() => {
+                  agent.reset();
+                  clearSavedAgent(userId);
+                  onModeChange("spotlight");
+                }}
+              >
+                <ArrowsClockwise size={14} aria-hidden="true" />
+                New conversation
+              </button>
+            ) : null}
+            <button
+              className={styles.closeButton}
+              aria-label="Close the agent"
+              type="button"
+              onClick={() => onModeChange("closed")}
+            >
+              <X size={16} aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+
         <div className={styles.transcript} ref={transcriptRef} aria-live="polite">
           {agent.data.messages.map((message) => {
             if (isRunning(message)) return <WorkingMessage key={message.id} />;
@@ -314,51 +361,61 @@ function HydratedAgentPanel({
             </p>
           ) : null}
         </div>
-      ) : null}
 
-      <form
-        className={styles.composer}
-        onSubmit={(event) => {
-          event.preventDefault();
-          send();
-        }}
-      >
-        <input
-          aria-label="Ask the calendar agent"
-          disabled={!connected || isBusy}
-          placeholder={
-            connected ? "Ask SS to manage your calendar…" : "Connect Google Calendar first"
-          }
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-        />
-        {isBusy ? (
-          <button
-            className={styles.stopButton}
-            type="button"
-            onClick={() => agent.stop()}
-          >
-            <Stop size={14} weight="fill" aria-hidden="true" />
-            Stop
-          </button>
-        ) : (
-          <button
-            className={styles.sendButton}
-            type="submit"
-            disabled={!connected || !draft.trim()}
-            aria-label="Send"
-          >
-            <PaperPlaneTilt size={18} aria-hidden="true" />
-          </button>
-        )}
-      </form>
-    </section>
+        <form
+          className={styles.composer}
+          onSubmit={(event) => {
+            event.preventDefault();
+            send();
+          }}
+        >
+          <input
+            ref={inputRef}
+            aria-label="Ask the calendar agent"
+            disabled={!connected || isBusy}
+            placeholder={
+              connected ? "Ask SS to manage your calendar…" : "Connect Google Calendar first"
+            }
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+          />
+          {isBusy ? (
+            <button
+              className={styles.stopButton}
+              type="button"
+              onClick={() => agent.stop()}
+            >
+              <Stop size={14} weight="fill" aria-hidden="true" />
+              Stop
+            </button>
+          ) : (
+            <button
+              className={styles.sendButton}
+              type="submit"
+              disabled={!connected || !draft.trim()}
+              aria-label="Send"
+            >
+              <PaperPlaneTilt size={18} aria-hidden="true" />
+            </button>
+          )}
+        </form>
+      </section>
+    </div>
   );
 }
 
+/**
+ * Closed, the panel keeps running: unmounting it would drop a turn already in
+ * flight and tear down the live stream behind it.
+ */
+export type AgentMode = "closed" | "spotlight" | "docked";
+
 interface AgentPanelProps {
   connected: boolean;
+  mode: AgentMode;
+  onBusyChange(busy: boolean): void;
   onCalendarChanged(): void;
+  onModeChange(mode: AgentMode): void;
   userId: string;
 }
 
