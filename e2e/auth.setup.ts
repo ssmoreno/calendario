@@ -32,7 +32,7 @@ for (const [project, account] of Object.entries(E2E_ACCOUNTS)) {
       );
     }
 
-    await page.goto("/");
+    await page.goto("/calendar");
 
     await expect(
       page.getByRole("heading", { name: "SS", exact: true }),
