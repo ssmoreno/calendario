@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { Geist_Mono, Manrope } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import "./globals.css";
 
-const manrope = Manrope({
+const geist = Geist({
   variable: "--font-ui",
   subsets: ["latin"],
 });
@@ -44,7 +44,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       lang="en"
       data-scroll-behavior="smooth"
       suppressHydrationWarning
-      className={`${manrope.variable} ${geistMono.variable}`}
+      className={`${geist.variable} ${geistMono.variable}`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />

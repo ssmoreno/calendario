@@ -568,10 +568,7 @@ export class GoogleCalendarService implements CalendarService {
     await Promise.all(ids.map((id) => this.getGoogleEvent(id)));
   }
 
-  /**
-   * The board walks forward through `days` and shows whatever fits, so the
-   * horizon is a search bound rather than a promise about how much is drawn.
-   */
+  /** The dashboard groups this forward-looking range into collapsible days. */
   async listUpcoming({ days = 15, limit = 100 } = {}): Promise<UpcomingEvent[]> {
     const now = new Date();
     const timeMax = localDateTimeToZoned(

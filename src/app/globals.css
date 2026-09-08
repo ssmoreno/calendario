@@ -1,44 +1,27 @@
-/*
- * Warm palette: Pumpkin Spice #ed7117 over Ink Black #0e1316, with Stone Brown
- * #685b4e carrying secondary text. The accent is bright enough to fill but not
- * to letter: --accent paints surfaces and indicators, --accent-ink is the
- * text-and-focus-ring variant that clears contrast on each canvas, and any
- * accent fill pairs with --on-accent.
- *
- * Everything below the palette is the shared system: one type scale, one
- * spacing scale, one radius set, one easing curve. Components read these
- * tokens instead of inventing values, so the two pages cannot drift apart.
- */
 :root {
-  --canvas: #faf6f1;
-  --surface: #fffdfa;
-  --surface-2: #f2ebe2;
-  --ink: #0e1316;
-  --muted: #685b4e;
-  --line: #e6ddd2;
-  --line-strong: #d5c9bb;
-  --accent: #ed7117;
-  --accent-ink: #a8480a;
-  --accent-soft: #fceadb;
-  --on-accent: #0e1316;
-  --danger: #b3261e;
-  --overlay: rgb(14 19 22 / 45%);
-  --shadow-sheet:
-    0 1px 2px rgb(14 19 22 / 4%), 0 28px 60px -44px rgb(104 91 78 / 55%);
-  --ultramarine: #3157c8;
-  --coral: #c44d38;
-  --mint: #27856d;
-  --gold: #9a6b16;
-  --event-mix: 12%;
-  --event-mix-hover: 20%;
+  --canvas: #f7f7f7;
+  --surface: #ffffff;
+  --surface-2: #ededed;
+  --rail: #f2f2f2;
+  --ink: #000000;
+  --muted: #525252;
+  --line: #d4d4d4;
+  --line-strong: #a3a3a3;
+  --accent: #000000;
+  --accent-ink: #000000;
+  --accent-soft: #ededed;
+  --on-accent: #ffffff;
+  --on-inverse-muted: #bdbdbd;
+  --danger: #262626;
+  --overlay: rgb(0 0 0 / 54%);
+  --shadow-sheet: 0 18px 48px rgb(0 0 0 / 14%);
+  --ultramarine: #262626;
+  --coral: #525252;
+  --mint: #737373;
+  --gold: #a3a3a3;
+  --event-mix: 10%;
+  --event-mix-hover: 16%;
 
-  /* Canvas composition: two pumpkin blooms, an edge vignette, and film grain. */
-  --bloom-warm: rgb(237 113 23 / 13%);
-  --bloom-cool: rgb(237 113 23 / 9%);
-  --vignette: rgb(104 91 78 / 12%);
-  --grain-opacity: 0.03;
-
-  /* Type scale. Tailwind steps, each size carrying its paired line height. */
   --text-xs: 12px;
   --leading-xs: 16px;
   --text-sm: 14px;
@@ -56,7 +39,6 @@
   --text-4xl: 36px;
   --leading-4xl: 40px;
 
-  /* Spacing scale. Nothing between these values, nothing outside them. */
   --space-25: 2px;
   --space-50: 4px;
   --space-75: 8px;
@@ -70,10 +52,6 @@
   --space-800: 80px;
   --space-900: 96px;
 
-  /*
-   * Radii are sized so the nested formula lands on the scale: a 16px sheet
-   * with 8px of padding gives its rows 8px, a 12px card with 4px gives 8px.
-   */
   --radius-sheet: 16px;
   --radius-card: 12px;
   --radius-control: 8px;
@@ -87,32 +65,28 @@
 }
 
 [data-theme="dark"] {
-  --canvas: #0e1316;
-  --surface: #161b1e;
-  --surface-2: #1e2428;
-  --ink: #f4efe9;
-  --muted: #9d9086;
-  --line: #262c30;
-  --line-strong: #333a3f;
-  --accent: #ed7117;
-  --accent-ink: #ff8a33;
-  --accent-soft: #2a1710;
-  --on-accent: #0e1316;
-  --danger: #ff8577;
+  --canvas: #000000;
+  --surface: #0a0a0a;
+  --surface-2: #171717;
+  --rail: #050505;
+  --ink: #ffffff;
+  --muted: #a3a3a3;
+  --line: #262626;
+  --line-strong: #404040;
+  --accent: #ffffff;
+  --accent-ink: #ffffff;
+  --accent-soft: #1a1a1a;
+  --on-accent: #000000;
+  --on-inverse-muted: #525252;
+  --danger: #f5f5f5;
   --overlay: rgb(0 0 0 / 70%);
-  --shadow-sheet: 0 1px 2px rgb(0 0 0 / 30%), 0 28px 60px -44px rgb(0 0 0 / 80%);
-  --ultramarine: #8aa4ff;
-  --coral: #ff9b87;
-  --mint: #7ed6bd;
-  --gold: #f2c66d;
-  --event-mix: 18%;
-  --event-mix-hover: 28%;
-
-  /* Ink takes a much heavier hand than cream before the blooms read at all. */
-  --bloom-warm: rgb(237 113 23 / 22%);
-  --bloom-cool: rgb(255 138 51 / 13%);
-  --vignette: rgb(0 0 0 / 55%);
-  --grain-opacity: 0.05;
+  --shadow-sheet: 0 18px 48px rgb(0 0 0 / 55%);
+  --ultramarine: #d4d4d4;
+  --coral: #a3a3a3;
+  --mint: #737373;
+  --gold: #525252;
+  --event-mix: 14%;
+  --event-mix-hover: 22%;
 }
 
 * {
@@ -133,34 +107,6 @@ body {
   font-size: var(--text-base);
   line-height: var(--leading-base);
   text-rendering: optimizeLegibility;
-}
-
-/*
- * The canvas is two fixed layers rather than a body background: the blooms
- * have to stay put while the page scrolls, and background-attachment: fixed
- * is unreliable on iOS. Both sit at z-index -1, above the html background and
- * below every in-flow element.
- */
-body::before,
-body::after {
-  position: fixed;
-  z-index: -1;
-  inset: 0;
-  content: "";
-  pointer-events: none;
-}
-
-body::before {
-  background:
-    radial-gradient(circle at 50% 45%, transparent 38%, var(--vignette) 100%),
-    radial-gradient(900px 620px at 6% -14%, var(--bloom-warm), transparent 68%),
-    radial-gradient(760px 560px at 106% 110%, var(--bloom-cool), transparent 66%);
-}
-
-/* Fine grain keeps the large flat fields from banding. */
-body::after {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
-  opacity: var(--grain-opacity);
 }
 
 button,
@@ -198,8 +144,8 @@ summary:focus-visible {
 }
 
 ::selection {
-  background: var(--accent);
-  color: var(--on-accent);
+  background: var(--ink);
+  color: var(--canvas);
 }
 
 /*

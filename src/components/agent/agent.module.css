@@ -1,22 +1,9 @@
-/*
- * The Agent is summoned, not sited. It is one fixed-position surface in every
- * state, so going from the centred Spotlight bar to the docked conversation is
- * a plain transition between two sets of lengths — no FLIP, no view
- * transition, no measuring. Every geometric property is set in both shapes and
- * none of them is `auto`, because `auto` is what stops an interpolation.
- *
- * `data-shape` is the geometry and `data-mode` is the visibility: closing fades
- * the panel where it stands instead of flying it back to the middle first.
- */
 .layer {
   position: fixed;
+  z-index: 30;
   inset: 0;
   pointer-events: none;
-
-  /* Derived, so the Spotlight bar is exactly one composer tall. */
-  --composer-h: calc(40px + var(--space-50) * 2 + 2px);
-  --spotlight-h: calc(var(--composer-h) + var(--space-75) * 2 + 2px);
-  --docked-top: calc(var(--space-300) * 2 + 48px);
+  --composer-height: 52px;
 }
 
 .backdrop {
@@ -30,45 +17,36 @@
   transition: opacity var(--duration-base) var(--ease-fluid);
 }
 
-.layer[data-mode="spotlight"] .backdrop {
-  opacity: 1;
-  pointer-events: auto;
-}
-
 .panel {
   position: fixed;
-  display: flex;
+  display: grid;
+  min-width: 0;
+  min-height: 0;
   overflow: hidden;
-  flex-direction: column;
-  padding: var(--space-75);
+  padding: 18px;
   border: 1px solid var(--line);
-  border-radius: var(--radius-sheet);
-  background: var(--surface);
-  box-shadow: var(--shadow-sheet), 0 24px 48px -24px rgb(14 19 22 / 35%);
+  background: #080808;
+  color: #ffffff;
+  grid-template-rows: 42px minmax(0, 1fr) var(--composer-height);
   pointer-events: auto;
   transition:
     top var(--duration-base) var(--ease-fluid),
     right var(--duration-base) var(--ease-fluid),
     width var(--duration-base) var(--ease-fluid),
     height var(--duration-base) var(--ease-fluid),
+    border-radius var(--duration-base) var(--ease-fluid),
     translate var(--duration-base) var(--ease-fluid),
     scale var(--duration-base) var(--ease-fluid),
     opacity var(--duration-fast) var(--ease-fluid);
 }
 
-.layer[data-shape="spotlight"] .panel {
-  top: 22vh;
-  right: 50%;
-  width: min(640px, 92vw);
-  height: var(--spotlight-h);
-  translate: 50% 0;
-}
-
 .layer[data-shape="docked"] .panel {
-  top: var(--docked-top);
-  right: var(--space-300);
-  width: min(400px, 92vw);
-  height: calc(100dvh - var(--docked-top) - var(--space-300));
+  top: 64px;
+  right: 0;
+  width: 442px;
+  height: calc(100dvh - 64px);
+  border-width: 0 0 0 1px;
+  border-radius: 0;
   translate: 0 0;
 }
 
@@ -80,35 +58,31 @@
 .layer[data-mode="closed"] .panel {
   opacity: 0;
   pointer-events: none;
-  scale: 0.97;
+  scale: 0.98;
 }
 
-/* The heading and the transcript belong to the conversation, not to the bar. */
 .panelHeading {
   display: flex;
-  height: 0;
-  flex: none;
+  min-width: 0;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-100);
-  opacity: 0;
-  transition:
-    height var(--duration-base) var(--ease-fluid),
-    margin-bottom var(--duration-base) var(--ease-fluid),
-    opacity var(--duration-base) var(--ease-fluid);
-}
-
-.layer[data-shape="docked"] .panelHeading {
-  height: 32px;
-  margin-bottom: var(--space-100);
-  opacity: 1;
-  transition-delay: var(--duration-fast);
+  gap: 12px;
 }
 
 .headingActions {
   display: flex;
+  min-width: 0;
   align-items: center;
-  gap: var(--space-50);
+  gap: 4px;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 16px;
+  text-transform: uppercase;
 }
 
 .closeButton {
@@ -117,83 +91,77 @@
   composes: icon from "../button.module.css";
   width: 32px;
   height: 32px;
-}
-
-.eyebrow {
-  composes: eyebrow from "../primitives.module.css";
+  min-height: 32px;
+  color: #a3a3a3;
 }
 
 .quietButton {
   composes: button from "../button.module.css";
   composes: quiet from "../button.module.css";
-  margin-right: calc(var(--space-100) * -1);
+  min-height: 32px;
+  color: #a3a3a3;
+  font-size: 11px;
 }
 
-/* No box: the transcript is already inside the panel's own sheet. */
+.closeButton:hover:not(:disabled),
+.quietButton:hover:not(:disabled) {
+  background: #171717;
+  color: #ffffff;
+}
+
 .transcript {
   display: grid;
   min-height: 0;
-  flex: 1;
-  padding: 0 var(--space-75);
-  align-content: start;
+  align-content: end;
+  padding: 18px 4px;
   overflow-y: auto;
-  gap: var(--space-200);
-  opacity: 0;
-  transition: opacity var(--duration-base) var(--ease-fluid);
-}
-
-.layer[data-shape="docked"] .transcript {
-  padding-bottom: var(--space-200);
-  opacity: 1;
-  transition-delay: var(--duration-fast);
+  gap: 22px;
+  scroll-behavior: smooth;
 }
 
 .message {
   display: grid;
-  max-width: 88%;
-  gap: var(--space-50);
+  max-width: 100%;
+  gap: 7px;
 }
 
 .message[data-role="user"] {
-  justify-self: end;
+  padding-left: 64px;
 }
 
 .message > span {
-  color: var(--muted);
+  color: #a3a3a3;
   font-family: var(--font-mono), monospace;
-  font-size: var(--text-xs);
-  letter-spacing: 0.12em;
-  line-height: var(--leading-xs);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  line-height: 16px;
   text-transform: uppercase;
 }
 
 .message[data-role="assistant"] > span {
-  color: var(--accent-ink);
+  color: #ffffff;
 }
 
-.messageText {
+.messageText,
+.working {
   margin: 0;
-  font-size: var(--text-base);
-  line-height: var(--leading-base);
+  font-size: 14px;
+  line-height: 22px;
   text-wrap: pretty;
   white-space: pre-wrap;
 }
 
-/* A 12px bubble keeping its tail, per the nested radius formula. */
 .message[data-role="user"] .messageText {
-  padding: var(--space-75) var(--space-100);
-  border-radius: var(--radius-card) var(--radius-card) var(--space-50)
-    var(--radius-card);
-  background: var(--accent-soft);
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #1a1a1a;
 }
 
 .working {
-  margin: 0;
   animation: workingPulse 1.6s var(--ease-in-out) infinite;
-  color: var(--muted);
+  color: #a3a3a3;
   font-family: var(--font-mono), monospace;
-  font-size: var(--text-xs);
-  line-height: var(--leading-xs);
+  font-size: 11px;
 }
 
 @keyframes workingPulse {
@@ -204,28 +172,28 @@
 
 .prompt {
   display: grid;
-  padding: var(--space-200);
-  border: 1px solid var(--accent);
-  border-radius: var(--radius-card);
+  padding: 14px;
+  border: 1px solid #525252;
+  border-radius: 14px;
   margin: 0;
-  background: var(--accent-soft);
-  gap: var(--space-100);
+  background: #111111;
+  gap: 10px;
 }
 
 .prompt legend {
-  padding: 0 var(--space-75);
-  color: var(--accent-ink);
+  padding: 0 6px;
+  color: #ffffff;
   font-family: var(--font-mono), monospace;
-  font-size: var(--text-xs);
-  letter-spacing: 0.12em;
-  line-height: var(--leading-xs);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  line-height: 16px;
   text-transform: uppercase;
 }
 
 .prompt p {
   margin: 0;
-  font-size: var(--text-sm);
-  line-height: var(--leading-sm);
+  font-size: 13px;
+  line-height: 20px;
   text-wrap: pretty;
 }
 
@@ -233,67 +201,48 @@
 .answerForm {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-75);
+  gap: 8px;
 }
 
 .promptButton {
   composes: button from "../button.module.css";
-  composes: secondary from "../button.module.css";
+  min-height: 34px;
+  border-color: #525252;
+  background: #171717;
+  color: #ffffff;
+  font-size: 12px;
+}
+
+.promptButton:hover:not(:disabled) {
+  border-color: #ffffff;
 }
 
 .answerInput {
   min-width: 0;
-  min-height: 40px;
+  min-height: 36px;
   flex: 1;
-  padding: 0 var(--space-200);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-pill);
-  background: var(--surface);
-  font-size: var(--text-sm);
+  padding: 0 12px;
+  border: 1px solid #525252;
+  border-radius: 8px;
+  background: #111111;
+  color: #ffffff;
+  font-size: 13px;
 }
 
-/* The composer is the anchor of the panel: one pill, one orange action. */
 .composer {
   display: flex;
-  flex: none;
+  min-width: 0;
   align-items: center;
-  padding: var(--space-50);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-pill);
-  background: var(--surface-2);
-  gap: var(--space-75);
-  transition:
-    border-color var(--duration-base) var(--ease-fluid),
-    outline-color var(--duration-base) var(--ease-fluid);
+  padding: 5px 5px 5px 14px;
+  border: 1px solid #525252;
+  border-radius: 999px;
+  background: #111111;
+  gap: 8px;
 }
 
-/*
- * The input's own ring is suppressed so the whole pill lights up instead, but
- * it lights up with the same 2px accent outline used everywhere else.
- */
 .composer:focus-within {
-  border-color: var(--accent-ink);
-  outline: 2px solid var(--accent-ink);
-  outline-offset: 2px;
-}
-
-/*
- * As a Spotlight bar the panel and the composer are the same object, so the
- * composer gives up its own edge and the panel takes the focus ring — one
- * control, one outline, rather than a ring drawn twice a pixel apart.
- */
-.layer[data-shape="spotlight"] .composer {
-  border-color: transparent;
-  background: transparent;
-}
-
-.layer[data-shape="spotlight"] .composer:focus-within {
-  outline: 0;
-}
-
-.layer[data-shape="spotlight"] .panel:focus-within {
-  border-color: var(--accent-ink);
-  outline: 2px solid var(--accent-ink);
+  border-color: #ffffff;
+  outline: 2px solid #ffffff;
   outline-offset: 2px;
 }
 
@@ -301,10 +250,15 @@
   min-width: 0;
   min-height: 40px;
   flex: 1;
-  padding: 0 var(--space-100);
+  padding: 0 8px;
   border: 0;
   background: transparent;
-  font-size: var(--text-base);
+  color: #ffffff;
+  font-size: 14px;
+}
+
+.composer input::placeholder {
+  color: #858585;
 }
 
 .composer input:focus-visible {
@@ -313,14 +267,25 @@
 
 .sendButton {
   composes: button from "../button.module.css";
-  composes: primary from "../button.module.css";
   composes: icon from "../button.module.css";
+  width: 34px;
+  height: 34px;
+  min-height: 34px;
   border-radius: 50%;
+  background: #ffffff;
+  color: #000000;
+}
+
+.sendButton:hover:not(:disabled) {
+  background: #d4d4d4;
 }
 
 .stopButton {
   composes: button from "../button.module.css";
-  composes: secondary from "../button.module.css";
+  min-height: 34px;
+  border-color: #525252;
+  background: #171717;
+  color: #ffffff;
 }
 
 .composer input:disabled {
@@ -331,23 +296,43 @@
   display: flex;
   align-items: start;
   margin: 0;
-  color: var(--danger);
-  font-size: var(--text-sm);
-  gap: var(--space-75);
-  line-height: var(--leading-sm);
+  color: #ffffff;
+  font-size: 13px;
+  gap: 8px;
+  line-height: 20px;
 }
 
 .error svg {
   flex: none;
-  margin-top: var(--space-25);
+  margin-top: 2px;
 }
 
-/* Below the tablet break the conversation is a sheet off the bottom instead. */
-@media (max-width: 720px) {
+@media (max-width: 820px) {
+  .layer {
+    z-index: 50;
+  }
+
+  .layer[data-shape="docked"] .backdrop {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
   .layer[data-shape="docked"] .panel {
-    top: 26dvh;
-    right: var(--space-200);
-    width: calc(100vw - var(--space-200) * 2);
-    height: calc(74dvh - var(--space-200));
+    top: 20dvh;
+    right: 12px;
+    width: calc(100vw - 24px);
+    height: calc(80dvh - 12px);
+    border-width: 1px;
+    border-radius: 22px 22px 0 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .panel {
+    padding: 14px;
+  }
+
+  .message[data-role="user"] {
+    padding-left: 36px;
   }
 }

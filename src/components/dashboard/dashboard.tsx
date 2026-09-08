@@ -12,7 +12,8 @@ import {
 import { ArrowClockwise } from "@phosphor-icons/react/dist/ssr/ArrowClockwise";
 import { CalendarBlank } from "@phosphor-icons/react/dist/ssr/CalendarBlank";
 import { GearSix } from "@phosphor-icons/react/dist/ssr/GearSix";
-import { Sparkle } from "@phosphor-icons/react/dist/ssr/Sparkle";
+import { Waveform } from "@phosphor-icons/react/dist/ssr/Waveform";
+import { X } from "@phosphor-icons/react/dist/ssr/X";
 import { SignOut } from "@phosphor-icons/react/dist/ssr/SignOut";
 
 import { authClient } from "@/lib/auth-client";
@@ -23,7 +24,7 @@ import {
 import type { UpcomingEvent } from "@/server/google-calendar";
 
 import { AgentPanel, type AgentMode } from "../agent/agent-panel";
-import { clearSavedAgent, hasSavedAgent } from "../agent/agent-storage";
+import { clearSavedAgent } from "../agent/agent-storage";
 import { EventBoard } from "./event-board";
 import styles from "./dashboard.module.css";
 
@@ -123,11 +124,7 @@ export function Dashboard({ initialConnected, user }: DashboardProps) {
       if (event.key === "k" && (event.metaKey || event.ctrlKey)) {
         event.preventDefault();
         setAgentMode((mode) =>
-          mode === "closed"
-            ? hasSavedAgent(user.id)
-              ? "docked"
-              : "spotlight"
-            : "closed",
+          mode === "closed" ? "docked" : "closed",
         );
         return;
       }
@@ -168,32 +165,32 @@ export function Dashboard({ initialConnected, user }: DashboardProps) {
     <main className={styles.shell}>
       <header className={styles.topbar}>
         <div className={styles.brand}>
-          <span className={styles.mark} aria-hidden="true" />
-          <h1>SS Calendar</h1>
+          <span className={styles.mark} aria-hidden="true">SS</span>
+          <h1><span className={styles.visuallyHidden}>SS </span>Calendar</h1>
         </div>
         <div className={styles.topbarEnd}>
+          <span className={styles.connectionPill} data-state={connection}>
+            <span className={styles.connectionDot} aria-hidden="true" />
+            {connectionLabels[connection]}
+          </span>
           <button
             className={styles.askButton}
             data-busy={agentBusy || undefined}
             type="button"
             onClick={() =>
               setAgentMode((mode) =>
-                mode === "closed"
-                  ? hasSavedAgent(user.id)
-                    ? "docked"
-                    : "spotlight"
-                  : "closed",
+                mode === "closed" ? "docked" : "closed",
               )
             }
           >
-            <Sparkle size={16} aria-hidden="true" />
-            Ask SS
+            {agentMode === "closed" ? (
+              <Waveform size={16} aria-hidden="true" />
+            ) : (
+              <X size={16} aria-hidden="true" />
+            )}
+            {agentMode === "closed" ? "Ask SS" : "Close"}
             <kbd className={styles.shortcut}>⌘K</kbd>
           </button>
-          <span className={styles.connectionPill} data-state={connection}>
-            <span className={styles.connectionDot} aria-hidden="true" />
-            {connectionLabels[connection]}
-          </span>
           <DialogTrigger isOpen={profileOpen} onOpenChange={setProfileOpen}>
             <Button className={styles.avatarButton} aria-label="Open profile menu">
               {avatarText}
@@ -271,6 +268,7 @@ export function Dashboard({ initialConnected, user }: DashboardProps) {
           </div>
         ) : events.length ? (
           <EventBoard
+            agentOpen={agentMode === "docked"}
             events={events}
             now={now}
             onRefresh={() => void refreshUpcoming()}

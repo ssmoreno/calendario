@@ -6,7 +6,7 @@
   padding: var(--space-300);
 }
 
-/* No card chrome: the canvas bloom carries the page. */
+/* The sign-in state stays isolated and spare on the instrument canvas. */
 .authCard {
   display: grid;
   width: min(100%, 360px);
@@ -25,8 +25,6 @@
 
 .mark {
   composes: mark from "../primitives.module.css";
-  width: 12px;
-  height: 12px;
 }
 
 .authIntro {
