@@ -6,8 +6,7 @@ import { getSession } from "@/server/session";
 
 export const metadata: Metadata = {
   title: `${messages.appName} — calendar and library`,
-  description:
-    "A calendar and a library that answer to a message. SS runs on your Google Calendar and keeps the links you saved.",
+  description: "A calendar and a library that answer to a message.",
 };
 
 export default async function Home() {
