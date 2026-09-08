@@ -1,0 +1,67 @@
+.popover {
+  width: min(320px, calc(100vw - 24px));
+  filter: drop-shadow(0 18px 36px rgb(0 0 0 / 45%));
+  transform-origin: var(--trigger-anchor-point, center);
+}
+
+.popover[data-entering] {
+  animation: detailsIn var(--duration-base) var(--ease-fluid);
+}
+
+.popover[data-exiting] {
+  animation: detailsOut var(--duration-fast) var(--ease-fluid);
+}
+
+@keyframes detailsIn {
+  from {
+    opacity: 0;
+    scale: 0.94;
+  }
+}
+
+@keyframes detailsOut {
+  to {
+    opacity: 0;
+    scale: 0.96;
+  }
+}
+
+.dialog {
+  padding: 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--surface);
+  outline: 0;
+}
+
+.details {
+  display: grid;
+  gap: 12px;
+}
+
+.details h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 22px;
+  text-wrap: pretty;
+}
+
+.detailMeta {
+  display: grid;
+  color: var(--muted);
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  gap: 4px;
+  line-height: 16px;
+}
+
+.details p {
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+  text-wrap: pretty;
+  white-space: pre-wrap;
+}

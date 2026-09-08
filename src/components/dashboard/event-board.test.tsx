@@ -26,11 +26,11 @@ const EVENTS = [
   timed("planning", "Planning", "2026-09-03T11:00:00Z"),
 ];
 
-function renderBoard(agentOpen = false) {
+function renderBoard(agentOpen = false, events = EVENTS) {
   return render(
     <EventBoard
       agentOpen={agentOpen}
-      events={EVENTS}
+      events={events}
       now={NOW}
       onRefresh={vi.fn()}
       timeZone="UTC"
@@ -55,6 +55,15 @@ describe("EventBoard", () => {
 
     expect(screen.getByRole("button", { name: /Planning/ })).toBeDefined();
     expect(screen.queryByRole("button", { name: /Standup/ })).toBeNull();
+  });
+
+  it("draws the ends of the day, which the old 07-22 strip dropped", () => {
+    const { container } = renderBoard(false, [
+      timed("dawn", "Dawn run", "2026-09-01T06:00:00Z"),
+      timed("redeye", "Red-eye", "2026-09-01T23:00:00Z"),
+    ]);
+
+    expect(container.querySelectorAll('[style*="--event-left"]')).toHaveLength(2);
   });
 
   it("marks the rail as replaced when the agent is open", () => {

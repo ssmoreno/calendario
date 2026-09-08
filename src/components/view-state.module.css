@@ -1,0 +1,84 @@
+.eyebrow {
+  composes: eyebrow from "./primitives.module.css";
+}
+
+.notice {
+  display: grid;
+  max-width: 440px;
+  align-content: center;
+  justify-items: start;
+  padding: 40px;
+  margin: auto;
+  gap: 12px;
+  text-align: left;
+}
+
+.notice svg {
+  color: var(--muted);
+}
+
+.noticeProse {
+  max-width: 40ch;
+  margin: 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 24px;
+  text-wrap: pretty;
+}
+
+.primaryButton {
+  composes: button from "./button.module.css";
+  composes: primary from "./button.module.css";
+  margin-top: 8px;
+}
+
+.retryButton {
+  composes: button from "./button.module.css";
+  composes: secondary from "./button.module.css";
+  margin-top: 8px;
+}
+
+.skeleton {
+  display: grid;
+  min-height: 0;
+  padding: 26px;
+  gap: 22px;
+  grid-template-columns: minmax(0, 1fr) 336px;
+}
+
+.skeleton span {
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  animation: skeletonPulse 1.6s var(--ease-in-out) infinite;
+  background: var(--surface);
+}
+
+.skeleton span:first-child {
+  min-height: 176px;
+}
+
+.skeleton span:nth-child(2) {
+  border-radius: 0;
+}
+
+.skeleton span:nth-child(3) {
+  display: none;
+}
+
+@keyframes skeletonPulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (max-width: 820px) {
+  .skeleton {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .notice {
+    padding: 28px 20px;
+  }
+}

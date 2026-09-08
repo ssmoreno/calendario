@@ -13,6 +13,7 @@ import {
 } from "@/calendar/date-time";
 import type { UpcomingEvent } from "@/server/google-calendar";
 
+import { useAnchorPoint } from "../anchor-point";
 import { groupByDay, type DaySection } from "./board-layout";
 import styles from "./event-board.module.css";
 
@@ -24,8 +25,9 @@ interface EventBoardProps {
   onRefresh(): void;
 }
 
-const TIMELINE_START = 7 * 60;
-const TIMELINE_END = 22 * 60;
+const TIMELINE_START = 0;
+const TIMELINE_END = 24 * 60;
+const TIMELINE_TICK_HOURS = [0, 4, 8, 12, 16, 20, 24];
 const MAX_TODAY_EVENTS = 5;
 
 function dateAtNoon(dateKey: string) {
@@ -143,8 +145,17 @@ function timelineStyle(
   timeZone: string,
 ): CSSProperties | null {
   if (event.timing.kind === "all-day") return null;
+  const startsAt = new Date(event.timing.startsAt);
+  const endsAt = new Date(event.timing.endsAt);
   const start = timeOfDay(event.timing.startsAt, timeZone);
-  const end = timeOfDay(event.timing.endsAt, timeZone);
+  /*
+   * An event that runs to or past midnight reads back as 00:00 on a later day,
+   * which would leave it with no bar at all. It fills the strip to the end.
+   */
+  const end =
+    dateKeyInTimeZone(endsAt, timeZone) === dateKeyInTimeZone(startsAt, timeZone)
+      ? timeOfDay(event.timing.endsAt, timeZone)
+      : TIMELINE_END;
   const visibleStart = Math.max(TIMELINE_START, start);
   const visibleEnd = Math.min(TIMELINE_END, end);
   if (visibleEnd <= visibleStart) return null;
@@ -196,6 +207,33 @@ function EventDetails({ event, timeZone }: { event: UpcomingEvent; timeZone: str
   );
 }
 
+function EventDetailsPopover({
+  anchor,
+  event,
+  offset,
+  placement,
+  timeZone,
+}: {
+  anchor: ReturnType<typeof useAnchorPoint>;
+  event: UpcomingEvent;
+  offset: number;
+  placement: "bottom start" | "left top";
+  timeZone: string;
+}) {
+  return (
+    <Popover
+      className={styles.detailsPopover}
+      getTargetRect={anchor.getTargetRect}
+      placement={placement}
+      offset={offset}
+    >
+      <Dialog className={styles.detailsDialog} aria-label={event.title}>
+        <EventDetails event={event} timeZone={timeZone} />
+      </Dialog>
+    </Popover>
+  );
+}
+
 function EventRow({
   event,
   isNext,
@@ -205,9 +243,14 @@ function EventRow({
   isNext: boolean;
   timeZone: string;
 }) {
+  const anchor = useAnchorPoint();
   return (
     <DialogTrigger>
-      <Button className={styles.eventRow} data-next={isNext || undefined}>
+      <Button
+        className={styles.eventRow}
+        data-next={isNext || undefined}
+        onPress={anchor.onPress}
+      >
         <span className={styles.eventWhen}>
           {blockTime(event, timeZone)}
           <small>{durationLabel(event)}</small>
@@ -218,11 +261,38 @@ function EventRow({
         </span>
         {isNext ? <span className={styles.nextBadge}>Next</span> : null}
       </Button>
-      <Popover className={styles.detailsPopover} placement="bottom start" offset={6}>
-        <Dialog className={styles.detailsDialog} aria-label={event.title}>
-          <EventDetails event={event} timeZone={timeZone} />
-        </Dialog>
-      </Popover>
+      <EventDetailsPopover
+        anchor={anchor}
+        event={event}
+        offset={6}
+        placement="bottom start"
+        timeZone={timeZone}
+      />
+    </DialogTrigger>
+  );
+}
+
+function FutureEvent({
+  event,
+  timeZone,
+}: {
+  event: UpcomingEvent;
+  timeZone: string;
+}) {
+  const anchor = useAnchorPoint();
+  return (
+    <DialogTrigger>
+      <Button className={styles.futureEvent} onPress={anchor.onPress}>
+        <span>{blockTime(event, timeZone)}</span>
+        <strong>{event.title}</strong>
+      </Button>
+      <EventDetailsPopover
+        anchor={anchor}
+        event={event}
+        offset={8}
+        placement="left top"
+        timeZone={timeZone}
+      />
     </DialogTrigger>
   );
 }
@@ -255,17 +325,7 @@ function FutureDay({
       {expanded ? (
         <div className={styles.futureEvents}>
           {day.events.slice(0, 5).map((event) => (
-            <DialogTrigger key={event.id}>
-              <Button className={styles.futureEvent}>
-                <span>{blockTime(event, timeZone)}</span>
-                <strong>{event.title}</strong>
-              </Button>
-              <Popover className={styles.detailsPopover} placement="left top" offset={8}>
-                <Dialog className={styles.detailsDialog} aria-label={event.title}>
-                  <EventDetails event={event} timeZone={timeZone} />
-                </Dialog>
-              </Popover>
-            </DialogTrigger>
+            <FutureEvent event={event} key={event.id} timeZone={timeZone} />
           ))}
           {day.events.length > 5 ? (
             <p className={styles.futureMore}>{`+${day.events.length - 5} more`}</p>
@@ -333,9 +393,16 @@ export function EventBoard({
         </div>
 
         <div className={styles.timeline} aria-hidden="true">
-          {[7, 10, 13, 16, 19, 22].map((hour) => (
+          {TIMELINE_TICK_HOURS.map((hour, index) => (
             <span
               className={styles.tick}
+              data-edge={
+                index === 0
+                  ? "start"
+                  : index === TIMELINE_TICK_HOURS.length - 1
+                    ? "end"
+                    : undefined
+              }
               key={hour}
               style={{
                 "--tick-left": `${((hour * 60 - TIMELINE_START) / (TIMELINE_END - TIMELINE_START)) * 100}%`,

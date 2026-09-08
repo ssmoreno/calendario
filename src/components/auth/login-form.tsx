@@ -34,8 +34,7 @@ export function LoginForm() {
     <main className={styles.authStage}>
       <section className={styles.authCard}>
         <div className={styles.wordmark} aria-hidden="true">
-          <span className={styles.mark}>SS</span>
-          <span>{messages.appName}</span>
+          <span className={styles.mark}>{messages.appName}</span>
         </div>
 
         <div className={styles.authIntro}>

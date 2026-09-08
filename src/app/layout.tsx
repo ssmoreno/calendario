@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
+import { messages } from "@/calendar/messages";
+
 import "./globals.css";
 
 const geist = Geist({
@@ -16,8 +18,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SS Calendar",
-  description: "A Google-backed calendar agent.",
+  title: messages.appName,
+  description: "A Google-backed calendar and library agent.",
 };
 
 const themeScript = `

@@ -1,0 +1,300 @@
+.board {
+  display: grid;
+  width: 100%;
+  max-width: 1280px;
+  min-width: 0;
+  min-height: 0;
+  align-content: start;
+  padding: 26px;
+  gap: 14px;
+  overflow-y: auto;
+}
+
+.heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.heading h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 18px;
+}
+
+.heading span {
+  color: var(--muted);
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  line-height: 16px;
+}
+
+.drawers {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.drawer {
+  display: grid;
+  min-height: 132px;
+  align-content: start;
+  padding: 16px 14px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background-color var(--duration-fast) var(--ease-fluid),
+    border-color var(--duration-fast) var(--ease-fluid);
+}
+
+.drawer:hover {
+  background: var(--surface);
+}
+
+.drawer[data-open] {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--canvas);
+}
+
+.plate {
+  display: grid;
+  padding: 5px 8px;
+  border: 1px solid var(--line-strong);
+  background: var(--canvas);
+  color: var(--ink);
+  gap: 1px;
+  justify-items: start;
+}
+
+.drawer[data-open] .plate {
+  border-color: var(--canvas);
+}
+
+.plate b {
+  overflow: hidden;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.plate small {
+  color: var(--muted);
+  font-family: var(--font-mono), monospace;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  line-height: 14px;
+}
+
+.count {
+  padding-top: 18px;
+  margin-top: auto;
+  font-family: var(--font-mono), monospace;
+  font-size: 40px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.06em;
+  line-height: 1;
+}
+
+.pull {
+  width: 40px;
+  height: 5px;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  margin-top: 14px;
+  background: var(--canvas);
+}
+
+.drawer[data-open] .pull {
+  border-color: var(--canvas);
+  background: transparent;
+}
+
+.openDrawer {
+  display: grid;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--surface);
+  animation: drawerOut var(--duration-base) var(--ease-fluid);
+  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(238px, 1fr));
+}
+
+@keyframes drawerOut {
+  from {
+    opacity: 0;
+    translate: 0 -10px;
+  }
+}
+
+.card {
+  display: grid;
+  min-height: 112px;
+  align-content: start;
+  padding: 14px 14px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 2px;
+  background: var(--surface-2);
+  background-image: repeating-linear-gradient(
+    var(--surface-2) 0 23px,
+    var(--line) 23px 24px
+  );
+  color: var(--ink);
+  cursor: pointer;
+  gap: 8px;
+  text-align: left;
+  transition:
+    translate var(--duration-fast) var(--ease-fluid),
+    box-shadow var(--duration-fast) var(--ease-fluid);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-sheet);
+  translate: 0 -3px;
+}
+
+.cardTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cardTop small {
+  overflow: hidden;
+  color: var(--muted);
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.punch {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+}
+
+.card strong {
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 20px;
+  text-wrap: pretty;
+}
+
+.card em {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  font-style: italic;
+  line-height: 18px;
+}
+
+.emptyDrawer {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.detailsPopover {
+  composes: popover from "../details-popover.module.css";
+}
+
+.detailsDialog {
+  composes: dialog from "../details-popover.module.css";
+}
+
+.details {
+  composes: details from "../details-popover.module.css";
+}
+
+.detailMeta {
+  composes: detailMeta from "../details-popover.module.css";
+}
+
+.detailActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.openLink {
+  composes: button from "../button.module.css";
+  composes: secondary from "../button.module.css";
+  min-height: 32px;
+  padding: 4px 12px;
+  font-size: 12px;
+}
+
+.forgetButton {
+  composes: button from "../button.module.css";
+  composes: quiet from "../button.module.css";
+  font-size: 12px;
+}
+
+.forgetFailed {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+@media (max-width: 1100px) {
+  .drawers {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .board {
+    padding: 16px 12px 24px;
+  }
+
+  .drawers {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .drawer {
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .count {
+    padding-top: 0;
+    margin-top: 0;
+    font-size: 28px;
+  }
+
+  .pull {
+    display: none;
+  }
+
+  .openDrawer {
+    padding: 14px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

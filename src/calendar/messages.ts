@@ -1,5 +1,5 @@
 export const messages = {
-  appName: "SS Calendar",
+  appName: "SS",
   week: "Week",
   month: "Month",
   previousPeriod: "Previous period",
@@ -81,6 +81,29 @@ export const messages = {
     signOutFailed: "That account could not be signed out. Try again.",
     genericFailure: "That did not work. Check the details and try again.",
     signInWithGoogleCalendar: "Sign in with Google Calendar",
+  },
+  views: {
+    calendar: "Calendar",
+    library: "Library",
+  },
+  library: {
+    title: "Library",
+    loadingLabel: "Loading your library…",
+    failed: "Your library could not be loaded.",
+    retry: "Try again",
+    empty: "Nothing saved yet. Send SS a link and it lands in here.",
+    emptyDrawer: "This drawer is empty.",
+    closeDrawer: "Close drawer",
+    forget: "Forget",
+    forgetFailed: "That item could not be removed.",
+    open: "Open",
+    itemCount: (count: number) => (count === 1 ? "1 item" : `${count} items`),
+    kinds: {
+      article: { label: "Articles", hint: "To read" },
+      recipe: { label: "Recipes", hint: "To cook" },
+      video: { label: "Videos", hint: "To watch" },
+      link: { label: "Links", hint: "Everything else" },
+    },
   },
   settings: {
     title: "Settings",

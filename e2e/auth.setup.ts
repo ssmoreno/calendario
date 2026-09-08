@@ -35,7 +35,7 @@ for (const [project, account] of Object.entries(E2E_ACCOUNTS)) {
     await page.goto("/");
 
     await expect(
-      page.getByRole("heading", { name: "SS Calendar", exact: true }),
+      page.getByRole("heading", { name: "SS", exact: true }),
     ).toBeVisible();
     const userId = await page.evaluate(async () => {
       const response = await fetch("/api/auth/get-session");
