@@ -8,11 +8,6 @@ import {
   unlinkWhatsApp,
 } from "@/server/whatsapp-link-store";
 
-export interface WhatsAppLinkStatus {
-  waId: string | null;
-  code: string | null;
-}
-
 export async function GET() {
   const userId = await currentUserId();
   if (!userId) return unauthorized();

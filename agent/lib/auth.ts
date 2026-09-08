@@ -14,7 +14,7 @@ interface AuthAwareContext {
  *
  * `localDev()` authenticates a synthetic `local-dev` principal while
  * `eve dev` is running; `prisma/seed.ts` gives it a matching user row so local
- * turns exercise the real settings and memory stores.
+ * turns exercise the real account-scoped integrations.
  */
 export function maybeUserId(ctx: AuthAwareContext): string | null {
   const caller = ctx.session.auth.current ?? ctx.session.auth.initiator;

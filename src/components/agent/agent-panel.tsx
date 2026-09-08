@@ -11,11 +11,6 @@ import type {
   UseEveAgentSnapshot,
 } from "eve/react";
 
-import { themePreferenceSchema } from "@/calendar/settings";
-import { saveThemePreference } from "@/calendar/storage";
-import { applyThemePreference } from "@/calendar/theme";
-import type { ThemePreference } from "@/calendar/types";
-
 import {
   clearSavedAgent,
   readSavedAgent,
@@ -42,36 +37,6 @@ function pendingRequests(data: EveMessageData): readonly EveMessageInputRequest[
       const request = part.toolMetadata?.eve?.inputRequest;
       return request ? [request] : [];
     });
-}
-
-function themeChanges(
-  data: EveMessageData,
-): { callId: string; theme: ThemePreference }[] {
-  return data.messages
-    .flatMap((message) => message.parts)
-    .flatMap((part) => {
-      if (
-        part.type !== "dynamic-tool" ||
-        part.toolName !== "update_settings" ||
-        part.state !== "output-available"
-      ) {
-        return [];
-      }
-      const theme = (part.output as { settings?: { theme?: unknown } } | null)
-        ?.settings?.theme;
-      const parsed = themePreferenceSchema.safeParse(theme);
-      return parsed.success
-        ? [{ callId: part.toolCallId, theme: parsed.data }]
-        : [];
-    });
-}
-
-function safeStorage(): Storage | null {
-  try {
-    return window.localStorage;
-  } catch {
-    return null;
-  }
 }
 
 function Message({ children, role }: { children: ReactNode; role: EveMessage["role"] }) {
@@ -144,7 +109,6 @@ function HydratedAgentPanel({
   const [freeform, setFreeform] = useState("");
   const transcriptRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const appliedThemeCalls = useRef(new Set<string>());
   const expanded = mode === "docked";
   const shape = "docked";
 
@@ -206,15 +170,6 @@ function HydratedAgentPanel({
   useEffect(() => {
     if (mode !== "closed") inputRef.current?.focus();
   }, [mode]);
-
-  useEffect(() => {
-    for (const { callId, theme } of themeChanges(agent.data)) {
-      if (appliedThemeCalls.current.has(callId)) continue;
-      appliedThemeCalls.current.add(callId);
-      applyThemePreference(theme);
-      saveThemePreference(safeStorage(), theme);
-    }
-  }, [agent.data]);
 
   function respond(response: {
     requestId: string;

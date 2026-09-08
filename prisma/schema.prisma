@@ -8,18 +8,17 @@ datasource db {
 }
 
 model User {
-  id            String               @id
+  id            String        @id
   name          String
   email         String
-  emailVerified Boolean              @default(false)
+  emailVerified Boolean       @default(false)
   image         String?
-  createdAt     DateTime             @default(now())
-  updatedAt     DateTime             @updatedAt
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
   sessions      Session[]
   accounts      Account[]
-  settings      UserSettings?
-  memories      UserMemory[]
-  savedItems    SavedItem[]
+  categories    Category[]
+  libraryItems  LibraryItem[]
   whatsAppLink  WhatsAppLink?
   whatsAppCode  WhatsAppPairingCode?
 
@@ -75,53 +74,34 @@ model Verification {
   @@map("verification")
 }
 
-model UserSettings {
-  userId                 String   @id
-  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  defaultDurationMinutes Int      @default(60)
-  /// null means new events get no reminder by default.
-  defaultReminderMinutes Int?
-  defaultColor           String   @default("coral")
-  theme                  String   @default("system")
-  /// IANA timezone. null until the agent resolves one; every agent reads it
-  /// from here because durable session state is not shared with subagents.
-  timeZone               String?
-  updatedAt              DateTime @updatedAt
+model Category {
+  id        String        @id @default(cuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  items     LibraryItem[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
 
-  @@map("user_settings")
+  @@unique([userId, name])
+  @@unique([id, userId])
+  @@map("category")
 }
 
-model UserMemory {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  content   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model LibraryItem {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId  String
+  category    Category @relation(fields: [categoryId, userId], references: [id, userId], onDelete: Restrict)
+  name        String
+  description String
+  link        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  @@index([userId, createdAt])
-  @@map("user_memory")
-}
-
-/// Links the user sends to read, cook, or watch later. Title and summary come
-/// from the page itself at save time and stay null when that fetch fails.
-model SavedItem {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  url       String
-  domain    String
-  title     String?
-  summary   String?
-  kind      String   @default("link")
-  /// What the user said when they sent it.
-  note      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([userId, url])
-  @@index([userId, createdAt])
-  @@map("saved_item")
+  @@index([userId, categoryId, createdAt])
+  @@map("library_item")
 }
 
 /// Eve does not enforce session ownership, so the channel checks this table on
@@ -136,9 +116,7 @@ model EveSessionOwner {
   @@map("eve_session_owner")
 }
 
-/// Binds a WhatsApp identity to an account. The Kapso channel resolves an
-/// inbound sender through this table before any turn reaches the agent, so an
-/// unlinked number never gets one. One number per account, both ways.
+/// Binds a WhatsApp identity to an account after pairing from the web app.
 model WhatsAppLink {
   waId      String   @id
   userId    String   @unique
@@ -148,9 +126,7 @@ model WhatsAppLink {
   @@map("whatsapp_link")
 }
 
-/// A short-lived code a signed-in user texts to the WhatsApp number, proving
-/// the phone and the account are both theirs. One live code per account; a
-/// redeemed code is deleted rather than kept.
+/// A short-lived code proving control of both the web account and phone.
 model WhatsAppPairingCode {
   code      String   @id
   userId    String   @unique

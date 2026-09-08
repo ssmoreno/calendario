@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CalendarDocumentEngine } from "@/calendar/calendar-document-engine";
 import { localDateTimeToZoned } from "@/calendar/date-time";
-import { DEFAULT_USER_SETTINGS } from "@/calendar/settings";
+import { DEFAULT_CALENDAR_DEFAULTS } from "@/calendar/defaults";
 import type { CalendarDocument, CalendarService } from "@/calendar/types";
 
 import { createEveTools, type EveTools } from "./tools";
@@ -93,7 +93,7 @@ describe("Eve calendar tools", () => {
     const withDefaults = createEveTools(calendarServiceFor(service), {
       timeZone: TIME_ZONE,
       defaults: {
-        ...DEFAULT_USER_SETTINGS,
+    ...DEFAULT_CALENDAR_DEFAULTS,
         defaultDurationMinutes: 30,
         defaultReminderMinutes: 8,
         defaultColor: "mint",
@@ -116,7 +116,7 @@ describe("Eve calendar tools", () => {
   it("takes an explicit null reminder as no reminder at all", async () => {
     const withDefaults = createEveTools(calendarServiceFor(service), {
       timeZone: TIME_ZONE,
-      defaults: { ...DEFAULT_USER_SETTINGS, defaultReminderMinutes: 8 },
+      defaults: { ...DEFAULT_CALENDAR_DEFAULTS, defaultReminderMinutes: 8 },
     });
 
     await asJson(

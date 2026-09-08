@@ -1,6 +1,11 @@
 import { z } from "zod";
 
-import { timeZoneSchema } from "@/calendar/settings";
+import { isTimeZone } from "@/calendar/date-time";
+
+const timeZoneSchema = z
+  .string()
+  .trim()
+  .refine(isTimeZone, "Use an IANA timezone like Europe/Madrid.");
 
 export const setTimeZoneSchema = z.object({
   timeZone: timeZoneSchema,

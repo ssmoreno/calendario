@@ -10,7 +10,6 @@ import {
   DialogTrigger,
   Popover,
 } from "react-aria-components";
-import { GearSix } from "@phosphor-icons/react/dist/ssr/GearSix";
 import { Waveform } from "@phosphor-icons/react/dist/ssr/Waveform";
 import { X } from "@phosphor-icons/react/dist/ssr/X";
 import { SignOut } from "@phosphor-icons/react/dist/ssr/SignOut";
@@ -25,6 +24,7 @@ import type { UpcomingEvent } from "@/server/google-calendar";
 
 import { AgentPanel, type AgentMode } from "../agent/agent-panel";
 import { clearSavedAgent } from "../agent/agent-storage";
+import { WhatsAppLink } from "../whatsapp/whatsapp-link";
 import { ShellProvider, type Connection } from "./shell-context";
 import styles from "./app-shell.module.css";
 
@@ -240,14 +240,7 @@ export function AppShell({ children, initialConnected, user }: AppShellProps) {
                   <strong>{user.name}</strong>
                   <span>{user.email}</span>
                 </div>
-                <Link
-                  className={styles.profileItem}
-                  href="/settings"
-                  onClick={() => setProfileOpen(false)}
-                >
-                  <GearSix size={16} aria-hidden="true" />
-                  Settings
-                </Link>
+                <WhatsAppLink />
                 <button
                   className={styles.profileItem}
                   type="button"

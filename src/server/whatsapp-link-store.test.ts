@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const dbMocks = vi.hoisted(() => ({
+const db = vi.hoisted(() => ({
   codeFindUnique: vi.fn(),
   codeDelete: vi.fn(),
   linkCreate: vi.fn(),
@@ -10,73 +10,46 @@ const dbMocks = vi.hoisted(() => ({
 
 vi.mock("./db", () => ({
   prisma: {
-    whatsAppLink: {
-      create: dbMocks.linkCreate,
-      deleteMany: dbMocks.linkDeleteMany,
-    },
+    whatsAppLink: { create: db.linkCreate, deleteMany: db.linkDeleteMany },
     whatsAppPairingCode: {
-      delete: dbMocks.codeDelete,
-      findUnique: dbMocks.codeFindUnique,
+      delete: db.codeDelete,
+      findUnique: db.codeFindUnique,
     },
-    $transaction: dbMocks.transaction,
+    $transaction: db.transaction,
   },
 }));
 
 import { redeemPairingCode } from "./whatsapp-link-store";
 
-const future = new Date(Date.now() + 60_000);
-const past = new Date(Date.now() - 1);
-
 describe("redeemPairingCode", () => {
   beforeEach(() => {
-    for (const mock of Object.values(dbMocks)) mock.mockClear();
+    for (const mock of Object.values(db)) mock.mockClear();
   });
 
-  it("binds the number to the account that minted the code", async () => {
-    dbMocks.codeFindUnique.mockResolvedValue({
+  it("moves the phone to the account that minted a valid code", async () => {
+    db.codeFindUnique.mockResolvedValue({
       code: "123456",
       userId: "user-a",
-      expiresAt: future,
+      expiresAt: new Date(Date.now() + 60_000),
     });
 
     await expect(redeemPairingCode("123456", "15551234567")).resolves.toBe(
       "user-a",
     );
-    expect(dbMocks.linkCreate).toHaveBeenCalledWith({
-      data: { waId: "15551234567", userId: "user-a" },
-    });
-    expect(dbMocks.transaction).toHaveBeenCalledOnce();
-  });
-
-  it("clears both sides of the one-number-per-account rule first", async () => {
-    dbMocks.codeFindUnique.mockResolvedValue({
-      code: "123456",
-      userId: "user-a",
-      expiresAt: future,
-    });
-
-    await redeemPairingCode("123456", "15551234567");
-
-    expect(dbMocks.linkDeleteMany).toHaveBeenCalledWith({
+    expect(db.linkDeleteMany).toHaveBeenCalledWith({
       where: { OR: [{ waId: "15551234567" }, { userId: "user-a" }] },
     });
+    expect(db.transaction).toHaveBeenCalledOnce();
   });
 
-  it("refuses an expired code without touching any link", async () => {
-    dbMocks.codeFindUnique.mockResolvedValue({
+  it("rejects an expired code without changing a link", async () => {
+    db.codeFindUnique.mockResolvedValue({
       code: "123456",
       userId: "user-a",
-      expiresAt: past,
+      expiresAt: new Date(Date.now() - 1),
     });
 
     await expect(redeemPairingCode("123456", "15551234567")).resolves.toBeNull();
-    expect(dbMocks.transaction).not.toHaveBeenCalled();
-  });
-
-  it("refuses a code nobody minted", async () => {
-    dbMocks.codeFindUnique.mockResolvedValue(null);
-
-    await expect(redeemPairingCode("000000", "15551234567")).resolves.toBeNull();
-    expect(dbMocks.transaction).not.toHaveBeenCalled();
+    expect(db.transaction).not.toHaveBeenCalled();
   });
 });

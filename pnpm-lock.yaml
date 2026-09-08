@@ -9,17 +9,14 @@ importers:
   .:
     dependencies:
       '@chat-adapter/state-memory':
-        specifier: ^4.38.1
-        version: 4.38.1(ai@7.0.58(zod@4.4.3))(supports-color@7.2.0)(zod@4.4.3)
+        specifier: ^4.40.0
+        version: 4.40.0(ai@7.0.58(zod@4.4.3))(supports-color@7.2.0)(zod@4.4.3)
       '@internationalized/date':
         specifier: ^3.12.3
         version: 3.12.3
       '@kapso/chat-adapter':
         specifier: ^0.1.1
-        version: 0.1.1(ai@7.0.58(zod@4.4.3))(chat@4.38.1(ai@7.0.58(zod@4.4.3))(supports-color@7.2.0)(zod@4.4.3))(supports-color@7.2.0)(zod@4.4.3)
-      '@opentelemetry/api':
-        specifier: ^1.9.1
-        version: 1.9.1
+        version: 0.1.1(ai@7.0.58(zod@4.4.3))(chat@4.40.0(ai@7.0.58(zod@4.4.3))(supports-color@7.2.0)(zod@4.4.3))(supports-color@7.2.0)(zod@4.4.3)
       '@phosphor-icons/react':
         specifier: ^2.1.10
         version: 2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -29,9 +26,6 @@ importers:
       '@prisma/client':
         specifier: ^7.9.1
         version: 7.9.1(prisma@7.9.1(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@5.9.3))(typescript@5.9.3)
-      '@vercel/speed-insights':
-        specifier: ^2.0.0
-        version: 2.0.0(next@16.3.0(@babel/core@7.29.7(supports-color@7.2.0))(@opentelemetry/api@1.9.1)(@playwright/test@1.62.1)(@types/node@24.13.3)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
       ai:
         specifier: 7.0.58
         version: 7.0.58(zod@4.4.3)
@@ -39,8 +33,8 @@ importers:
         specifier: ^1.6.29
         version: 1.6.29(@opentelemetry/api@1.9.1)(@prisma/client@7.9.1(prisma@7.9.1(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@5.9.3))(typescript@5.9.3))(mysql2@3.15.3)(next@16.3.0(@babel/core@7.29.7(supports-color@7.2.0))(@opentelemetry/api@1.9.1)(@playwright/test@1.62.1)(@types/node@24.13.3)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(pg@8.23.0)(prisma@7.9.1(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@5.9.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(vitest@4.1.10(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(jsdom@30.0.1(@noble/hashes@2.3.0))(vite@8.2.1(@types/node@24.13.3)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)))
       chat:
-        specifier: ^4.38.1
-        version: 4.38.1(ai@7.0.58(zod@4.4.3))(supports-color@7.2.0)(zod@4.4.3)
+        specifier: ^4.40.0
+        version: 4.40.0(ai@7.0.58(zod@4.4.3))(supports-color@7.2.0)(zod@4.4.3)
       eve:
         specifier: 0.36.0
         version: 0.36.0(@electric-sql/pglite@0.4.3)(@opentelemetry/api@1.9.1)(ai@7.0.58(zod@4.4.3))(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.3.1)(jiti@2.7.0)(lru-cache@11.5.2)(mysql2@3.15.3)(vite@8.2.1(@types/node@24.13.3)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12))
@@ -306,12 +300,12 @@ packages:
     resolution: {integrity: sha512-ctxtJ/eA+t+6q2++vj5j7FYX3nRu311q1wfYH3xjlLOsczhlhxAg2FWNUXhpGvAw3BWo1xBcvOV6/YLc2r5FJw==}
     hasBin: true
 
-  '@chat-adapter/shared@4.38.1':
-    resolution: {integrity: sha512-zJiMl43fiS3a2RjLFdCyTUTqcDY2xss1Acbzc9yfsw8YAkS0LZRdrNmp9/RjLhZB0+FzLarNAayvdKqF2GwnQg==}
+  '@chat-adapter/shared@4.40.0':
+    resolution: {integrity: sha512-uTDl9p+PVkGtAw9dgvRdkydifvYVp98R26vGHhU4V5HuS7DBTedTdb1COUOh6vfP0SrC+xSozp4O/IyfbXZSKw==}
     engines: {node: '>=20'}
 
-  '@chat-adapter/state-memory@4.38.1':
-    resolution: {integrity: sha512-XYRmnnuckJ7HubQIRqKTwOn2XbpK+GQclN7mRJEpiGk/4LXD46g0XKrYPrQMGe8PGLMdSQ4139Huu34rvyfgSw==}
+  '@chat-adapter/state-memory@4.40.0':
+    resolution: {integrity: sha512-NmFFkvUfnDBDS/mkzrtKHdW757EGt0eX3OQH5IPxrKqhjSsNzpqUdkJ/uDB4BP0Rbex4oW/HgwhZ+JGONVbMBQ==}
     engines: {node: '>=20'}
 
   '@csstools/color-helpers@6.1.1':
@@ -1455,32 +1449,6 @@ packages:
     resolution: {integrity: sha512-UycprH3T6n3jH0k44NHMa7pnFHGu/N05MjojYr+Mc6I7obkoLIJujSWwin1pCvdy/eOxrI/l3uDLQsmcrOb4ug==}
     engines: {node: '>= 20'}
 
-  '@vercel/speed-insights@2.0.0':
-    resolution: {integrity: sha512-jwkNcrTeafWxjmWq4AHBaptSqZiJkYU5adLC9QBSqeim0GcqDMgN5Ievh8OG1rJ6W3A4l1oiP7qr9CWxGuzu3w==}
-    peerDependencies:
-      '@sveltejs/kit': ^1 || ^2
-      next: '>= 13'
-      nuxt: '>= 3'
-      react: ^18 || ^19 || ^19.0.0-rc
-      svelte: '>= 4'
-      vue: ^3
-      vue-router: ^4
-    peerDependenciesMeta:
-      '@sveltejs/kit':
-        optional: true
-      next:
-        optional: true
-      nuxt:
-        optional: true
-      react:
-        optional: true
-      svelte:
-        optional: true
-      vue:
-        optional: true
-      vue-router:
-        optional: true
-
   '@visx/curve@4.0.1-alpha.0':
     resolution: {integrity: sha512-jRu61Uz274pV1zyioXmboyrLutYbnKsgjj4njSGCnhdXj5GkZvZbg+ThDb6oOzoAnJOBRLz4rzPlWvNJOzuVMg==}
 
@@ -1819,8 +1787,8 @@ packages:
   character-entities@2.0.2:
     resolution: {integrity: sha512-shx7oQ0Awen/BRIdkjkvz54PnEEI/EjwXDSIZp86/KKdbafHh1Df/RYGBhn4hbe2+uKC9FnT5UCEdyPz3ai9hQ==}
 
-  chat@4.38.1:
-    resolution: {integrity: sha512-FD6vNLT8clXHKhN3I1m+3Bn2nz0rsB6/bmNPsJeh6Cr7kwWLg0MYl2uor9YaKBp38F77sBRVKdYKVA6ihUby3w==}
+  chat@4.40.0:
+    resolution: {integrity: sha512-slu3VDxItlelEZ8A5vqzlmtT2WErqj2YCGuhhcNx+Ev0+wHeBUqUDUA7hXkca+BfFtW1ZX7ECcySCTG2q2gefg==}
     engines: {node: '>=20'}
     peerDependencies:
       ai: ^6.0.182 || ^7.0.0
@@ -4208,18 +4176,18 @@ snapshots:
     dependencies:
       css-tree: 3.2.1
 
-  '@chat-adapter/shared@4.38.1(ai@7.0.58(zod@4.4.3))(supports-color@7.2.0)(zod@4.4.3)':
+  '@chat-adapter/shared@4.40.0(ai@7.0.58(zod@4.4.3))(supports-color@7.2.0)(zod@4.4.3)':
     dependencies:
-      chat: 4.38.1(ai@7.0.58(zod@4.4.3))(supports-color@7.2.0)(zod@4.4.3)
+      chat: 4.40.0(ai@7.0.58(zod@4.4.3))(supports-color@7.2.0)(zod@4.4.3)
     transitivePeerDependencies:
       - ai
       - supports-color
       - workflow
       - zod
 
-  '@chat-adapter/state-memory@4.38.1(ai@7.0.58(zod@4.4.3))(supports-color@7.2.0)(zod@4.4.3)':
+  '@chat-adapter/state-memory@4.40.0(ai@7.0.58(zod@4.4.3))(supports-color@7.2.0)(zod@4.4.3)':
     dependencies:
-      chat: 4.38.1(ai@7.0.58(zod@4.4.3))(supports-color@7.2.0)(zod@4.4.3)
+      chat: 4.40.0(ai@7.0.58(zod@4.4.3))(supports-color@7.2.0)(zod@4.4.3)
     transitivePeerDependencies:
       - ai
       - supports-color
@@ -4568,11 +4536,11 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@kapso/chat-adapter@0.1.1(ai@7.0.58(zod@4.4.3))(chat@4.38.1(ai@7.0.58(zod@4.4.3))(supports-color@7.2.0)(zod@4.4.3))(supports-color@7.2.0)(zod@4.4.3)':
+  '@kapso/chat-adapter@0.1.1(ai@7.0.58(zod@4.4.3))(chat@4.40.0(ai@7.0.58(zod@4.4.3))(supports-color@7.2.0)(zod@4.4.3))(supports-color@7.2.0)(zod@4.4.3)':
     dependencies:
-      '@chat-adapter/shared': 4.38.1(ai@7.0.58(zod@4.4.3))(supports-color@7.2.0)(zod@4.4.3)
+      '@chat-adapter/shared': 4.40.0(ai@7.0.58(zod@4.4.3))(supports-color@7.2.0)(zod@4.4.3)
       '@kapso/whatsapp-cloud-api': 0.2.3
-      chat: 4.38.1(ai@7.0.58(zod@4.4.3))(supports-color@7.2.0)(zod@4.4.3)
+      chat: 4.40.0(ai@7.0.58(zod@4.4.3))(supports-color@7.2.0)(zod@4.4.3)
     transitivePeerDependencies:
       - ai
       - supports-color
@@ -4641,7 +4609,8 @@ snapshots:
 
   '@nolyfill/is-core-module@1.0.39': {}
 
-  '@opentelemetry/api@1.9.1': {}
+  '@opentelemetry/api@1.9.1':
+    optional: true
 
   '@opentelemetry/semantic-conventions@1.43.0': {}
 
@@ -5150,11 +5119,6 @@ snapshots:
 
   '@vercel/oidc@3.2.0': {}
 
-  '@vercel/speed-insights@2.0.0(next@16.3.0(@babel/core@7.29.7(supports-color@7.2.0))(@opentelemetry/api@1.9.1)(@playwright/test@1.62.1)(@types/node@24.13.3)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)':
-    optionalDependencies:
-      next: 16.3.0(@babel/core@7.29.7(supports-color@7.2.0))(@opentelemetry/api@1.9.1)(@playwright/test@1.62.1)(@types/node@24.13.3)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      react: 19.2.8
-
   '@visx/curve@4.0.1-alpha.0':
     dependencies:
       '@visx/vendor': 4.0.0-alpha.0
@@ -5535,7 +5499,7 @@ snapshots:
 
   character-entities@2.0.2: {}
 
-  chat@4.38.1(ai@7.0.58(zod@4.4.3))(supports-color@7.2.0)(zod@4.4.3):
+  chat@4.40.0(ai@7.0.58(zod@4.4.3))(supports-color@7.2.0)(zod@4.4.3):
     dependencies:
       '@workflow/serde': 4.1.0-beta.2
       mdast-util-to-string: 4.0.0
