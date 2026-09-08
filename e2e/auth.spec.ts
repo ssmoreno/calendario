@@ -10,7 +10,7 @@ test("sends signed-out visitors to the login page and removes /chat", async ({
   // The landing is public; the views behind it are not.
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: /Everything you planned/ }),
+    page.getByRole("heading", { name: /Your calendar and your library/ }),
   ).toBeVisible();
 
   await page.goto("/calendar");
