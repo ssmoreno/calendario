@@ -38,6 +38,18 @@
   font-size: 10px;
   font-weight: 600;
   line-height: 1;
+  text-decoration: none;
+  transition: opacity var(--duration-base) var(--ease-fluid);
+}
+
+/* The mark doubles as the way back to the landing. */
+.mark:hover {
+  opacity: 0.82;
+}
+
+.mark h1 {
+  margin: 0;
+  font: inherit;
 }
 
 .viewNav {

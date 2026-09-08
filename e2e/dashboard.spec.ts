@@ -4,7 +4,7 @@ import { expect, test } from "@playwright/test";
 const composer = "Ask the calendar agent";
 
 test("shows the Google-backed home and account menu", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/calendar");
 
   await expect(page.getByRole("heading", { name: "SS", exact: true })).toBeVisible();
   await expect(
@@ -16,7 +16,7 @@ test("shows the Google-backed home and account menu", async ({ page }) => {
 });
 
 test("summons the agent instead of siting it on the page", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/calendar");
   await expect(page.getByRole("heading", { name: "SS", exact: true })).toBeVisible();
 
   await expect(page.getByLabel(composer)).toBeHidden();
@@ -31,13 +31,13 @@ test("summons the agent instead of siting it on the page", async ({ page }) => {
 });
 
 test("passes Axe on the disconnected dashboard", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/calendar");
   await expect(page.getByRole("heading", { name: "SS", exact: true })).toBeVisible();
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 });
 
 test("passes Axe with the agent open", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/calendar");
   await page.getByRole("button", { name: /Ask SS/ }).click();
   await expect(page.getByLabel(composer)).toBeVisible();
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
@@ -46,7 +46,7 @@ test("passes Axe with the agent open", async ({ page }) => {
 test("moves between Calendar and Library", async ({ page }, testInfo) => {
   const categoryName = `Reading ${Date.now()}`;
   const itemName = `Battery chemistry ${Date.now()}`;
-  await page.goto("/");
+  await page.goto("/calendar");
 
   await expect(page.getByRole("link", { name: "Calendar" })).toHaveAttribute(
     "aria-current",
@@ -96,7 +96,7 @@ test("moves between Calendar and Library", async ({ page }, testInfo) => {
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 
   await page.getByRole("link", { name: "Calendar" }).click();
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/calendar$/);
 });
 
 /*
@@ -146,7 +146,7 @@ test("renders a connected board of timed and all-day events", async ({ page }) =
     }),
   );
 
-  await page.goto("/");
+  await page.goto("/calendar");
 
   await expect(page.getByRole("heading", { name: "Upcoming events" })).toBeVisible();
   await expect(page.getByRole("button", { name: /Standup/ })).toBeVisible();

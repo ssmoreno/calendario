@@ -53,7 +53,7 @@ const connectionLabels: Record<Connection, string> = {
 };
 
 const views = [
-  { href: "/", label: messages.views.calendar },
+  { href: "/calendar", label: messages.views.calendar },
   { href: "/library", label: messages.views.library },
 ] as const;
 
@@ -138,8 +138,8 @@ export function AppShell({ children, initialConnected, user }: AppShellProps) {
     setConnecting(true);
     const result = await authClient.linkSocial({
       provider: GOOGLE_CALENDAR_PROVIDER,
-      callbackURL: "/",
-      errorCallbackURL: "/?google=error",
+      callbackURL: "/calendar",
+      errorCallbackURL: "/calendar?google=error",
       scopes: [GOOGLE_CALENDAR_SCOPE],
     });
     if (result?.error) {
@@ -187,13 +187,12 @@ export function AppShell({ children, initialConnected, user }: AppShellProps) {
     <main className={styles.shell}>
       <header className={styles.topbar}>
         <div className={styles.brand}>
-          <h1 className={styles.mark}>{messages.appName}</h1>
+          <Link className={styles.mark} href="/">
+            <h1>{messages.appName}</h1>
+          </Link>
           <nav className={styles.viewNav} aria-label="Views">
             {views.map((view) => {
-              const current =
-                view.href === "/"
-                  ? pathname === "/"
-                  : pathname.startsWith(view.href);
+              const current = pathname.startsWith(view.href);
               return (
                 <Link
                   className={styles.viewLink}
