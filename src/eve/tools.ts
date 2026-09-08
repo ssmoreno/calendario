@@ -16,9 +16,9 @@ import {
   reminderMinutes,
 } from "@/calendar/reminders";
 import {
-  DEFAULT_USER_SETTINGS,
-  type UserSettings,
-} from "@/calendar/settings";
+  DEFAULT_CALENDAR_DEFAULTS,
+  type CalendarDefaults,
+} from "@/calendar/defaults";
 import { EVENT_COLORS } from "@/calendar/types";
 import type {
   EventColor,
@@ -406,7 +406,7 @@ const hasKey = (value: object, key: string): boolean =>
 export interface EveToolsOptions {
   timeZone: string;
   /** Fills in whatever the user did not spell out when creating an event. */
-  defaults?: UserSettings;
+  defaults?: CalendarDefaults;
   /** Serializes duplicate-check-plus-create across concurrent user requests. */
   serializeCreate?<Result>(create: () => Promise<Result>): Promise<Result>;
 }
@@ -426,7 +426,7 @@ export function createEveTools(
   service: CalendarService,
   {
     timeZone,
-    defaults = DEFAULT_USER_SETTINGS,
+    defaults = DEFAULT_CALENDAR_DEFAULTS,
     serializeCreate = (create) => create(),
   }: EveToolsOptions,
 ) {
@@ -491,12 +491,11 @@ export function createEveTools(
   });
 
   /**
-   * A subagent starts a fresh session for every task, so a task it has already
-   * carried out looks new to it. Reading the target day before writing turns a
-   * repeated create into a report that the event is already there. All resolved
-   * details count, so a different span, repetition, or other field still goes
-   * through. A failed read fails the create too: when duplicate protection is
-   * required, an unknown calendar state is not safe to write into.
+   * Reading the target day before writing turns a repeated create into a report
+   * that the event is already there. All resolved details count, so a different
+   * span, repetition, or other field still goes through. A failed read fails the
+   * create too: when duplicate protection is required, an unknown calendar state
+   * is not safe to write into.
    */
   async function eventAlreadySaved(input: EventInput) {
     if (input.recurrence) {

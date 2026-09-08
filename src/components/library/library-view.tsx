@@ -1,97 +1,115 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { ArrowClockwise } from "@phosphor-icons/react/dist/ssr/ArrowClockwise";
-import { BookmarkSimple } from "@phosphor-icons/react/dist/ssr/BookmarkSimple";
+import { useActionState, useEffect, useRef } from "react";
 
-import { messages } from "@/calendar/messages";
-import type { SavedItemRecord } from "@/library/types";
+import {
+  createCategoryAction,
+  createLibraryItemAction,
+  type LibraryActionState,
+} from "@/app/(app)/library/actions";
+import styles from "./library.module.css";
 
-import { LibraryBoard } from "./library-board";
-import styles from "../view-state.module.css";
+const INITIAL_STATE: LibraryActionState = {};
 
-const library = messages.library;
+function FormStatus({ state }: { state: LibraryActionState }) {
+  const message = state.error ?? state.success;
+  if (!message) return null;
+  return (
+    <p className={styles.status} data-error={Boolean(state.error) || undefined}>
+      {message}
+    </p>
+  );
+}
 
-export function LibraryView() {
-  const [items, setItems] = useState<readonly SavedItemRecord[] | null>(null);
-  const [failed, setFailed] = useState(false);
-
-  const refresh = useCallback(async () => {
-    try {
-      const response = await fetch("/api/library", { cache: "no-store" });
-      if (!response.ok) throw new Error(library.failed);
-      const result = (await response.json()) as { items: SavedItemRecord[] };
-      setItems(result.items);
-      setFailed(false);
-    } catch {
-      setFailed(true);
-    }
-  }, []);
+export function LibraryForms({
+  categories,
+}: {
+  categories: { id: string; name: string }[];
+}) {
+  const categoryForm = useRef<HTMLFormElement>(null);
+  const itemForm = useRef<HTMLFormElement>(null);
+  const [categoryState, createCategory, creatingCategory] = useActionState(
+    createCategoryAction,
+    INITIAL_STATE,
+  );
+  const [itemState, createItem, creatingItem] = useActionState(
+    createLibraryItemAction,
+    INITIAL_STATE,
+  );
 
   useEffect(() => {
-    const initialRefresh = window.setTimeout(() => void refresh(), 0);
-    window.addEventListener("focus", refresh);
-    return () => {
-      window.clearTimeout(initialRefresh);
-      window.removeEventListener("focus", refresh);
-    };
-  }, [refresh]);
+    if (categoryState.success) categoryForm.current?.reset();
+  }, [categoryState]);
 
-  const forget = useCallback(async (id: string) => {
-    try {
-      const response = await fetch(`/api/library/${id}`, { method: "DELETE" });
-      if (!response.ok) return false;
-      const { deleted } = (await response.json()) as { deleted: boolean };
-      if (deleted) {
-        setItems((current) => current?.filter((item) => item.id !== id) ?? null);
-      }
-      return deleted;
-    } catch {
-      return false;
-    }
-  }, []);
+  useEffect(() => {
+    if (itemState.success) itemForm.current?.reset();
+  }, [itemState]);
 
-  if (failed) {
-    return (
-      <div className={styles.notice}>
-        <h2 className={styles.eyebrow}>{library.title}</h2>
-        <p className={styles.noticeProse} role="alert">
-          {library.failed}
-        </p>
-        <button
-          className={styles.retryButton}
-          type="button"
-          onClick={() => void refresh()}
-        >
-          <ArrowClockwise size={16} aria-hidden="true" />
-          {library.retry}
-        </button>
-      </div>
-    );
-  }
-
-  if (!items) {
-    return (
-      <div
-        className={styles.skeleton}
-        role="status"
-        aria-label={library.loadingLabel}
+  return (
+    <div className={styles.forms}>
+      <form
+        action={createCategory}
+        aria-label="Create category"
+        className={styles.form}
+        ref={categoryForm}
       >
-        <span />
-        <span />
-        <span />
-      </div>
-    );
-  }
+        <h3>New category</h3>
+        <label>
+          <span>Name</span>
+          <input name="name" maxLength={80} required />
+        </label>
+        <button disabled={creatingCategory} type="submit">
+          {creatingCategory ? "Creating…" : "Create category"}
+        </button>
+        <FormStatus state={categoryState} />
+      </form>
 
-  if (!items.length) {
-    return (
-      <div className={styles.notice}>
-        <BookmarkSimple size={28} aria-hidden="true" />
-        <p className={styles.noticeProse}>{library.empty}</p>
-      </div>
-    );
-  }
-
-  return <LibraryBoard items={items} onForget={forget} />;
+      <form
+        action={createItem}
+        aria-label="Create library item"
+        className={styles.form}
+        ref={itemForm}
+      >
+        <h3>New item</h3>
+        {categories.length ? (
+          <>
+            <label>
+              <span>Category</span>
+              <select
+                name="categoryId"
+                required
+                defaultValue={categories[0]?.id}
+              >
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>Name</span>
+              <input name="name" maxLength={160} required />
+            </label>
+            <label>
+              <span>Description</span>
+              <textarea name="description" maxLength={2_000} required />
+            </label>
+            <label>
+              <span>Link</span>
+              <input name="link" type="url" maxLength={2_048} required />
+            </label>
+            <button disabled={creatingItem} type="submit">
+              {creatingItem ? "Adding…" : "Add item"}
+            </button>
+          </>
+        ) : (
+          <p className={styles.emptyForm}>
+            Create a category before adding items.
+          </p>
+        )}
+        <FormStatus state={itemState} />
+      </form>
+    </div>
+  );
 }

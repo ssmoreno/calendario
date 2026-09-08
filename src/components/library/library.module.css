@@ -1,0 +1,171 @@
+.library {
+  display: grid;
+  gap: 32px;
+  padding: 32px;
+}
+
+.heading,
+.category > header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.heading p,
+.form label span,
+.heading > span,
+.category > header span {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.heading h2,
+.heading p,
+.form h3,
+.category h3,
+.category p {
+  margin: 0;
+}
+
+.heading h2 {
+  font-size: clamp(30px, 5vw, 56px);
+  font-weight: 500;
+  letter-spacing: -0.05em;
+}
+
+.forms {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: 1px;
+  border: 1px solid var(--line);
+  background: var(--line);
+}
+
+.form {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  padding: 20px;
+  background: var(--surface);
+}
+
+.form label {
+  display: grid;
+  gap: 7px;
+}
+
+.form input,
+.form select,
+.form textarea,
+.form button {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.form input,
+.form select,
+.form textarea {
+  padding: 10px 12px;
+}
+
+.form textarea {
+  min-height: 86px;
+  resize: vertical;
+}
+
+.form button {
+  padding: 11px 14px;
+  background: var(--ink);
+  color: var(--canvas);
+  cursor: pointer;
+}
+
+.form button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.status,
+.emptyForm {
+  min-height: 18px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.status[data-error] {
+  color: var(--foreground);
+}
+
+.categories {
+  display: grid;
+  gap: 16px;
+}
+
+.category {
+  border: 1px solid var(--line);
+}
+
+.category > header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.category ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.category li {
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.category a {
+  display: grid;
+  gap: 8px;
+  min-height: 130px;
+  padding: 18px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.category a:hover {
+  background: var(--ink);
+  color: var(--canvas);
+}
+
+.category a span {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.category a:hover span {
+  color: inherit;
+}
+
+.emptyCategory,
+.emptyLibrary {
+  padding: 24px 20px;
+  color: var(--muted);
+}
+
+@media (max-width: 700px) {
+  .library {
+    padding: 20px;
+  }
+
+  .forms {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
 
-import { messages } from "@/calendar/messages";
-
 import { getSession } from "./session";
 
 export async function currentUserId(): Promise<string | null> {
@@ -11,7 +9,7 @@ export async function currentUserId(): Promise<string | null> {
 
 export function unauthorized() {
   return NextResponse.json(
-    { error: messages.settings.signInRequired },
+    { error: "Sign in to continue." },
     { status: 401 },
   );
 }

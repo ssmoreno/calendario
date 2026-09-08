@@ -3,30 +3,7 @@ import { expect, test } from "@playwright/test";
 
 const composer = "Ask the calendar agent";
 
-const libraryItems = [
-  {
-    id: "article-1",
-    url: "https://example.com/battery-chemistry",
-    domain: "example.com",
-    title: "Battery chemistry",
-    summary: "How solid-state cells change the grid.",
-    kind: "article",
-    note: null,
-    createdAt: "2026-09-01T10:00:00.000Z",
-  },
-  {
-    id: "recipe-1",
-    url: "https://example.com/cacio-e-pepe",
-    domain: "example.com",
-    title: "Cacio e Pepe",
-    summary: "A reliable emulsion method.",
-    kind: "recipe",
-    note: "Sunday dinner",
-    createdAt: "2026-09-02T10:00:00.000Z",
-  },
-];
-
-test("shows the Google-backed home and profile navigation", async ({ page }) => {
+test("shows the Google-backed home and account menu", async ({ page }) => {
   await page.goto("/");
 
   await expect(page.getByRole("heading", { name: "SS", exact: true })).toBeVisible();
@@ -35,9 +12,7 @@ test("shows the Google-backed home and profile navigation", async ({ page }) => 
   ).toBeVisible();
 
   await page.getByRole("button", { name: "Open profile menu" }).click();
-  await page.getByRole("link", { name: "Settings" }).click();
-  await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Google Calendar" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Log out" })).toBeVisible();
 });
 
 test("summons the agent instead of siting it on the page", async ({ page }) => {
@@ -69,12 +44,8 @@ test("passes Axe with the agent open", async ({ page }) => {
 });
 
 test("moves between Calendar and Library", async ({ page }, testInfo) => {
-  await page.route("**/api/library", (route) =>
-    route.fulfill({ json: { items: libraryItems } }),
-  );
-  await page.route("**/api/library/recipe-1", (route) =>
-    route.fulfill({ json: { deleted: true } }),
-  );
+  const categoryName = `Reading ${Date.now()}`;
+  const itemName = `Battery chemistry ${Date.now()}`;
   await page.goto("/");
 
   await expect(page.getByRole("link", { name: "Calendar" })).toHaveAttribute(
@@ -93,19 +64,22 @@ test("moves between Calendar and Library", async ({ page }, testInfo) => {
   await page.getByRole("link", { name: "Library" }).click();
   await expect(page).toHaveURL(/\/library$/);
   if (!agentIsModal) await expect(page.getByLabel(composer)).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Library" })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Articles/ })).toHaveAttribute(
-    "aria-expanded",
-    "true",
-  );
-  await expect(page.getByRole("button", { name: /Battery chemistry/ })).toBeVisible();
-
   if (!agentIsModal) await page.keyboard.press("Escape");
-  await page.getByRole("button", { name: /Recipes/ }).click();
-  await page.getByRole("button", { name: /Cacio e Pepe/ }).click();
-  await expect(page.getByRole("dialog", { name: "Cacio e Pepe" })).toBeVisible();
-  await page.getByRole("button", { name: "Forget" }).click();
-  await expect(page.getByRole("button", { name: /Cacio e Pepe/ })).toBeHidden();
+  await expect(page.getByRole("heading", { name: "Your categories" })).toBeVisible();
+
+  const categoryForm = page.getByRole("form", { name: "Create category" });
+  await categoryForm.getByLabel("Name").fill(categoryName);
+  await categoryForm.getByRole("button", { name: "Create category" }).click();
+  await expect(page.getByRole("heading", { name: categoryName })).toBeVisible();
+
+  const itemForm = page.getByRole("form", { name: "Create library item" });
+  await itemForm.getByLabel("Category").selectOption({ label: categoryName });
+  await itemForm.getByLabel("Name").fill(itemName);
+  await itemForm.getByLabel("Description").fill("How solid-state cells change the grid.");
+  await itemForm.getByLabel("Link").fill("https://example.com/battery-chemistry");
+  await itemForm.getByRole("button", { name: "Add item" }).click();
+  await expect(page.getByRole("link", { name: new RegExp(itemName) })).toBeVisible();
+  await expect(page).toHaveTitle("Library — SS");
 
   expect(
     await page.evaluate(

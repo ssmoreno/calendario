@@ -1,0 +1,28 @@
+.section {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.8rem 1rem;
+  border-block: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.section strong,
+.section b {
+  color: var(--ink);
+}
+
+.section button {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  color: var(--accent);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.section button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
