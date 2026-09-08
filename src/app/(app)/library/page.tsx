@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
+import { ArrowUpRight } from "@phosphor-icons/react/dist/ssr/ArrowUpRight";
 
 import { messages } from "@/calendar/messages";
-import { LibraryForms } from "@/components/library/library-view";
+import { LibraryControls } from "@/components/library/library-view";
 import { listLibrary } from "@/server/library-store";
 import { requireSession } from "@/server/session";
 
@@ -21,44 +22,73 @@ export default async function Library() {
 
   return (
     <section className={styles.library} aria-labelledby="library-heading">
-      <header className={styles.heading}>
-        <div>
-          <p>Personal library</p>
-          <h2 id="library-heading">Your categories</h2>
-        </div>
-        <span>{itemCount === 1 ? "1 item" : `${itemCount} items`}</span>
-      </header>
+      <div className={styles.libraryInner}>
+        <header className={styles.heading}>
+          <div className={styles.headingCopy}>
+            <p className={styles.eyebrow}>Personal library</p>
+            <h2 id="library-heading">Library</h2>
+          </div>
+          <div className={styles.headingActions}>
+            <span className={styles.headingMeta}>
+              {`${categories.length} ${categories.length === 1 ? "category" : "categories"} · ${itemCount} ${itemCount === 1 ? "item" : "items"}`}
+            </span>
+            <LibraryControls
+              categories={categories.map(({ id, name }) => ({ id, name }))}
+            />
+          </div>
+        </header>
 
-      <LibraryForms
-        categories={categories.map(({ id, name }) => ({ id, name }))}
-      />
-
-      <div className={styles.categories}>
         {categories.length ? (
-          categories.map((category) => (
-            <section className={styles.category} key={category.id}>
-              <header>
-                <h3>{category.name}</h3>
-                <span>{category.items.length}</span>
-              </header>
-              {category.items.length ? (
-                <ul>
-                  {category.items.map((item) => (
-                    <li key={item.id}>
-                      <a href={item.link} target="_blank" rel="noreferrer">
-                        <strong>{item.name}</strong>
-                        <span>{item.description}</span>
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className={styles.emptyCategory}>No items yet.</p>
-              )}
-            </section>
-          ))
+          <div className={styles.categories}>
+            {categories.map((category) => (
+              <section
+                className={styles.category}
+                aria-labelledby={`category-${category.id}`}
+                key={category.id}
+              >
+                <header>
+                  <h3 id={`category-${category.id}`}>{category.name}</h3>
+                  <span className={styles.categoryCount}>
+                    {`${category.items.length} ${category.items.length === 1 ? "item" : "items"}`}
+                  </span>
+                </header>
+                {category.items.length ? (
+                  <ul>
+                    {category.items.map((item) => (
+                      <li key={item.id}>
+                        <a
+                          className={styles.itemLink}
+                          href={item.link}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          <span className={styles.itemCopy}>
+                            <strong>{item.name}</strong>
+                            <span>{item.description}</span>
+                          </span>
+                          <span className={styles.itemMeta}>
+                            Open
+                            <ArrowUpRight size={13} aria-hidden="true" />
+                          </span>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className={styles.emptyCategory}>No saved items yet.</p>
+                )}
+              </section>
+            ))}
+          </div>
         ) : (
-          <p className={styles.emptyLibrary}>No categories yet.</p>
+          <div className={styles.emptyLibrary}>
+            <div>
+              <strong>No collections yet</strong>
+              <span>
+                Ask SS to save something here, or add your first category manually.
+              </span>
+            </div>
+          </div>
         )}
       </div>
     </section>

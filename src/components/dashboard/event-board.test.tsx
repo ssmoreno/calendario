@@ -24,6 +24,7 @@ const EVENTS = [
   timed("focus", "Focus block", "2026-09-01T10:00:00Z"),
   timed("standup", "Standup", "2026-09-02T09:00:00Z"),
   timed("planning", "Planning", "2026-09-03T11:00:00Z"),
+  timed("retro", "Retro", "2026-09-08T11:00:00Z"),
 ];
 
 function renderBoard(agentOpen = false, events = EVENTS) {
@@ -55,6 +56,13 @@ describe("EventBoard", () => {
 
     expect(screen.getByRole("button", { name: /Planning/ })).toBeDefined();
     expect(screen.queryByRole("button", { name: /Standup/ })).toBeNull();
+  });
+
+  it("uses dates instead of weekday names outside the current week", () => {
+    renderBoard();
+
+    expect(screen.getByRole("button", { name: /Sep 8/ })).toBeDefined();
+    expect(screen.queryByRole("button", { name: /Tuesday.*1 event/ })).toBeNull();
   });
 
   it("draws the ends of the day, which the old 07-22 strip dropped", () => {

@@ -10,6 +10,7 @@ import {
   dateKeyInTimeZone,
   formatDuration,
   todayKey,
+  weekRange,
 } from "@/calendar/date-time";
 import type { UpcomingEvent } from "@/server/google-calendar";
 
@@ -39,6 +40,14 @@ function dayLabel(dateKey: string, timeZone: string, now: Date) {
   const today = todayKey(timeZone, now);
   if (dateKey === today) return "Today";
   const date = dateAtNoon(dateKey);
+  const thisWeek = weekRange(today);
+  if (dateKey < thisWeek.from || dateKey > thisWeek.to) {
+    return new Intl.DateTimeFormat(undefined, {
+      month: "short",
+      day: "numeric",
+      timeZone: "UTC",
+    }).format(date);
+  }
   const dayBefore = new Date(date);
   dayBefore.setUTCDate(dayBefore.getUTCDate() - 1);
   if (dayBefore.toISOString().slice(0, 10) === today) return "Tomorrow";
