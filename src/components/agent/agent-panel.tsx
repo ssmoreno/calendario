@@ -146,11 +146,7 @@ function HydratedAgentPanel({
   const inputRef = useRef<HTMLInputElement>(null);
   const appliedThemeCalls = useRef(new Set<string>());
   const expanded = mode === "docked";
-  // Closing keeps the geometry it had, so the panel fades where it stands
-  // rather than flying back to the middle of the screen on its way out.
-  const [lastShape, setLastShape] = useState<"spotlight" | "docked">("spotlight");
-  if (mode !== "closed" && mode !== lastShape) setLastShape(mode);
-  const shape = mode === "closed" ? lastShape : mode;
+  const shape = "docked";
 
   const agent = useEveAgent({
     initialEvents: saved.events as readonly MessageStreamEvent[],
@@ -233,7 +229,6 @@ function HydratedAgentPanel({
     const message = draft.trim();
     if (!message || !connected || isBusy) return;
     setDraft("");
-    // The first message is what turns the Spotlight bar into a conversation.
     onModeChange("docked");
     void agent.send(message);
   }
@@ -245,10 +240,6 @@ function HydratedAgentPanel({
       data-shape={shape}
       inert={mode === "closed"}
     >
-      {/*
-        * Spotlight is modal in feel but not in mechanics: the backdrop is a
-        * plain dismiss target, so the board underneath keeps its focus order.
-        */}
       <button
         className={styles.backdrop}
         aria-label="Dismiss the agent"
@@ -259,7 +250,7 @@ function HydratedAgentPanel({
 
       <section className={styles.panel} aria-labelledby="agent-heading">
         <div className={styles.panelHeading}>
-          <h2 className={styles.eyebrow} id="agent-heading">Agent</h2>
+          <h2 className={styles.eyebrow} id="agent-heading">SS Agent</h2>
           <div className={styles.headingActions}>
             {expanded ? (
               <button
@@ -269,7 +260,7 @@ function HydratedAgentPanel({
                 onClick={() => {
                   agent.reset();
                   clearSavedAgent(userId);
-                  onModeChange("spotlight");
+                  onModeChange("docked");
                 }}
               >
                 <ArrowsClockwise size={14} aria-hidden="true" />
@@ -408,7 +399,7 @@ function HydratedAgentPanel({
  * Closed, the panel keeps running: unmounting it would drop a turn already in
  * flight and tear down the live stream behind it.
  */
-export type AgentMode = "closed" | "spotlight" | "docked";
+export type AgentMode = "closed" | "docked";
 
 interface AgentPanelProps {
   connected: boolean;

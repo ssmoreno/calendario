@@ -241,7 +241,7 @@ export function SettingsPage({
     <div className={styles.settingsShell}>
       <header className={styles.settingsHeader}>
         <div className={styles.brand}>
-          <span className={styles.mark} aria-hidden="true" />
+          <span className={styles.mark} aria-hidden="true">SS</span>
           <h1>{settingsMessages.title}</h1>
         </div>
         <Link className={styles.backLink} href="/">

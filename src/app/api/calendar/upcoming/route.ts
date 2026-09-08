@@ -8,7 +8,7 @@ import {
 
 const NO_STORE = { "cache-control": "private, no-store" };
 
-/* How far ahead the board may look. It draws only what fits on one screen. */
+/* The future rail looks two weeks ahead without turning into a month view. */
 const UPCOMING_DAYS = 15;
 
 export async function GET(request: Request) {

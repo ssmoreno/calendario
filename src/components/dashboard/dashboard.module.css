@@ -1,77 +1,101 @@
-/* The board fills the window exactly: it packs to fit rather than scrolling. */
 .shell {
-  display: flex;
-  overflow: hidden;
-  width: min(100%, 1440px);
+  display: grid;
+  width: 100%;
   height: 100dvh;
-  flex-direction: column;
-  padding: var(--space-300);
-  margin: 0 auto;
-  gap: var(--space-300);
+  overflow: hidden;
+  background: var(--canvas);
+  grid-template-rows: 64px minmax(0, 1fr);
 }
 
 .topbar {
+  position: relative;
+  z-index: 40;
   display: flex;
-  min-height: 48px;
-  flex: none;
+  min-width: 0;
   align-items: center;
   justify-content: space-between;
-  padding: 0 var(--space-50);
-  gap: var(--space-200);
+  padding: 0 22px;
+  border-bottom: 1px solid var(--line);
+  background: var(--canvas);
+  gap: 16px;
 }
 
 .brand {
   composes: brand from "../primitives.module.css";
+  gap: 10px;
 }
 
 .mark {
-  composes: mark from "../primitives.module.css";
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  place-items: center;
+  background: var(--ink);
+  color: var(--canvas);
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
 }
 
 .brand h1 {
   margin: 0;
-  font-size: var(--text-xl);
+  font-size: 15px;
   font-weight: 600;
-  letter-spacing: -0.03em;
-  line-height: var(--leading-xl);
+  letter-spacing: -0.02em;
+  line-height: 20px;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .topbarEnd {
   display: flex;
+  min-width: 0;
   align-items: center;
-  gap: var(--space-200);
+  gap: 14px;
 }
 
-/* The Agent's only presence on the page now that it has left the sheet. */
 .askButton {
   composes: button from "../button.module.css";
   composes: secondary from "../button.module.css";
   position: relative;
+  min-height: 36px;
+  padding: 6px 12px;
+  border-radius: 8px;
 }
 
 .shortcut {
   color: var(--muted);
   font-family: var(--font-mono), monospace;
-  font-size: var(--text-xs);
-  line-height: var(--leading-xs);
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 16px;
 }
 
-/* A turn that is still running while the panel is shut says so here. */
 .askButton[data-busy]::after {
   position: absolute;
-  top: -2px;
-  right: -2px;
+  top: -3px;
+  right: -3px;
   width: 8px;
   height: 8px;
+  border: 2px solid var(--canvas);
   border-radius: 50%;
   animation: busyPulse 1.6s var(--ease-in-out) infinite;
-  background: var(--accent);
+  background: var(--ink);
   content: "";
 }
 
 @keyframes busyPulse {
   50% {
-    opacity: 0.3;
+    opacity: 0.35;
   }
 }
 
@@ -80,74 +104,78 @@
   align-items: center;
   color: var(--muted);
   font-family: var(--font-mono), monospace;
-  font-size: var(--text-xs);
-  gap: var(--space-75);
-  letter-spacing: 0.12em;
-  line-height: var(--leading-xs);
-  text-transform: uppercase;
+  font-size: 10px;
+  gap: 7px;
+  letter-spacing: 0.04em;
+  line-height: 16px;
 }
 
 .connectionDot {
   width: 6px;
   height: 6px;
   flex: none;
+  border: 1px solid var(--muted);
   border-radius: 50%;
-  background: var(--muted);
-  transition: background-color var(--duration-base) var(--ease-fluid);
+  background: transparent;
 }
 
 .connectionPill[data-state="connected"] .connectionDot {
-  background: var(--accent);
+  border-color: var(--ink);
+  background: var(--ink);
 }
 
 .connectionPill[data-state="error"] .connectionDot,
 .connectionPill[data-state="authorization"] .connectionDot {
-  background: var(--danger);
+  border-style: double;
+  border-width: 2px;
 }
 
 .avatarButton {
   composes: button from "../button.module.css";
   composes: secondary from "../button.module.css";
   composes: icon from "../button.module.css";
-  border-color: var(--line);
+  width: 34px;
+  height: 34px;
+  min-height: 34px;
+  border-color: var(--line-strong);
   border-radius: 50%;
-  font-size: var(--text-xs);
-  font-weight: 700;
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  font-weight: 600;
 }
 
 .profilePopover {
-  width: min(280px, calc(100vw - var(--space-300)));
-  filter: drop-shadow(0 16px 32px rgb(14 19 22 / 18%));
+  width: min(280px, calc(100vw - 24px));
+  filter: drop-shadow(0 18px 36px rgb(0 0 0 / 55%));
 }
 
-/* A 16px shell with 8px of padding, so its rows take the 8px inner radius. */
 .profileDialog {
   display: grid;
-  padding: var(--space-75);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sheet);
+  padding: 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
   background: var(--surface);
-  gap: var(--space-25);
+  gap: 2px;
 }
 
 .profileIdentity {
   display: grid;
-  padding: var(--space-100);
+  padding: 12px;
   border-bottom: 1px solid var(--line);
-  margin-bottom: var(--space-50);
-  gap: var(--space-25);
+  margin-bottom: 4px;
+  gap: 2px;
 }
 
 .profileIdentity strong {
-  font-size: var(--text-sm);
-  line-height: var(--leading-sm);
+  font-size: 13px;
+  line-height: 20px;
 }
 
 .profileIdentity span {
   overflow: hidden;
   color: var(--muted);
-  font-size: var(--text-xs);
-  line-height: var(--leading-xs);
+  font-size: 11px;
+  line-height: 16px;
   text-overflow: ellipsis;
 }
 
@@ -155,79 +183,81 @@
   composes: button from "../button.module.css";
   composes: quiet from "../button.module.css";
   composes: row from "../button.module.css";
-  min-height: 40px;
+  min-height: 38px;
 }
 
-/* One sheet, one thing in it. */
 .sheet {
   display: grid;
+  min-width: 0;
   min-height: 0;
-  flex: 1;
-  padding: var(--space-400);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sheet);
-  background: var(--surface);
-  box-shadow: var(--shadow-sheet);
+  background: var(--canvas);
 }
 
 .eyebrow {
   composes: eyebrow from "../primitives.module.css";
 }
 
-/* Everything that is not a board: connecting, failing, or nothing to show. */
 .notice {
   display: grid;
+  max-width: 440px;
   align-content: center;
-  justify-items: center;
-  gap: var(--space-100);
-  text-align: center;
+  justify-items: start;
+  padding: 40px;
+  margin: auto;
+  gap: 12px;
+  text-align: left;
 }
 
 .notice svg {
-  color: var(--line-strong);
+  color: var(--muted);
 }
 
 .noticeProse {
   max-width: 40ch;
   margin: 0;
-  font-size: var(--text-base);
-  line-height: var(--leading-base);
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 24px;
   text-wrap: pretty;
 }
 
 .primaryButton {
   composes: button from "../button.module.css";
   composes: primary from "../button.module.css";
-  margin-top: var(--space-75);
+  margin-top: 8px;
 }
 
 .retryButton {
   composes: button from "../button.module.css";
   composes: secondary from "../button.module.css";
-  margin-top: var(--space-75);
+  margin-top: 8px;
 }
 
-/* Three columns' worth of nothing, so the board does not arrive as a jump. */
 .skeleton {
   display: grid;
-  align-content: start;
-  gap: var(--space-300);
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-height: 0;
+  padding: 26px;
+  gap: 22px;
+  grid-template-columns: minmax(0, 1fr) 336px;
 }
 
 .skeleton span {
-  height: 96px;
-  border-radius: var(--radius-control);
+  border: 1px solid var(--line);
+  border-radius: 22px;
   animation: skeletonPulse 1.6s var(--ease-in-out) infinite;
-  background: var(--surface-2);
+  background: var(--surface);
+}
+
+.skeleton span:first-child {
+  min-height: 176px;
 }
 
 .skeleton span:nth-child(2) {
-  height: 160px;
+  border-radius: 0;
 }
 
 .skeleton span:nth-child(3) {
-  height: 64px;
+  display: none;
 }
 
 @keyframes skeletonPulse {
@@ -236,9 +266,15 @@
   }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 820px) {
+  .shell {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
   .sheet {
-    padding: var(--space-300) var(--space-200);
+    min-height: calc(100dvh - 64px);
   }
 
   .skeleton {
@@ -247,13 +283,24 @@
 }
 
 @media (max-width: 560px) {
-  .shell {
-    padding: var(--space-200) var(--space-100);
-    gap: var(--space-200);
+  .topbar {
+    padding: 0 12px;
+  }
+
+  .topbarEnd {
+    gap: 8px;
   }
 
   .connectionPill,
   .shortcut {
     display: none;
+  }
+
+  .askButton {
+    padding-inline: 10px;
+  }
+
+  .notice {
+    padding: 28px 20px;
   }
 }
