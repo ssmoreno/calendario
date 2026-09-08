@@ -1,6 +1,6 @@
-# SS Calendar
+# SS
 
-SS Calendar is a personal assistant built around Eve, a delegating agent. Eve holds the conversation and routes each request to a specialist. Its authenticated home combines a compact agent conversation, the next four events from the user's primary Google Calendar, and account controls.
+SS is a personal assistant built around Eve, a delegating agent. Eve holds the conversation and routes each request to a specialist. Its authenticated app pairs Calendar and Library views with a summonable agent and account controls.
 
 The current milestone includes:
 
@@ -109,7 +109,7 @@ pnpm dev:eve
 
 The app uses Better Auth with Prisma for email/password accounts. Every page resolves the real server session, and Eve's browser channel accepts the same session cookie. Eve session IDs are recorded against their initiating user and rejected when another account tries to continue, stream, cancel, clear, compact, or reset them. Local Eve development and trusted Vercel OIDC callers remain enabled by Eve's standard auth helpers.
 
-The inline Agent area on `/` streams turns and handles approval and clarification prompts without exposing tool diagnostics. Its account-scoped browser cursor preserves the conversation across reloads; calendar data never enters browser storage.
+The summoned Agent streams turns and handles approval and clarification prompts without exposing tool diagnostics. Its account-scoped browser cursor preserves the conversation across reloads and view changes; calendar data never enters browser storage.
 
 All three agents run `zai/glm-4.6`. AI Gateway needs paid credits either way: the GLM 5.x models answer `403 no_providers_available` on a free balance, and 4.6 answers `429` after a handful of calls, which one message cannot stay under — it costs four sequential model calls.
 
@@ -129,8 +129,8 @@ The Playwright suite runs both desktop Chromium and a 390px-class mobile viewpor
 
 ## Architecture
 
-- `src/app/page.tsx` is the authenticated Server Component shell.
-- `src/components/dashboard/` and `src/components/agent/` own the client interaction boundary.
+- `src/app/(app)/layout.tsx` is the authenticated Server Component shell shared by Calendar and Library.
+- `src/components/shell/`, `src/components/dashboard/`, `src/components/library/`, and `src/components/agent/` own the client interaction boundary.
 - `src/calendar/` owns shared event contracts, recurrence, timezone conversion, reminders, and validation.
 - `src/library/` owns the saved-link contract.
 - `src/server/google-calendar.ts` owns Google REST access and implements `CalendarService`.

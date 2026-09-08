@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Button,
@@ -9,13 +10,12 @@ import {
   DialogTrigger,
   Popover,
 } from "react-aria-components";
-import { ArrowClockwise } from "@phosphor-icons/react/dist/ssr/ArrowClockwise";
-import { CalendarBlank } from "@phosphor-icons/react/dist/ssr/CalendarBlank";
 import { GearSix } from "@phosphor-icons/react/dist/ssr/GearSix";
 import { Waveform } from "@phosphor-icons/react/dist/ssr/Waveform";
 import { X } from "@phosphor-icons/react/dist/ssr/X";
 import { SignOut } from "@phosphor-icons/react/dist/ssr/SignOut";
 
+import { messages } from "@/calendar/messages";
 import { authClient } from "@/lib/auth-client";
 import {
   GOOGLE_CALENDAR_PROVIDER,
@@ -25,17 +25,11 @@ import type { UpcomingEvent } from "@/server/google-calendar";
 
 import { AgentPanel, type AgentMode } from "../agent/agent-panel";
 import { clearSavedAgent } from "../agent/agent-storage";
-import { EventBoard } from "./event-board";
-import styles from "./dashboard.module.css";
+import { ShellProvider, type Connection } from "./shell-context";
+import styles from "./app-shell.module.css";
 
-type Connection =
-  | "checking"
-  | "connected"
-  | "not_connected"
-  | "authorization"
-  | "error";
-
-interface DashboardProps {
+interface AppShellProps {
+  children: ReactNode;
   initialConnected: boolean;
   user: {
     id: string;
@@ -58,14 +52,20 @@ const connectionLabels: Record<Connection, string> = {
   error: "Unavailable",
 };
 
+const views = [
+  { href: "/", label: messages.views.calendar },
+  { href: "/library", label: messages.views.library },
+] as const;
+
 function initials(name: string, email: string) {
   const words = name.trim().split(/\s+/).filter(Boolean);
   if (words.length) return words.slice(0, 2).map((word) => word[0]).join("").toUpperCase();
   return email.slice(0, 1).toUpperCase();
 }
 
-export function Dashboard({ initialConnected, user }: DashboardProps) {
+export function AppShell({ children, initialConnected, user }: AppShellProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [connection, setConnection] = useState<Connection>(
     initialConnected ? "checking" : "not_connected",
   );
@@ -134,7 +134,7 @@ export function Dashboard({ initialConnected, user }: DashboardProps) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [user.id]);
 
-  async function connectGoogle() {
+  const connectGoogle = useCallback(async () => {
     setConnecting(true);
     const result = await authClient.linkSocial({
       provider: GOOGLE_CALENDAR_PROVIDER,
@@ -146,7 +146,7 @@ export function Dashboard({ initialConnected, user }: DashboardProps) {
       setConnection("error");
       setConnecting(false);
     }
-  }
+  }, []);
 
   async function signOut() {
     const result = await authClient.signOut();
@@ -158,15 +158,54 @@ export function Dashboard({ initialConnected, user }: DashboardProps) {
   }
 
   const connected = connection === "connected" || (connection === "checking" && initialConnected);
-  const needsGoogle =
-    connection === "not_connected" || connection === "authorization";
+  const agentOpen = agentMode === "docked";
+
+  const shell = useMemo(
+    () => ({
+      connection,
+      connecting,
+      events,
+      now,
+      timeZone,
+      agentOpen,
+      connectGoogle: () => void connectGoogle(),
+      refreshUpcoming: () => void refreshUpcoming(),
+    }),
+    [
+      connection,
+      connecting,
+      events,
+      now,
+      timeZone,
+      agentOpen,
+      connectGoogle,
+      refreshUpcoming,
+    ],
+  );
 
   return (
     <main className={styles.shell}>
       <header className={styles.topbar}>
         <div className={styles.brand}>
-          <span className={styles.mark} aria-hidden="true">SS</span>
-          <h1><span className={styles.visuallyHidden}>SS </span>Calendar</h1>
+          <h1 className={styles.mark}>{messages.appName}</h1>
+          <nav className={styles.viewNav} aria-label="Views">
+            {views.map((view) => {
+              const current =
+                view.href === "/"
+                  ? pathname === "/"
+                  : pathname.startsWith(view.href);
+              return (
+                <Link
+                  className={styles.viewLink}
+                  aria-current={current ? "page" : undefined}
+                  href={view.href}
+                  key={view.href}
+                >
+                  {view.label}
+                </Link>
+              );
+            })}
+          </nav>
         </div>
         <div className={styles.topbarEnd}>
           <span className={styles.connectionPill} data-state={connection}>
@@ -224,64 +263,7 @@ export function Dashboard({ initialConnected, user }: DashboardProps) {
       </header>
 
       <div className={styles.sheet}>
-        {connection === "checking" ? (
-          <div className={styles.skeleton} role="status" aria-label="Loading your calendar…">
-            <span />
-            <span />
-            <span />
-          </div>
-        ) : needsGoogle ? (
-          <div className={styles.notice}>
-            <h2 className={styles.eyebrow}>Google Calendar</h2>
-            <p className={styles.noticeProse}>
-              {connection === "authorization"
-                ? "SS needs you to reconnect Google Calendar to restore access."
-                : "Connect Google Calendar to see upcoming events and let SS manage them."}
-            </p>
-            <button
-              className={styles.primaryButton}
-              disabled={connecting}
-              type="button"
-              onClick={() => void connectGoogle()}
-            >
-              {connecting
-                ? "Connecting…"
-                : connection === "authorization"
-                  ? "Reconnect Google Calendar"
-                  : "Connect Google Calendar"}
-            </button>
-          </div>
-        ) : connection === "error" ? (
-          <div className={styles.notice}>
-            <h2 className={styles.eyebrow}>Google Calendar</h2>
-            <p className={styles.noticeProse} role="alert">
-              Google Calendar is unavailable right now.
-            </p>
-            <button
-              className={styles.retryButton}
-              type="button"
-              onClick={() => void refreshUpcoming()}
-            >
-              <ArrowClockwise size={16} aria-hidden="true" />
-              Try again
-            </button>
-          </div>
-        ) : events.length ? (
-          <EventBoard
-            agentOpen={agentMode === "docked"}
-            events={events}
-            now={now}
-            onRefresh={() => void refreshUpcoming()}
-            timeZone={timeZone}
-          />
-        ) : (
-          <div className={styles.notice}>
-            <CalendarBlank size={28} aria-hidden="true" />
-            <p className={styles.noticeProse}>
-              Nothing scheduled in the next two weeks. Ask SS to add something.
-            </p>
-          </div>
-        )}
+        <ShellProvider value={shell}>{children}</ShellProvider>
       </div>
 
       <AgentPanel

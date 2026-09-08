@@ -1,6 +1,6 @@
-# SS Calendar design
+# SS design
 
-SS Calendar is a monochrome scheduling instrument. It uses a black canvas, white information, measured borders, and physical readouts instead of conventional dashboard cards. Geist Sans carries interface copy and Geist Mono is reserved for time, duration, status, and keyboard metadata.
+SS is a monochrome personal instrument. It uses a black canvas, white information, measured borders, and physical readouts instead of conventional dashboard cards. Geist Sans carries interface copy and Geist Mono is reserved for time, duration, status, and keyboard metadata.
 
 The authenticated home has two regions. Today dominates the left side with a live countdown, the next event, a timezone-aware day timeline, and the remaining event rows. The next event is the only inverted row. Selecting any row opens its full Google Calendar details without changing the schedule layout.
 
@@ -13,3 +13,5 @@ The palette is grayscale in both appearance modes. Dark is the default and the s
 The same squared SS mark, control geometry, monochrome surfaces, and type system carry through login and settings. Focus rings use the current foreground color, reduced-motion preferences suppress transitions, and every essential state is conveyed by copy or shape rather than color alone.
 
 At 820 pixels and below, the calendar becomes a vertical document: today first, then future days. At 560 pixels, the hero stacks, event metadata tightens, and secondary header status yields to the two primary controls. The page may scroll vertically, but it must never scroll horizontally.
+
+Calendar and Library are peer views selected from the squared control beside the SS mark; the active view is the only inverted segment. Library presents saved links as a card catalog: four labelled drawer fronts show category counts, one drawer opens at a time, and its ruled index cards reveal anchored details without leaving the view. The same shell and summoned Agent persist while moving between views.
