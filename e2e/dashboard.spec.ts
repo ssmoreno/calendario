@@ -45,6 +45,8 @@ test("passes Axe with the agent open", async ({ page }) => {
 test("moves between Calendar and Library", async ({ page }, testInfo) => {
   const itemName = `Battery chemistry ${Date.now()}`;
   const itemLink = `https://example.com/battery-chemistry-${Date.now()}`;
+  const theRead =
+    "Solid-state cells swap the liquid electrolyte for a ceramic one. ".repeat(4);
   await page.goto("/calendar");
 
   await expect(page.getByRole("link", { name: "Calendar" })).toHaveAttribute(
@@ -70,6 +72,7 @@ test("moves between Calendar and Library", async ({ page }, testInfo) => {
   const itemForm = page.getByRole("form", { name: "Create library item" });
   await itemForm.getByLabel("Title").fill(itemName);
   await itemForm.getByLabel("Description").fill("How solid-state cells change the grid.");
+  await itemForm.getByLabel("The read (optional)").fill(theRead);
   await itemForm.getByLabel("Link").fill(itemLink);
   await itemForm.getByRole("checkbox", { name: "Article" }).check();
   await itemForm.getByRole("checkbox", { name: "Science" }).check();
@@ -92,6 +95,18 @@ test("moves between Calendar and Library", async ({ page }, testInfo) => {
     ),
   ).toBe(false);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+
+  await page.getByRole("link", { name: new RegExp(itemName) }).click();
+  await expect(page).toHaveURL(/\/library\/[^/]+$/);
+  await expect(page.getByRole("heading", { name: itemName })).toBeVisible();
+  await expect(page.getByText(theRead.trim())).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Read the original example.com" }),
+  ).toHaveAttribute("href", itemLink);
+  await expect(page).toHaveTitle(`${itemName} — SS`);
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  await page.getByRole("link", { name: "Library", exact: true }).first().click();
+  await expect(page).toHaveURL(/\/library$/);
 
   await page.getByRole("link", { name: "Calendar" }).click();
   await expect(page).toHaveURL(/\/calendar$/);

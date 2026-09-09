@@ -58,7 +58,21 @@ function ItemForm() {
       </label>
       <label className={styles.field}>
         <span>Description</span>
-        <textarea name="description" maxLength={2_000} required />
+        <textarea
+          name="description"
+          maxLength={240}
+          placeholder="One short line about what this is."
+          required
+        />
+      </label>
+      <label className={styles.field}>
+        <span>The read (optional)</span>
+        <textarea
+          className={styles.readField}
+          name="summary"
+          maxLength={2_600}
+          placeholder="About one book page, in your own words."
+        />
       </label>
       <label className={styles.field}>
         <span>Link</span>

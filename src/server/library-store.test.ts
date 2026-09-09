@@ -8,6 +8,7 @@ const item = {
   userId: "user-a",
   title: "Prisma guide",
   description: "Database reference",
+  summary: "A short read about type-safe queries.",
   link: "https://example.com/prisma",
   tags: ["Documentation", "Coding"],
   createdAt,
@@ -18,6 +19,7 @@ const db = vi.hoisted(() => ({
   libraryItem: {
     count: vi.fn(),
     create: vi.fn(),
+    findFirst: vi.fn(),
     findMany: vi.fn(),
     findUnique: vi.fn(),
   },
@@ -25,16 +27,39 @@ const db = vi.hoisted(() => ({
 
 vi.mock("./db", () => ({ prisma: db }));
 
-import { listLibrary, saveLibraryItem } from "./library-store";
+import {
+  findLibraryItem,
+  listLibrary,
+  saveLibraryItem,
+} from "./library-store";
 
 beforeEach(() => {
   db.libraryItem.count.mockReset().mockResolvedValue(1);
   db.libraryItem.create.mockReset().mockResolvedValue(item);
+  db.libraryItem.findFirst.mockReset().mockResolvedValue(item);
   db.libraryItem.findMany
     .mockReset()
     .mockResolvedValueOnce([item])
     .mockResolvedValueOnce([{ tags: item.tags }]);
   db.libraryItem.findUnique.mockReset().mockResolvedValue(null);
+});
+
+describe("findLibraryItem", () => {
+  it("only returns an item owned by the authenticated user", async () => {
+    await expect(findLibraryItem("user-a", "item-1")).resolves.toMatchObject({
+      id: "item-1",
+      createdAt: createdAt.toISOString(),
+    });
+    expect(db.libraryItem.findFirst).toHaveBeenCalledWith({
+      where: { id: "item-1", userId: "user-a" },
+    });
+  });
+
+  it("returns null when no owned item exists", async () => {
+    db.libraryItem.findFirst.mockResolvedValueOnce(null);
+
+    await expect(findLibraryItem("user-a", "missing")).resolves.toBeNull();
+  });
 });
 
 describe("listLibrary", () => {
@@ -45,6 +70,7 @@ describe("listLibrary", () => {
           id: "item-1",
           title: "Prisma guide",
           description: "Database reference",
+          summary: "A short read about type-safe queries.",
           link: "https://example.com/prisma",
           tags: ["Documentation", "Coding"],
           createdAt: createdAt.toISOString(),

@@ -79,6 +79,9 @@ model LibraryItem {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   title       String
   description String
+  /// A one-page read of the link, written at save time by the link curator.
+  /// Optional: manual entries and items saved before the reading view have none.
+  summary     String?
   link        String
   tags        String[] @default([])
   createdAt   DateTime @default(now())
