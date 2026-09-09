@@ -1,0 +1,265 @@
+/*
+ * The one place on this page with any colour in it: warm skin, grey at the
+ * temples, a burgundy tie and a brass watch chain. Everything else stays in
+ * the black and white the rest of the landing keeps to.
+ */
+.butler {
+  --skin: #cfa285;
+  --skin-shade: #bd8b6d;
+  --hair: #bdbdbd;
+  --hair-shade: #a1a1a1;
+  --cloth: #1c1c22;
+  --cloth-dark: #16161b;
+  --cloth-light: #26262f;
+  --cloth-edge: #55555f;
+  --linen: #f1efeb;
+  --tie: #6d2434;
+  --tie-dark: #501a26;
+  --brass: #b8903f;
+  --silver: #c6c6cc;
+  --silver-shade: #74747c;
+
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  width: clamp(104px, 10vw, 138px);
+  pointer-events: none;
+  /* Drawn facing left, turned to face the week he is tending. */
+  transform: scaleX(-1);
+  animation: enter 1000ms var(--ease-fluid) 900ms backwards;
+}
+
+/* He lets himself in once the week is standing. */
+@keyframes enter {
+  from {
+    filter: blur(6px);
+    opacity: 0;
+    transform: scaleX(-1) translateX(36px);
+  }
+}
+
+.shadow {
+  fill: var(--ink);
+  opacity: 0.1;
+}
+
+/* He is never quite still, the way somebody standing at attention is not. */
+.figure {
+  animation: breathe 5s var(--ease-in-out) infinite;
+  transform-box: fill-box;
+  transform-origin: bottom center;
+}
+
+@keyframes breathe {
+  50% {
+    transform: translateY(-1.5px) scaleY(1.004);
+  }
+}
+
+.coat {
+  fill: var(--cloth);
+}
+
+.lapel {
+  fill: var(--cloth-light);
+}
+
+.tail,
+.trouser {
+  fill: var(--cloth-dark);
+}
+
+.sleeve {
+  fill: none;
+  stroke: var(--cloth);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 13;
+}
+
+/* Lit from the week he is facing. */
+.rim {
+  fill: none;
+  opacity: 0.5;
+  stroke: var(--cloth-edge);
+  stroke-linecap: round;
+  stroke-width: 1.6;
+}
+
+.crease {
+  fill: none;
+  opacity: 0.7;
+  stroke: var(--cloth-light);
+  stroke-width: 1.2;
+}
+
+.shoe {
+  fill: #0c0c0f;
+}
+
+.toe {
+  fill: none;
+  opacity: 0.55;
+  stroke: var(--cloth-edge);
+  stroke-linecap: round;
+  stroke-width: 1.2;
+}
+
+.linen,
+.cuff {
+  fill: var(--linen);
+}
+
+.glove {
+  fill: #e7e5e0;
+}
+
+.fold {
+  fill: none;
+  opacity: 0.3;
+  stroke: var(--silver-shade);
+  stroke-linecap: round;
+  stroke-width: 1.2;
+}
+
+.waistcoat {
+  fill: #2b2b33;
+}
+
+.chain {
+  fill: none;
+  stroke: var(--brass);
+  stroke-linecap: round;
+  stroke-width: 1.4;
+}
+
+.stud {
+  fill: var(--brass);
+}
+
+.tie {
+  fill: var(--tie);
+}
+
+.knot {
+  fill: var(--tie-dark);
+}
+
+.skin {
+  fill: var(--skin);
+}
+
+.ear {
+  fill: var(--skin-shade);
+}
+
+.hair {
+  fill: var(--hair);
+}
+
+.sideburn {
+  fill: var(--hair-shade);
+}
+
+.brow {
+  fill: none;
+  stroke: var(--hair-shade);
+  stroke-linecap: round;
+  stroke-width: 1.8;
+}
+
+.eye {
+  fill: #23232b;
+}
+
+.nose {
+  fill: none;
+  opacity: 0.8;
+  stroke: var(--skin-shade);
+  stroke-linecap: round;
+  stroke-width: 1.8;
+}
+
+.mouth {
+  fill: none;
+  opacity: 0.7;
+  stroke: var(--skin-shade);
+  stroke-linecap: round;
+  stroke-width: 1.4;
+}
+
+.tray {
+  fill: var(--silver);
+}
+
+.trayShade {
+  fill: var(--silver-shade);
+}
+
+/* The errand only exists between the ask and the delivery. */
+.parcel {
+  fill: var(--canvas);
+  opacity: 0;
+  stroke: var(--ink);
+  stroke-width: 2;
+  transform: translateY(6px) scale(0.7);
+  transform-box: fill-box;
+  transform-origin: bottom center;
+  transition:
+    opacity 400ms var(--ease-fluid),
+    transform 400ms var(--ease-fluid);
+}
+
+.butler[data-phase="thinking"] .parcel {
+  opacity: 1;
+  transform: none;
+}
+
+/* He carries it to the week, then the week has it. */
+.butler[data-phase="acting"] .parcel {
+  animation: deliver 1100ms var(--ease-fluid) forwards;
+}
+
+@keyframes deliver {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+
+  to {
+    opacity: 0;
+    transform: translate(-26px, -86px) rotate(-14deg) scale(0.55);
+  }
+}
+
+/* The tray goes up as the errand leaves it. */
+.butler[data-phase="acting"] .arm {
+  animation: present 1500ms var(--ease-fluid);
+}
+
+@keyframes present {
+  40% {
+    transform: rotate(-9deg) translateY(-4px);
+  }
+}
+
+.arm {
+  transform-origin: 70px 66px;
+}
+
+/* Then, service rendered, a short bow. */
+.butler[data-phase="resting"] .body {
+  animation: bow 1800ms var(--ease-fluid);
+}
+
+.body {
+  transform-origin: 96px 228px;
+}
+
+@keyframes bow {
+  30%,
+  55% {
+    transform: rotate(-7deg);
+  }
+}

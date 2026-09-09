@@ -1,0 +1,407 @@
+.scene {
+  position: relative;
+  min-width: 0;
+  padding-bottom: var(--space-900);
+  perspective: 1400px;
+}
+
+/*
+ * The week is a slab in space: it lands with a tilt, then leans toward the
+ * pointer a long beat behind it, which is what sells the depth.
+ */
+.slab {
+  --px: 0;
+  --py: 0;
+
+  transform: rotateX(calc(13deg + var(--py) * -7deg))
+    rotateZ(calc(-11deg + var(--px) * 5deg))
+    translate3d(calc(var(--px) * 14px), calc(var(--py) * 10px), 0);
+  animation: arrive 1400ms var(--ease-fluid) backwards;
+  transform-style: preserve-3d;
+  transition: transform 1200ms var(--ease-fluid);
+}
+
+@keyframes arrive {
+  from {
+    filter: blur(14px);
+    opacity: 0;
+    transform: rotateX(38deg) rotateZ(-26deg) translate3d(0, 90px, -220px);
+  }
+}
+
+.week {
+  --row: clamp(24px, 3.4vw, 34px);
+
+  position: relative;
+  padding: var(--space-200);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sheet);
+  background: var(--surface);
+  box-shadow: var(--shadow-sheet);
+}
+
+.head {
+  display: grid;
+  padding-bottom: var(--space-75);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.day {
+  color: var(--muted);
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-xs);
+  letter-spacing: 0.12em;
+  line-height: var(--leading-xs);
+  text-transform: uppercase;
+}
+
+.grid {
+  position: relative;
+  height: calc(var(--rows) * var(--row));
+}
+
+/* The rules draw themselves, column by column and row by row. */
+.column {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--i) * (100% / 7));
+  width: 1px;
+  background: var(--line);
+  animation: drawDown 700ms var(--ease-fluid) calc(120ms + var(--i) * 60ms)
+    backwards;
+  transform-origin: top;
+}
+
+.rule {
+  position: absolute;
+  top: calc(var(--i) * var(--row));
+  right: 0;
+  left: 0;
+  height: 1px;
+  background: var(--line);
+  animation: drawAcross 700ms var(--ease-fluid) calc(200ms + var(--i) * 40ms)
+    backwards;
+  opacity: 0.55;
+  transform-origin: left;
+}
+
+@keyframes drawDown {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+@keyframes drawAcross {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+.now {
+  position: absolute;
+  right: 0;
+  left: 0;
+  height: 1px;
+  background: var(--ink);
+  animation: sweep 9s var(--ease-in-out) infinite;
+  box-shadow: 0 0 18px 1px var(--ink);
+  opacity: 0.7;
+}
+
+.now::before {
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  width: 5px;
+  height: 5px;
+  border-radius: var(--radius-pill);
+  background: var(--ink);
+  content: "";
+}
+
+@keyframes sweep {
+  from {
+    top: 0;
+  }
+
+  to {
+    top: 100%;
+  }
+}
+
+.block {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(100% / 7);
+  height: calc(var(--span) * var(--row));
+  padding: 2px 4px 2px 2px;
+  transform: translate3d(calc(var(--day) * 100%), calc(var(--start) * var(--row)), 0);
+  transition: transform 1100ms var(--ease-fluid);
+}
+
+.block[data-waiting] .card {
+  opacity: 0;
+  transform: scale(0.86);
+}
+
+.card {
+  position: relative;
+  display: grid;
+  height: 100%;
+  align-content: center;
+  padding: var(--space-50) var(--space-75);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--ink) var(--event-mix), var(--surface));
+  animation: settle 900ms var(--ease-fluid) calc(500ms + var(--i) * 90ms)
+      backwards,
+    float 7s var(--ease-in-out) calc(1400ms + var(--i) * -900ms) infinite;
+  gap: 1px;
+  overflow: hidden;
+  transition:
+    background-color 600ms var(--ease-fluid),
+    border-color 600ms var(--ease-fluid),
+    opacity 700ms var(--ease-fluid),
+    transform 700ms var(--ease-fluid);
+}
+
+@keyframes settle {
+  from {
+    filter: blur(6px);
+    opacity: 0;
+    transform: translateY(18px) scale(0.92);
+  }
+}
+
+@keyframes float {
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+.time {
+  color: var(--muted);
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--leading-xs);
+}
+
+/* Two lines of label, so a real title fits a narrow column. */
+.label {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* An hour long block has room for the title or the time, not both. */
+.block[data-span="1"] .time {
+  display: none;
+}
+
+/* The block the agent is touching lights up and throws one ring. */
+.block[data-live] .card {
+  border-color: var(--ink);
+  background: color-mix(in srgb, var(--ink) var(--event-mix-hover), var(--surface));
+}
+
+.block[data-live]::after {
+  position: absolute;
+  border: 1px solid var(--ink);
+  border-radius: var(--radius-card);
+  animation: ring 1200ms var(--ease-fluid);
+  content: "";
+  inset: 0;
+  pointer-events: none;
+}
+
+@keyframes ring {
+  from {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+
+/* A saved link leaves a mark on the block it belongs to. */
+.block[data-linked] .card::after {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 4px;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--ink);
+  animation: settle 500ms var(--ease-fluid);
+  content: "";
+}
+
+.sheen {
+  position: absolute;
+  background: var(--ink);
+  animation: sheen 7s var(--ease-in-out) 1200ms infinite;
+  border-radius: var(--radius-sheet);
+  inset: 0;
+  mask-image: linear-gradient(72deg, transparent 42%, #000 50%, transparent 58%);
+  mask-size: 340% 100%;
+  opacity: 0.06;
+  pointer-events: none;
+}
+
+@keyframes sheen {
+  from {
+    mask-position: 120% 0;
+  }
+
+  60%,
+  to {
+    mask-position: -40% 0;
+  }
+}
+
+/* The exchange that drives the week, floating off the front of the slab. */
+.thread {
+  position: absolute;
+  bottom: 0;
+  left: 136px;
+  display: grid;
+  width: min(calc(100% - 136px), 380px);
+  padding: var(--space-200);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  animation: arriveThread 900ms var(--ease-fluid) 900ms backwards;
+  backdrop-filter: blur(14px);
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  box-shadow: var(--shadow-sheet);
+  gap: var(--space-100);
+}
+
+@keyframes arriveThread {
+  from {
+    opacity: 0;
+    transform: translateY(26px);
+  }
+}
+
+.ask,
+.reply {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  text-wrap: pretty;
+}
+
+.ask {
+  min-height: var(--leading-sm);
+  color: var(--ink);
+}
+
+.caret {
+  display: inline-block;
+  width: 2px;
+  height: 14px;
+  margin-left: 2px;
+  animation: blink 1s steps(2) infinite;
+  background: var(--ink);
+  vertical-align: -2px;
+}
+
+.caret[data-idle] {
+  opacity: 0;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.reply {
+  color: var(--muted);
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 500ms var(--ease-fluid),
+    transform 500ms var(--ease-fluid);
+}
+
+.reply[data-open] {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.dots {
+  display: inline-flex;
+  height: var(--leading-sm);
+  align-items: center;
+  gap: 4px;
+}
+
+.dots span {
+  width: 4px;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--muted);
+  animation: bounce 1s var(--ease-in-out) infinite;
+}
+
+.dots span:nth-child(2) {
+  animation-delay: 140ms;
+}
+
+.dots span:nth-child(3) {
+  animation-delay: 280ms;
+}
+
+@keyframes bounce {
+  50% {
+    opacity: 0.3;
+    transform: translateY(-3px);
+  }
+}
+
+@media (max-width: 959px) {
+  .scene {
+    padding-bottom: var(--space-700);
+  }
+
+  /* A narrow screen cannot spare the width the full tilt needs. */
+  .slab {
+    transform: rotateX(9deg) rotateZ(-4deg) scale(0.97);
+  }
+
+  /*
+   * Seven columns across a phone are too narrow to carry text, so the week
+   * reads as shape alone and the thread carries the words.
+   */
+  .card {
+    padding: var(--space-50);
+    background: color-mix(
+      in srgb,
+      var(--ink) var(--event-mix-hover),
+      var(--surface)
+    );
+  }
+
+  .label,
+  .time {
+    display: none;
+  }
+
+  /* The panel gives up the width the butler stands in. */
+  .thread {
+    left: 100px;
+    width: calc(100% - 100px);
+  }
+}
