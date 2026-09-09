@@ -28,9 +28,20 @@ export const libraryTagsSchema = z
   .max(3, "Choose no more than three broad tags.")
   .refine((tags) => new Set(tags).size === tags.length, "Choose each tag once.");
 
+/**
+ * The read: what the library shows instead of sending someone to the source.
+ * Roughly one book page, so it stays a quick sit-down rather than an article.
+ */
+export const librarySummarySchema = z
+  .string()
+  .trim()
+  .min(200, "Write a fuller read.")
+  .max(2_600, "Keep the read to about one book page.");
+
 export const libraryItemSchema = z.object({
   title: z.string().trim().min(1).max(160),
-  description: z.string().trim().min(1).max(2_000),
+  description: z.string().trim().min(1).max(240),
+  summary: librarySummarySchema.optional(),
   link: z
     .string()
     .trim()
@@ -48,6 +59,7 @@ export const linkCurationSchema = z.discriminatedUnion("status", [
     status: z.literal("ok"),
     title: libraryItemSchema.shape.title,
     description: libraryItemSchema.shape.description,
+    summary: librarySummarySchema,
     tags: libraryTagsSchema,
   }),
   z.object({
@@ -63,6 +75,7 @@ export interface LibraryItemRecord {
   id: string;
   title: string;
   description: string;
+  summary: string | null;
   link: string;
   tags: string[];
   createdAt: string;

@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowUpRight } from "@phosphor-icons/react/dist/ssr/ArrowUpRight";
+import { ArrowRight } from "@phosphor-icons/react/dist/ssr/ArrowRight";
 import { MagnifyingGlass } from "@phosphor-icons/react/dist/ssr/MagnifyingGlass";
 
 import { messages } from "@/calendar/messages";
 import { LibraryControls } from "@/components/library/library-view";
+import { readingMinutes } from "@/library/reading";
 import { listLibrary } from "@/server/library-store";
 import { requireSession } from "@/server/session";
 
@@ -117,12 +118,7 @@ export default async function Library({ searchParams }: LibraryPageProps) {
               <ul className={styles.items}>
                 {items.map((item) => (
                   <li key={item.id}>
-                    <a
-                      className={styles.itemLink}
-                      href={item.link}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
+                    <Link className={styles.itemLink} href={`/library/${item.id}`}>
                       <span className={styles.itemCopy}>
                         <strong>{item.title}</strong>
                         <span>{item.description}</span>
@@ -133,10 +129,12 @@ export default async function Library({ searchParams }: LibraryPageProps) {
                         </span>
                       </span>
                       <span className={styles.itemMeta}>
-                        Open
-                        <ArrowUpRight size={13} aria-hidden="true" />
+                        {item.summary
+                          ? `${readingMinutes(item.summary)} min read`
+                          : "Read"}
+                        <ArrowRight size={13} aria-hidden="true" />
                       </span>
-                    </a>
+                    </Link>
                   </li>
                 ))}
               </ul>

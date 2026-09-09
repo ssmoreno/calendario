@@ -23,6 +23,7 @@ describe("LibraryControls", () => {
     expect(screen.getByRole("dialog", { name: "Add to your library" })).toBeDefined();
     expect(screen.getByRole("form", { name: "Create library item" })).toBeDefined();
     expect(screen.getByRole("group", { name: "Tags" })).toBeDefined();
+    expect(screen.getByRole("textbox", { name: "The read (optional)" })).toBeDefined();
     expect(screen.getByRole("checkbox", { name: "Article" })).toBeDefined();
     expect(screen.queryByText("Category")).toBeNull();
 

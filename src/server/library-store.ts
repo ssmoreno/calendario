@@ -20,6 +20,7 @@ function toItemRecord(row: {
   id: string;
   title: string;
   description: string;
+  summary: string | null;
   link: string;
   tags: string[];
   createdAt: Date;
@@ -28,6 +29,7 @@ function toItemRecord(row: {
     id: row.id,
     title: row.title,
     description: row.description,
+    summary: row.summary,
     link: row.link,
     tags: row.tags,
     createdAt: row.createdAt.toISOString(),
@@ -51,6 +53,7 @@ function searchFilter(term: string) {
     OR: [
       { title: { contains: term, mode: "insensitive" as const } },
       { description: { contains: term, mode: "insensitive" as const } },
+      { summary: { contains: term, mode: "insensitive" as const } },
       { link: { contains: term, mode: "insensitive" as const } },
       ...(tag ? [{ tags: { has: tag } }] : []),
     ],
@@ -86,6 +89,14 @@ export async function listLibrary(
     ),
     totalCount,
   };
+}
+
+export async function findLibraryItem(
+  userId: string,
+  id: string,
+): Promise<LibraryItemRecord | null> {
+  const item = await prisma.libraryItem.findFirst({ where: { id, userId } });
+  return item ? toItemRecord(item) : null;
 }
 
 export async function saveLibraryItem(

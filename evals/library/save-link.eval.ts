@@ -52,6 +52,7 @@ export default defineEval({
           link: LINK,
           title: curation.title,
           description: curation.description,
+          summary: curation.summary,
           tags: curation.tags,
         }),
       ).label("curator handoff");

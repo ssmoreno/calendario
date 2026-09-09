@@ -6,7 +6,7 @@ import { requireUserId } from "../lib/auth";
 
 export default defineTool({
   description:
-    "Save one link after link_curator has returned a grounded title, description, and broad tags. Exact duplicate links are treated as already saved.",
+    "Save one link after link_curator has returned a grounded title, description, summary, and broad tags. Exact duplicate links are treated as already saved.",
   inputSchema: libraryItemSchema,
   execute: async (input, ctx) => {
     const result = await saveLibraryItem(requireUserId(ctx), input);
