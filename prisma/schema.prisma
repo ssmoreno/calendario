@@ -156,3 +156,15 @@ model WhatsAppPairingCode {
 
   @@map("whatsapp_pairing_code")
 }
+
+/// The newest inbound message of a WhatsApp thread. Eve only persists the Chat
+/// SDK thread when it creates the session, so the thread the agent replies
+/// through keeps naming the message that opened the conversation; reactions
+/// read their target from here instead.
+model WhatsAppInboundMessage {
+  threadId  String   @id
+  messageId String
+  updatedAt DateTime @updatedAt
+
+  @@map("whatsapp_inbound_message")
+}
