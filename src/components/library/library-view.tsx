@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import {
   Button,
   Dialog,
@@ -12,18 +12,13 @@ import { Plus } from "@phosphor-icons/react/dist/ssr/Plus";
 import { X } from "@phosphor-icons/react/dist/ssr/X";
 
 import {
-  createCategoryAction,
   createLibraryItemAction,
   type LibraryActionState,
 } from "@/app/(app)/library/actions";
+import { LIBRARY_TAGS } from "@/library/types";
 import styles from "./library.module.css";
 
 const INITIAL_STATE: LibraryActionState = {};
-
-interface CategoryOption {
-  id: string;
-  name: string;
-}
 
 function FormStatus({ state }: { state: LibraryActionState }) {
   const message = state.error ?? state.success;
@@ -39,42 +34,7 @@ function FormStatus({ state }: { state: LibraryActionState }) {
   );
 }
 
-function CategoryForm() {
-  const form = useRef<HTMLFormElement>(null);
-  const [state, createCategory, pending] = useActionState(
-    createCategoryAction,
-    INITIAL_STATE,
-  );
-
-  useEffect(() => {
-    if (state.success) form.current?.reset();
-  }, [state]);
-
-  return (
-    <form
-      action={createCategory}
-      aria-label="Create category"
-      className={styles.form}
-      ref={form}
-    >
-      <label className={styles.field}>
-        <span>Name</span>
-        <input
-          name="name"
-          maxLength={80}
-          placeholder="e.g. Design references"
-          required
-        />
-      </label>
-      <button className={styles.submitButton} disabled={pending} type="submit">
-        {pending ? "Creating…" : "Create category"}
-      </button>
-      <FormStatus state={state} />
-    </form>
-  );
-}
-
-function ItemForm({ categories }: { categories: CategoryOption[] }) {
+function ItemForm() {
   const form = useRef<HTMLFormElement>(null);
   const [state, createItem, pending] = useActionState(
     createLibraryItemAction,
@@ -93,18 +53,8 @@ function ItemForm({ categories }: { categories: CategoryOption[] }) {
       ref={form}
     >
       <label className={styles.field}>
-        <span>Category</span>
-        <select name="categoryId" required defaultValue={categories[0]?.id}>
-          {categories.map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className={styles.field}>
-        <span>Name</span>
-        <input name="name" maxLength={160} required />
+        <span>Title</span>
+        <input name="title" maxLength={160} required />
       </label>
       <label className={styles.field}>
         <span>Description</span>
@@ -120,6 +70,17 @@ function ItemForm({ categories }: { categories: CategoryOption[] }) {
           required
         />
       </label>
+      <fieldset className={styles.tagPicker}>
+        <legend>Tags</legend>
+        <div>
+          {LIBRARY_TAGS.map((tag) => (
+            <label key={tag}>
+              <input name="tags" type="checkbox" value={tag} />
+              <span>{tag}</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
       <button className={styles.submitButton} disabled={pending} type="submit">
         {pending ? "Adding…" : "Add item"}
       </button>
@@ -128,16 +89,9 @@ function ItemForm({ categories }: { categories: CategoryOption[] }) {
   );
 }
 
-function CreateDialog({ categories }: { categories: CategoryOption[] }) {
-  const defaultMode = categories.length ? "item" : "category";
-  const [mode, setMode] = useState<"item" | "category">(defaultMode);
-
+function CreateDialog() {
   return (
-    <DialogTrigger
-      onOpenChange={(isOpen) => {
-        if (isOpen) setMode(defaultMode);
-      }}
-    >
+    <DialogTrigger>
       <Button className={styles.addButton}>
         <Plus size={15} aria-hidden="true" />
         Add to library
@@ -161,36 +115,10 @@ function CreateDialog({ categories }: { categories: CategoryOption[] }) {
                     <X size={18} aria-hidden="true" />
                   </button>
                 </header>
-
-                {categories.length ? (
-                  <div className={styles.modePicker} aria-label="What to add">
-                    <button
-                      aria-pressed={mode === "item"}
-                      type="button"
-                      onClick={() => setMode("item")}
-                    >
-                      Item
-                    </button>
-                    <button
-                      aria-pressed={mode === "category"}
-                      type="button"
-                      onClick={() => setMode("category")}
-                    >
-                      Category
-                    </button>
-                  </div>
-                ) : null}
-
                 <p className={styles.dialogDescription}>
-                  {mode === "item"
-                    ? "Save a link and a short note for later."
-                    : "Create a collection for related links."}
+                  Save a link with a short description and broad tags.
                 </p>
-                {mode === "item" ? (
-                  <ItemForm categories={categories} />
-                ) : (
-                  <CategoryForm />
-                )}
+                <ItemForm />
               </>
             )}
           </Dialog>
@@ -200,10 +128,6 @@ function CreateDialog({ categories }: { categories: CategoryOption[] }) {
   );
 }
 
-export function LibraryControls({
-  categories,
-}: {
-  categories: CategoryOption[];
-}) {
-  return <CreateDialog categories={categories} />;
+export function LibraryControls() {
+  return <CreateDialog />;
 }

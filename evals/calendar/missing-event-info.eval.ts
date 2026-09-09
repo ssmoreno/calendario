@@ -5,18 +5,19 @@ import { resetFakeCalendar, savedEvents } from "../../agent/lib/fake-calendar";
 
 export default defineEval({
   description:
-    "One everyday request creates one calendar event.",
+    "A calendar request without a date or time asks for the missing details instead of guessing.",
   async test(t) {
     await resetFakeCalendar();
 
-    await t.send("cumple teo hoy 20hs hasta la 1 en castelar", {
+    await t.send("agendame un turno médico", {
       clientContext: "Device timezone: America/Argentina/Buenos_Aires",
     });
 
     t.succeeded();
     t.noFailedActions();
-    t.calledTool("create_event", { count: 1 });
-    t.check(t.reply, equals("Agendado.")).label("confirmation");
-    t.check((await savedEvents()).length, equals(1)).label("events saved");
+    t.notCalledTool("ask_question");
+    t.notCalledTool("create_event");
+    t.messageIncludes("?");
+    t.check((await savedEvents()).length, equals(0)).label("events saved");
   },
 });

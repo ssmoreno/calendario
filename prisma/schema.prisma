@@ -17,7 +17,6 @@ model User {
   updatedAt     DateTime      @updatedAt
   sessions      Session[]
   accounts      Account[]
-  categories    Category[]
   libraryItems  LibraryItem[]
   whatsAppLink  WhatsAppLink?
   whatsAppCode  WhatsAppPairingCode?
@@ -74,33 +73,20 @@ model Verification {
   @@map("verification")
 }
 
-model Category {
-  id        String        @id @default(cuid())
-  userId    String
-  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name      String
-  items     LibraryItem[]
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-
-  @@unique([userId, name])
-  @@unique([id, userId])
-  @@map("category")
-}
-
 model LibraryItem {
   id          String   @id @default(cuid())
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  categoryId  String
-  category    Category @relation(fields: [categoryId, userId], references: [id, userId], onDelete: Restrict)
-  name        String
+  title       String
   description String
   link        String
+  tags        String[] @default([])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@index([userId, categoryId, createdAt])
+  @@unique([userId, link])
+  @@index([userId, createdAt])
+  @@index([tags], type: Gin)
   @@map("library_item")
 }
 
