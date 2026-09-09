@@ -1,4 +1,4 @@
-import { emoji, type Thread } from "chat";
+import type { Thread } from "chat";
 
 export const SAVED_LINK_ACK = "✅";
 
@@ -16,19 +16,5 @@ export async function deliverWhatsAppMessage(
   thread: Thread | null,
 ): Promise<void> {
   if (event.finishReason === "tool-calls" || !event.message || !thread) return;
-  if (event.message.trim() !== SAVED_LINK_ACK) {
-    await post(thread, event.message);
-    return;
-  }
-
-  const inboundMessageId = thread.toJSON().currentMessage?.id;
-  if (inboundMessageId) {
-    try {
-      await thread.adapter.addReaction(thread.id, inboundMessageId, emoji.check);
-      return;
-    } catch {
-      // A visible acknowledgment is more important than the optional reaction.
-    }
-  }
-  await post(thread, SAVED_LINK_ACK);
+  await post(thread, event.message);
 }

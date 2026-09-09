@@ -1,25 +1,31 @@
 import { describe, expect, it } from "vitest";
 
-import { libraryItemSchema, libraryTagsSchema } from "./types";
+import {
+  automaticLibraryTagsSchema,
+  libraryItemSchema,
+  libraryTagsSchema,
+  normalizeLibraryTagName,
+  updateLibraryItemSchema,
+} from "./types";
 
 const summary = "Prisma types your queries end to end. ".repeat(8);
 
 describe("library schemas", () => {
-  it("trims item text and keeps broad tags", () => {
+  it("trims item text and cleans tag whitespace", () => {
     expect(
       libraryItemSchema.parse({
         title: "  Guide  ",
         description: "  Useful reference  ",
         summary: `  ${summary}  `,
         link: "https://example.com/guide",
-        tags: ["Documentation", "Coding"],
+        tags: ["  Documentation  ", "Reading   List"],
       }),
     ).toEqual({
       title: "Guide",
       description: "Useful reference",
       summary: summary.trim(),
       link: "https://example.com/guide",
-      tags: ["Documentation", "Coding"],
+      tags: ["Documentation", "Reading List"],
     });
   });
 
@@ -38,6 +44,17 @@ describe("library schemas", () => {
       libraryItemSchema.safeParse({ ...input, summary: summary.repeat(20) })
         .success,
     ).toBe(false);
+  });
+
+  it("allows an understood item without storing its attachment or a link", () => {
+    expect(
+      libraryItemSchema.safeParse({
+        title: "To Kill a Mockingbird",
+        description: "A novel about justice and moral courage.",
+        summary,
+        tags: ["Book"],
+      }).success,
+    ).toBe(true);
   });
 
   it("holds the description to one short line", () => {
@@ -67,14 +84,47 @@ describe("library schemas", () => {
     ).toBe(false);
   });
 
-  it("rejects narrow, duplicate, or excessive tags", () => {
-    expect(libraryTagsSchema.safeParse(["Article", "Article"]).success).toBe(
+  it("accepts custom tags and rejects case-insensitive duplicates or excess", () => {
+    expect(libraryTagsSchema.safeParse(["React"]).success).toBe(true);
+    expect(libraryTagsSchema.safeParse(["Article", " article "]).success).toBe(
       false,
     );
-    expect(libraryTagsSchema.safeParse(["React"]).success).toBe(false);
     expect(
       libraryTagsSchema.safeParse(["Article", "Coding", "Design", "Tool"])
         .success,
     ).toBe(false);
+  });
+
+  it("keeps agent-generated tags within the standard broad set", () => {
+    expect(automaticLibraryTagsSchema.safeParse(["Book"]).success).toBe(true);
+    expect(automaticLibraryTagsSchema.safeParse(["Books"]).success).toBe(
+      false,
+    );
+    expect(
+      automaticLibraryTagsSchema.safeParse(["Research Paper"]).success,
+    ).toBe(false);
+  });
+
+  it("normalizes tag identity independently from display casing", () => {
+    expect(normalizeLibraryTagName("  Reading   LIST ")).toBe("reading list");
+  });
+
+  it("requires at least one item field to update", () => {
+    expect(
+      updateLibraryItemSchema.safeParse({ itemId: "item-1", changes: {} })
+        .success,
+    ).toBe(false);
+    expect(
+      updateLibraryItemSchema.safeParse({
+        itemId: "item-1",
+        changes: { summary: null },
+      }).success,
+    ).toBe(true);
+    expect(
+      updateLibraryItemSchema.safeParse({
+        itemId: "item-1",
+        changes: { link: null },
+      }).success,
+    ).toBe(true);
   });
 });

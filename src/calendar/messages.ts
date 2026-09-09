@@ -34,6 +34,7 @@ export const messages = {
       "You're connected. Ask me about your calendar whenever you like — try \"what's on tomorrow?\"",
     notConnected:
       "I don't know whose calendar this is yet. Connect WhatsApp in the web app and text me the pairing code.",
-    textOnly: "I can only read text — send me a message and I'll take it from there.",
+    unsupportedContent:
+      "Send text, an image, or a PDF and I'll take it from there.",
   },
 } as const;

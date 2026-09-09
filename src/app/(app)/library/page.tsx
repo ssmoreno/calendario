@@ -59,7 +59,7 @@ export default async function Library({ searchParams }: LibraryPageProps) {
                 ? `${items.length} of ${totalCount} ${itemLabel}`
                 : `${totalCount} ${itemLabel}`}
             </span>
-            <LibraryControls />
+            <LibraryControls availableTags={availableTags} />
           </div>
         </header>
 
@@ -141,7 +141,7 @@ export default async function Library({ searchParams }: LibraryPageProps) {
             ) : (
               <div className={styles.emptyLibrary}>
                 <div>
-                  <strong>No matching links</strong>
+                  <strong>No matching items</strong>
                   <span>Try fewer words or remove a tag filter.</span>
                 </div>
               </div>
@@ -150,8 +150,8 @@ export default async function Library({ searchParams }: LibraryPageProps) {
         ) : (
           <div className={styles.emptyLibrary}>
             <div>
-              <strong>No saved links yet</strong>
-              <span>Send SS a link, or add one manually.</span>
+              <strong>No saved items yet</strong>
+              <span>Send SS a link, image, or PDF, or add one manually.</span>
             </div>
           </div>
         )}

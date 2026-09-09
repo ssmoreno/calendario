@@ -1,6 +1,8 @@
 allowBuilds:
+  '@mongodb-js/zstd': false
   '@prisma/engines': true
   esbuild: true
+  node-liblzma: false
   prisma: true
   unrs-resolver: false
 minimumReleaseAgeExclude:
