@@ -1,5 +1,12 @@
-import { defineTool, toolOutput, type ToolContext } from "eve/tools";
+import { defineTool, type ToolContext } from "eve/tools";
 import { webFetch } from "eve/tools/defaults";
+
+import { readPdfText } from "../../../../src/library/pdf";
+
+const FALLBACK_TO_SEARCH =
+  "Use web_search to find a readable version of this exact document.";
+const NO_TEXT_LAYER = `This PDF has no extractable text, so it is probably scanned images. ${FALLBACK_TO_SEARCH}`;
+const UNREADABLE_PDF = `This PDF could not be downloaded or decoded. ${FALLBACK_TO_SEARCH}`;
 
 interface WebFetchInput {
   format?: "html" | "markdown" | "text";
@@ -58,23 +65,25 @@ function isPdfResult(output: unknown): output is WebFetchResult {
   );
 }
 
+/** The fetched body is binary, so the PDF is downloaded again and read as text. */
+async function pdfResult(
+  result: WebFetchResult,
+  ctx: ToolContext,
+): Promise<WebFetchResult> {
+  try {
+    const { text, truncated } = await readPdfText(result.url, ctx.abortSignal);
+    return { ...result, content: text || NO_TEXT_LAYER, truncated };
+  } catch (error) {
+    if (ctx.abortSignal.aborted) throw error;
+    return { ...result, content: UNREADABLE_PDF, truncated: false };
+  }
+}
+
 export default defineTool({
   ...webFetch,
-  description: `${webFetch.description}\n- Up to three safe HTTPS redirects are followed automatically\n- Binary PDF bodies are omitted from model output; use web_search to find a matching readable version`,
-  execute(input, ctx) {
-    return fetchWithRedirects(input as WebFetchInput, ctx);
-  },
-  toModelOutput(output) {
-    if (!isPdfResult(output)) {
-      return toolOutput.json(output);
-    }
-
-    return toolOutput.json({
-      content:
-        "PDF body omitted because it is binary. Use web_search to find this exact document's official HTML abstract, transcript, or accessible full-text copy, then fetch that page.",
-      contentType: output.contentType,
-      truncated: true,
-      url: output.url,
-    });
+  description: `${webFetch.description}\n- Up to three safe HTTPS redirects are followed automatically\n- A PDF body is returned as its extracted text`,
+  async execute(input, ctx) {
+    const output = await fetchWithRedirects(input as WebFetchInput, ctx);
+    return isPdfResult(output) ? pdfResult(output, ctx) : output;
   },
 });
