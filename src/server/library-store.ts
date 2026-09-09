@@ -90,7 +90,7 @@ interface LibraryFilters {
 }
 
 interface SaveLibraryItemOptions {
-  dedupeUnlinkedByTitle?: boolean;
+  dedupeByTitle?: boolean;
 }
 
 function searchTerms(query: string | undefined): string[] {
@@ -203,30 +203,44 @@ async function upsertTags(
   );
 }
 
+/** A store link points at the work, not at a source, so the title still guards the identity. */
+async function findSavedItem(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  link: string | undefined,
+  unlinkedIdentity: string | null,
+) {
+  if (unlinkedIdentity) {
+    const byTitle = await tx.libraryItem.findUnique({
+      where: { userId_unlinkedIdentity: { userId, unlinkedIdentity } },
+      include: { tags: itemTags },
+    });
+    if (byTitle) return byTitle;
+  }
+  return link
+    ? tx.libraryItem.findUnique({
+        where: { userId_link: { userId, link } },
+        include: { tags: itemTags },
+      })
+    : null;
+}
+
 export async function saveLibraryItem(
   userId: string,
   input: LibraryItemInput,
-  { dedupeUnlinkedByTitle = false }: SaveLibraryItemOptions = {},
+  { dedupeByTitle = false }: SaveLibraryItemOptions = {},
 ): Promise<{ created: boolean; item: LibraryItemRecord }> {
-  const unlinkedIdentity =
-    !input.link && dedupeUnlinkedByTitle
-      ? normalizeLibraryItemTitle(input.title)
-      : null;
+  const unlinkedIdentity = dedupeByTitle
+    ? normalizeLibraryItemTitle(input.title)
+    : null;
   try {
     return await prisma.$transaction(async (tx) => {
-      const existing = input.link
-        ? await tx.libraryItem.findUnique({
-            where: { userId_link: { userId, link: input.link } },
-            include: { tags: itemTags },
-          })
-        : unlinkedIdentity
-          ? await tx.libraryItem.findUnique({
-              where: {
-                userId_unlinkedIdentity: { userId, unlinkedIdentity },
-              },
-              include: { tags: itemTags },
-            })
-          : null;
+      const existing = await findSavedItem(
+        tx,
+        userId,
+        input.link,
+        unlinkedIdentity,
+      );
       if (existing) return { created: false, item: toItemRecord(existing) };
 
       const tags = await upsertTags(tx, userId, input.tags);
@@ -248,19 +262,12 @@ export async function saveLibraryItem(
     });
   } catch (error) {
     if (!isPrismaError(error, "P2002")) throw error;
-    const raced = input.link
-      ? await prisma.libraryItem.findUnique({
-          where: { userId_link: { userId, link: input.link } },
-          include: { tags: itemTags },
-        })
-      : unlinkedIdentity
-        ? await prisma.libraryItem.findUnique({
-            where: {
-              userId_unlinkedIdentity: { userId, unlinkedIdentity },
-            },
-            include: { tags: itemTags },
-          })
-        : null;
+    const raced = await findSavedItem(
+      prisma,
+      userId,
+      input.link,
+      unlinkedIdentity,
+    );
     if (!raced) throw error;
     return { created: false, item: toItemRecord(raced) };
   }

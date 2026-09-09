@@ -286,7 +286,7 @@ describe("saveLibraryItem", () => {
           note: "A useful reading note. ".repeat(20),
           tags: ["Book"],
         },
-        { dedupeUnlinkedByTitle: true },
+        { dedupeByTitle: true },
       ),
     ).resolves.toMatchObject({
       created: false,
@@ -301,6 +301,30 @@ describe("saveLibraryItem", () => {
       },
       include: expect.any(Object),
     });
+    expect(db.libraryItem.create).not.toHaveBeenCalled();
+  });
+
+  it("keeps deduplicating by title when the same book carries a store link", async () => {
+    const stored = {
+      ...item,
+      link: "https://www.amazon.com/dp/0060935464",
+      tags: [{ tag: { name: "Book" } }],
+    };
+    db.libraryItem.findUnique.mockResolvedValueOnce(stored);
+
+    await expect(
+      saveLibraryItem(
+        "user-a",
+        {
+          title: "To Kill a Mockingbird",
+          description: "A novel about justice and moral courage.",
+          link: "https://www.amazon.com/dp/0061120081",
+          tags: ["Book"],
+        },
+        { dedupeByTitle: true },
+      ),
+    ).resolves.toMatchObject({ created: false, item: { id: "item-1" } });
+    expect(db.libraryItem.findUnique).toHaveBeenCalledTimes(1);
     expect(db.libraryItem.create).not.toHaveBeenCalled();
   });
 

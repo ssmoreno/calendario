@@ -16,6 +16,7 @@ import {
   readingParagraphs,
   sourceHost,
 } from "@/library/reading";
+import { storeLinkFor } from "@/library/store-link";
 import type { LibraryItemRecord } from "@/library/types";
 import { findLibraryItem } from "@/server/library-store";
 import { requireSession } from "@/server/session";
@@ -58,6 +59,7 @@ export default async function Reading({ params }: ReadingPageProps) {
   const body = item.note ? readingParagraphs(item.note) : [];
   const isLongRead = item.note ? isLongLibraryNote(item.note) : false;
   const host = item.link ? sourceHost(item.link) : null;
+  const store = item.link ? storeLinkFor(item.link) : null;
 
   return (
     <article className={styles.reading} aria-labelledby="reading-title">
@@ -115,7 +117,10 @@ export default async function Reading({ params }: ReadingPageProps) {
           </header>
 
           {item.link ? (
-            <aside className={styles.preview} aria-label="Original source">
+            <aside
+              className={styles.preview}
+              aria-label={store ? "Where to find it" : "Original source"}
+            >
               <Suspense
                 fallback={<LinkCardFallback link={item.link} title={item.title} />}
               >
@@ -134,7 +139,7 @@ export default async function Reading({ params }: ReadingPageProps) {
         ) : (
           <p className={styles.noRead}>
             {item.link
-              ? "This one was saved without a note. The original is a tap away."
+              ? `This one was saved without a note. ${store?.name ?? "The original"} is a tap away.`
               : "This item was saved without a note."}
           </p>
         )}

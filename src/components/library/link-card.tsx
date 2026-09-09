@@ -3,6 +3,7 @@ import { GlobeSimple } from "@phosphor-icons/react/dist/ssr/GlobeSimple";
 
 import { fetchLinkPreview, type LinkPreview } from "@/library/link-preview";
 import { sourceHost } from "@/library/reading";
+import { storeLinkFor } from "@/library/store-link";
 
 import styles from "./link-card.module.css";
 
@@ -18,6 +19,7 @@ function Card({
   pending = false,
 }: LinkCardProps & { preview: LinkPreview | null; pending?: boolean }) {
   const host = sourceHost(link);
+  const store = storeLinkFor(link);
 
   return (
     <a className={styles.card} href={link} target="_blank" rel="noreferrer">
@@ -55,7 +57,7 @@ function Card({
           <span className={styles.description}>{preview.description}</span>
         ) : null}
         <span className={styles.cta}>
-          Read the original
+          {store ? store.cta : "Read the original"}
           <ArrowUpRight size={14} aria-hidden="true" />
         </span>
       </span>
