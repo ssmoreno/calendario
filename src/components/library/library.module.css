@@ -22,15 +22,24 @@
 
 .headingCopy {
   display: grid;
+  flex: none;
   gap: 8px;
+}
+
+/* Search and tags float beside the title rather than sitting in a card. */
+.headingTools {
+  display: grid;
+  min-width: 0;
+  flex: 1 1 auto;
+  gap: 12px;
+  justify-items: end;
 }
 
 .eyebrow,
 .headingMeta,
 .itemMeta,
 .field > span,
-.tagPicker > legend,
-.filterTags > legend {
+.tagPicker > legend {
   color: var(--muted);
   font-family: var(--font-mono), monospace;
   font-size: 11px;
@@ -54,15 +63,12 @@
   line-height: 0.95;
 }
 
-.headingActions,
-.filterActions {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-}
-
 .headingActions {
-  flex: none;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: end;
+  gap: 18px;
 }
 
 .headingMeta {
@@ -78,23 +84,12 @@
   font-size: 13px;
 }
 
-.filters {
-  display: grid;
-  padding: 20px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sheet);
-  background: var(--surface);
-  gap: 18px;
-}
-
-.searchField {
-  display: grid;
-  gap: 7px;
-}
-
 .searchInput {
   display: flex;
-  min-height: 44px;
+  min-width: 0;
+  max-width: 340px;
+  min-height: 38px;
+  flex: 1 1 220px;
   align-items: center;
   padding: 0 13px;
   border: 1px solid var(--line);
@@ -120,7 +115,6 @@
   font-size: 14px;
 }
 
-.filterTags,
 .tagPicker {
   min-width: 0;
   margin: 0;
@@ -128,7 +122,7 @@
   border: 0;
 }
 
-.filterTags > div,
+.filterTags,
 .tagPicker > div,
 .itemTags {
   display: flex;
@@ -136,17 +130,18 @@
   gap: 7px;
 }
 
-.filterTags > legend,
+.filterTags {
+  justify-content: end;
+}
+
 .tagPicker > legend {
   margin-bottom: 8px;
 }
 
-.filterTags label,
 .tagPicker label {
   position: relative;
 }
 
-.filterTags input,
 .tagPicker input {
   position: absolute;
   width: 1px;
@@ -155,7 +150,7 @@
   opacity: 0;
 }
 
-.filterTags label > span,
+.filterTags button,
 .tagPicker label > span,
 .itemTags > span {
   display: inline-flex;
@@ -171,38 +166,38 @@
   line-height: 18px;
 }
 
-.filterTags label:hover > span,
+.filterTags button:hover,
 .tagPicker label:hover > span {
   border-color: var(--line-strong);
   color: var(--ink);
 }
 
-.filterTags input:focus-visible + span,
 .tagPicker input:focus-visible + span {
   outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
 
-.filterTags input:checked + span,
+.filterTags button[aria-pressed="true"],
 .tagPicker input:checked + span {
   border-color: var(--ink);
   background: var(--ink);
   color: var(--canvas);
 }
 
-.searchButton,
 .submitButton {
   composes: button from "../button.module.css";
   composes: primary from "../button.module.css";
 }
 
-.clearLink {
+.clearButton {
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: var(--muted);
   font-size: 13px;
-  text-decoration: none;
 }
 
-.clearLink:hover {
+.clearButton:hover {
   color: var(--ink);
 }
 
@@ -217,6 +212,7 @@
 
 .items li {
   min-width: 0;
+  animation: itemIn var(--duration-base) var(--ease-fluid) both;
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: var(--radius-sheet);
@@ -445,6 +441,13 @@
   color: var(--danger);
 }
 
+@keyframes itemIn {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+}
+
 @keyframes overlayIn {
   from {
     opacity: 0;
@@ -499,12 +502,24 @@
     font-size: 42px;
   }
 
-  .headingActions {
-    justify-content: space-between;
+  .headingTools {
+    justify-items: stretch;
   }
 
-  .filters {
-    padding: 16px;
+  .headingActions {
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 12px 18px;
+  }
+
+  /* The search takes a line of its own rather than a sliver of one. */
+  .searchInput {
+    max-width: none;
+    flex-basis: 100%;
+  }
+
+  .filterTags {
+    justify-content: start;
   }
 
   .modalOverlay {

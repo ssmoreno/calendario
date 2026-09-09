@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import {
   Button,
   Dialog,
@@ -8,6 +9,8 @@ import {
   Modal,
   ModalOverlay,
 } from "react-aria-components";
+import { ArrowRight } from "@phosphor-icons/react/dist/ssr/ArrowRight";
+import { MagnifyingGlass } from "@phosphor-icons/react/dist/ssr/MagnifyingGlass";
 import { Plus } from "@phosphor-icons/react/dist/ssr/Plus";
 import { X } from "@phosphor-icons/react/dist/ssr/X";
 
@@ -15,9 +18,11 @@ import {
   createLibraryItemAction,
   type LibraryActionState,
 } from "@/app/(app)/library/actions";
+import { readingMinutes } from "@/library/reading";
 import {
   DEFAULT_LIBRARY_TAGS,
   normalizeLibraryTagName,
+  type LibraryItemRecord,
 } from "@/library/types";
 import styles from "./library.module.css";
 
@@ -155,4 +160,166 @@ function CreateDialog({ availableTags }: { availableTags: string[] }) {
 
 export function LibraryControls({ availableTags }: { availableTags: string[] }) {
   return <CreateDialog availableTags={availableTags} />;
+}
+
+interface LibraryBrowserProps {
+  items: LibraryItemRecord[];
+  availableTags: string[];
+}
+
+function searchText(item: LibraryItemRecord): string {
+  return [item.title, item.description, item.summary, item.link, ...item.tags]
+    .filter(Boolean)
+    .join("\n")
+    .toLowerCase();
+}
+
+/**
+ * Filtering happens here rather than on the server: the whole library is
+ * already in the page, so typing narrows it as you go and a tag lands the
+ * moment it is pressed, with no round trip and no Search button.
+ */
+export function LibraryBrowser({ items, availableTags }: LibraryBrowserProps) {
+  const [query, setQuery] = useState("");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+
+  const searchable = useMemo(
+    () =>
+      items.map((item) => ({
+        item,
+        text: searchText(item),
+        tags: item.tags.map(normalizeLibraryTagName),
+      })),
+    [items],
+  );
+
+  const visible = useMemo(() => {
+    const terms = query.toLowerCase().split(/\s+/).filter(Boolean).slice(0, 8);
+    const tags = selectedTags.map(normalizeLibraryTagName);
+    if (!terms.length && !tags.length) return items;
+    return searchable
+      .filter(
+        (entry) =>
+          terms.every((term) => entry.text.includes(term)) &&
+          tags.every((tag) => entry.tags.includes(tag)),
+      )
+      .map((entry) => entry.item);
+  }, [items, searchable, query, selectedTags]);
+
+  const filtering = Boolean(query.trim() || selectedTags.length);
+  const itemLabel = items.length === 1 ? "item" : "items";
+
+  function toggleTag(tag: string) {
+    setSelectedTags((current) =>
+      current.includes(tag)
+        ? current.filter((value) => value !== tag)
+        : [...current, tag],
+    );
+  }
+
+  return (
+    <>
+      <header className={styles.heading}>
+        <div className={styles.headingCopy}>
+          <p className={styles.eyebrow}>Personal library</p>
+          <h2 id="library-heading">Library</h2>
+        </div>
+        <div className={styles.headingTools}>
+          <div className={styles.headingActions}>
+            {items.length ? (
+              <span className={styles.searchInput}>
+                <MagnifyingGlass size={17} aria-hidden="true" />
+                <input
+                  aria-label="Search the library"
+                  maxLength={160}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="e.g. database guide for type-safe queries"
+                  type="search"
+                  value={query}
+                />
+              </span>
+            ) : null}
+            {filtering ? (
+              <button
+                className={styles.clearButton}
+                onClick={() => {
+                  setQuery("");
+                  setSelectedTags([]);
+                }}
+                type="button"
+              >
+                Clear filters
+              </button>
+            ) : null}
+            <span className={styles.headingMeta} aria-live="polite">
+              {filtering
+                ? `${visible.length} of ${items.length} ${itemLabel}`
+                : `${items.length} ${itemLabel}`}
+            </span>
+            <LibraryControls availableTags={availableTags} />
+          </div>
+          {items.length && availableTags.length ? (
+            <div
+              className={styles.filterTags}
+              role="group"
+              aria-label="Filter by every selected tag"
+            >
+              {availableTags.map((tag) => (
+                <button
+                  key={tag}
+                  aria-pressed={selectedTags.includes(tag)}
+                  onClick={() => toggleTag(tag)}
+                  type="button"
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </header>
+
+      {visible.length ? (
+        <ul className={styles.items}>
+          {visible.map((item) => (
+            <li key={item.id}>
+              <Link className={styles.itemLink} href={`/library/${item.id}`}>
+                <span className={styles.itemCopy}>
+                  <strong>{item.title}</strong>
+                  <span>{item.description}</span>
+                  <span className={styles.itemTags} aria-label="Tags">
+                    {item.tags.map((tag) => (
+                      <span key={tag}>{tag}</span>
+                    ))}
+                  </span>
+                </span>
+                <span className={styles.itemMeta}>
+                  {item.summary
+                    ? `${readingMinutes(item.summary)} min read`
+                    : "Read"}
+                  <ArrowRight size={13} aria-hidden="true" />
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className={styles.emptyLibrary}>
+          <div>
+            {items.length ? (
+              <>
+                <strong>No matching items</strong>
+                <span>Try fewer words or remove a tag filter.</span>
+              </>
+            ) : (
+              <>
+                <strong>No saved items yet</strong>
+                <span>Send SS a link, image, or PDF, or add one manually.</span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
 }
