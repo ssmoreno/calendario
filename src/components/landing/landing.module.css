@@ -4,30 +4,22 @@
   min-height: 100dvh;
   align-content: center;
   overflow: clip;
-  padding: var(--space-600) var(--space-300);
+  padding: var(--space-700) var(--space-300);
   background: var(--canvas);
 }
 
-.now {
-  position: absolute;
-  z-index: 0;
-  top: 0;
-  right: 0;
-  left: 0;
-  height: 1px;
-  background: var(--line-strong);
-  opacity: 0.5;
-  pointer-events: none;
-  animation: drift 24s linear infinite;
+.stage {
+  display: grid;
+  width: min(100%, 1120px);
+  align-items: center;
+  gap: var(--space-700);
+  margin-inline: auto;
 }
 
-@keyframes drift {
-  from {
-    transform: translateY(0);
-  }
-
-  to {
-    transform: translateY(100dvh);
+@media (min-width: 960px) {
+  .stage {
+    gap: var(--space-800);
+    grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
   }
 }
 
@@ -35,8 +27,7 @@
   position: relative;
   z-index: 1;
   display: grid;
-  width: min(100%, 560px);
-  margin: 0 auto;
+  max-width: 680px;
   gap: var(--space-300);
 }
 
@@ -50,15 +41,15 @@
 }
 
 .inner > *:nth-child(2) {
-  animation-delay: 160ms;
+  animation: none;
 }
 
 .inner > *:nth-child(3) {
-  animation-delay: 260ms;
+  animation-delay: 460ms;
 }
 
 .inner > *:nth-child(4) {
-  animation-delay: 420ms;
+  animation-delay: 620ms;
 }
 
 @keyframes riseIn {
@@ -81,12 +72,37 @@
 
 .heading {
   margin: 0;
-  color: var(--ink);
-  font-size: clamp(28px, 5vw, 44px);
+  font-size: clamp(32px, 5.4vw, 48px);
   font-weight: 500;
   letter-spacing: -0.03em;
-  line-height: 1.08;
-  text-wrap: balance;
+  line-height: 1.06;
+}
+
+/*
+ * Each line carries its own light, bright at the start and falling away to
+ * the right, and swings up from under the line above it.
+ */
+.headLine {
+  display: block;
+  animation: swingIn 1000ms var(--ease-fluid) calc(160ms + var(--i) * 130ms)
+    backwards;
+  background-clip: text;
+  background-image: linear-gradient(
+    100deg,
+    var(--ink),
+    color-mix(in srgb, var(--ink) 61%, var(--canvas))
+  );
+  color: transparent;
+  transform-origin: left bottom;
+  -webkit-background-clip: text;
+}
+
+@keyframes swingIn {
+  from {
+    filter: blur(12px);
+    opacity: 0;
+    transform: translateY(28px) rotate(2deg);
+  }
 }
 
 .line {
@@ -99,7 +115,7 @@
 /* Each word settles in reading order, a moment after the block lands. */
 .word {
   color: color-mix(in srgb, var(--muted) 24%, transparent);
-  animation: light 500ms var(--ease-fluid) calc(500ms + var(--i) * 45ms)
+  animation: light 500ms var(--ease-fluid) calc(700ms + var(--i) * 45ms)
     forwards;
 }
 
@@ -116,25 +132,48 @@
 }
 
 .link {
+  position: relative;
   padding-bottom: var(--space-50);
-  border-bottom: 1px solid var(--line);
   color: var(--muted);
   font-size: var(--text-sm);
+  font-weight: 600;
   line-height: var(--leading-sm);
   text-decoration: none;
+  transition: color 400ms var(--ease-fluid);
+}
+
+/* The rule under a link is drawn, not switched on. */
+.link::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 1px;
+  background: var(--line);
+  content: "";
+  transform-origin: left;
   transition:
-    border-color 400ms var(--ease-fluid),
-    color 400ms var(--ease-fluid);
+    background-color 400ms var(--ease-fluid),
+    transform 500ms var(--ease-fluid);
 }
 
 .link:hover {
-  border-color: var(--ink);
   color: var(--ink);
+}
+
+.link:hover::after {
+  background: var(--ink);
+  transform: scaleX(1.06);
+}
+
+.link:active {
+  transform: translateY(1px);
 }
 
 /* Without motion, a staggered delay only reads as a late flash. */
 @media (prefers-reduced-motion: reduce) {
   .inner > *,
+  .headLine,
   .word {
     animation-delay: 0s !important;
   }
