@@ -1,125 +1,148 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { LibraryItemInput } from "@/library/types";
+
 const createdAt = new Date("2026-09-08T12:00:00.000Z");
 const item = {
   id: "item-1",
   userId: "user-a",
-  categoryId: "category-1",
-  name: "Prisma guide",
+  title: "Prisma guide",
   description: "Database reference",
   link: "https://example.com/prisma",
+  tags: ["Documentation", "Coding"],
   createdAt,
   updatedAt: createdAt,
 };
 
 const db = vi.hoisted(() => ({
-  category: {
+  libraryItem: {
+    count: vi.fn(),
     create: vi.fn(),
-    findFirst: vi.fn(),
     findMany: vi.fn(),
+    findUnique: vi.fn(),
   },
-  libraryItem: { create: vi.fn() },
 }));
 
 vi.mock("./db", () => ({ prisma: db }));
 
-import {
-  CategoryNameTakenError,
-  CategoryNotFoundError,
-  createCategory,
-  createLibraryItem,
-  listLibrary,
-} from "./library-store";
+import { listLibrary, saveLibraryItem } from "./library-store";
 
 beforeEach(() => {
-  db.category.create.mockReset().mockResolvedValue({
-    id: "category-1",
-    name: "Reference",
-  });
-  db.category.findFirst.mockReset().mockResolvedValue({ id: "category-1" });
-  db.category.findMany.mockReset().mockResolvedValue([]);
+  db.libraryItem.count.mockReset().mockResolvedValue(1);
   db.libraryItem.create.mockReset().mockResolvedValue(item);
+  db.libraryItem.findMany
+    .mockReset()
+    .mockResolvedValueOnce([item])
+    .mockResolvedValueOnce([{ tags: item.tags }]);
+  db.libraryItem.findUnique.mockReset().mockResolvedValue(null);
 });
 
 describe("listLibrary", () => {
-  it("returns only the user's categories and serializes item dates", async () => {
-    db.category.findMany.mockResolvedValueOnce([
-      { id: "category-1", name: "Reference", items: [item] },
-    ]);
+  it("returns flat items, available tags, and serialized dates", async () => {
+    await expect(listLibrary("user-a")).resolves.toEqual({
+      items: [
+        {
+          id: "item-1",
+          title: "Prisma guide",
+          description: "Database reference",
+          link: "https://example.com/prisma",
+          tags: ["Documentation", "Coding"],
+          createdAt: createdAt.toISOString(),
+        },
+      ],
+      availableTags: ["Coding", "Documentation"],
+      totalCount: 1,
+    });
+    expect(db.libraryItem.findMany).toHaveBeenNthCalledWith(1, {
+      where: { userId: "user-a" },
+      orderBy: { createdAt: "desc" },
+    });
+  });
 
-    await expect(listLibrary("user-a")).resolves.toEqual([
-      {
-        id: "category-1",
-        name: "Reference",
-        items: [
-          {
-            id: "item-1",
-            categoryId: "category-1",
-            name: "Prisma guide",
-            description: "Database reference",
-            link: "https://example.com/prisma",
-            createdAt: createdAt.toISOString(),
-          },
-        ],
-      },
-    ]);
-    expect(db.category.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { userId: "user-a" } }),
+  it("requires every query term and selected tag", async () => {
+    await listLibrary("user-a", {
+      query: "database guide",
+      tags: ["Coding", "Documentation"],
+    });
+
+    expect(db.libraryItem.findMany).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        where: expect.objectContaining({
+          userId: "user-a",
+          tags: { hasEvery: ["Coding", "Documentation"] },
+          AND: expect.arrayContaining([
+            expect.objectContaining({
+              OR: expect.arrayContaining([
+                { title: { contains: "database", mode: "insensitive" } },
+              ]),
+            }),
+            expect.objectContaining({
+              OR: expect.arrayContaining([
+                { description: { contains: "guide", mode: "insensitive" } },
+              ]),
+            }),
+          ]),
+        }),
+      }),
+    );
+  });
+
+  it("matches allowlisted tag names regardless of typed capitalization", async () => {
+    await listLibrary("user-a", { query: "coding" });
+
+    expect(db.libraryItem.findMany).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: [
+            expect.objectContaining({
+              OR: expect.arrayContaining([{ tags: { has: "Coding" } }]),
+            }),
+          ],
+        }),
+      }),
     );
   });
 });
 
-describe("createCategory", () => {
-  it("scopes the new category to the user", async () => {
-    await createCategory("user-a", "Reference");
-    expect(db.category.create).toHaveBeenCalledWith({
-      data: { userId: "user-a", name: "Reference" },
-      select: { id: true, name: true },
-    });
-  });
+describe("saveLibraryItem", () => {
+  const input: LibraryItemInput = {
+    title: item.title,
+    description: item.description,
+    link: item.link,
+    tags: ["Documentation", "Coding"],
+  };
 
-  it("reports duplicate category names", async () => {
-    db.category.create.mockRejectedValueOnce({ code: "P2002" });
-    await expect(createCategory("user-a", "Reference")).rejects.toBeInstanceOf(
-      CategoryNameTakenError,
-    );
-  });
-});
-
-describe("createLibraryItem", () => {
-  it("checks category ownership before creating the item", async () => {
-    await createLibraryItem("user-a", {
-      categoryId: "category-1",
-      name: item.name,
-      description: item.description,
-      link: item.link,
-    });
-
-    expect(db.category.findFirst).toHaveBeenCalledWith({
-      where: { id: "category-1", userId: "user-a" },
-      select: { id: true },
+  it("scopes a new item to the authenticated user", async () => {
+    await expect(saveLibraryItem("user-a", input)).resolves.toMatchObject({
+      created: true,
+      item: { id: "item-1" },
     });
     expect(db.libraryItem.create).toHaveBeenCalledWith({
-      data: {
-        userId: "user-a",
-        categoryId: "category-1",
-        name: item.name,
-        description: item.description,
-        link: item.link,
-      },
+      data: { userId: "user-a", ...input },
     });
   });
 
-  it("rejects a category the user does not own", async () => {
-    db.category.findFirst.mockResolvedValueOnce(null);
-    await expect(
-      createLibraryItem("user-a", {
-        categoryId: "category-b",
-        name: item.name,
-        description: item.description,
-        link: item.link,
-      }),
-    ).rejects.toBeInstanceOf(CategoryNotFoundError);
+  it("returns an existing exact link without creating a duplicate", async () => {
+    db.libraryItem.findUnique.mockResolvedValueOnce(item);
+
+    await expect(saveLibraryItem("user-a", input)).resolves.toMatchObject({
+      created: false,
+      item: { id: "item-1" },
+    });
     expect(db.libraryItem.create).not.toHaveBeenCalled();
+  });
+
+  it("recovers when a concurrent save wins the unique-link race", async () => {
+    db.libraryItem.create.mockRejectedValueOnce({ code: "P2002" });
+    db.libraryItem.findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(item);
+
+    await expect(saveLibraryItem("user-a", input)).resolves.toMatchObject({
+      created: false,
+      item: { id: "item-1" },
+    });
   });
 });

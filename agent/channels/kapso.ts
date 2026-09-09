@@ -9,6 +9,7 @@ import {
   redeemPairingCode,
 } from "../../src/server/whatsapp-link-store";
 import { extractPairingCode } from "../../src/whatsapp/pairing";
+import { deliverWhatsAppMessage } from "../../src/whatsapp/delivery";
 
 const adapter = createKapsoAdapter();
 
@@ -18,6 +19,10 @@ export const { bot, channel, send } = chatSdkChannel({
   streaming: false,
   turnPolicy: "queue",
   userName: "SS",
+  events: {
+    "message.completed": (event, channel) =>
+      deliverWhatsAppMessage(event, channel.thread),
+  },
 });
 
 bot.onDirectMessage(async (thread: Thread, message: Message) => {

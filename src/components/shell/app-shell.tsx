@@ -157,7 +157,6 @@ export function AppShell({ children, initialConnected, user }: AppShellProps) {
     }
   }
 
-  const connected = connection === "connected" || (connection === "checking" && initialConnected);
   const agentOpen = agentMode === "docked";
 
   const shell = useMemo(
@@ -259,10 +258,12 @@ export function AppShell({ children, initialConnected, user }: AppShellProps) {
       </div>
 
       <AgentPanel
-        connected={connected}
         mode={agentMode}
         onBusyChange={setAgentBusy}
-        onCalendarChanged={() => void refreshUpcoming()}
+        onDataChanged={() => {
+          void refreshUpcoming();
+          router.refresh();
+        }}
         onModeChange={setAgentMode}
         userId={user.id}
       />

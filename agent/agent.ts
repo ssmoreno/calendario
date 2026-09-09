@@ -1,6 +1,6 @@
 import { defineAgent } from "eve";
 
 export default defineAgent({
-  model: "zai/glm-4.6",
-  reasoning: "low",
+  model: "openai/gpt-5.6-luna",
+  reasoning: "medium",
 });

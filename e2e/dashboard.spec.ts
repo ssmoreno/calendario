@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
-const composer = "Ask the calendar agent";
+const composer = "Ask SS";
 
 test("shows the Google-backed home and account menu", async ({ page }) => {
   await page.goto("/calendar");
@@ -23,8 +23,7 @@ test("summons the agent instead of siting it on the page", async ({ page }) => {
 
   await page.getByRole("button", { name: /Ask SS/ }).click();
   await expect(page.getByLabel(composer)).toBeVisible();
-  // Nothing to ask until Google Calendar is connected.
-  await expect(page.getByLabel(composer)).toBeDisabled();
+  await expect(page.getByLabel(composer)).toBeEnabled();
 
   await page.keyboard.press("Escape");
   await expect(page.getByLabel(composer)).toBeHidden();
@@ -44,8 +43,8 @@ test("passes Axe with the agent open", async ({ page }) => {
 });
 
 test("moves between Calendar and Library", async ({ page }, testInfo) => {
-  const categoryName = `Reading ${Date.now()}`;
   const itemName = `Battery chemistry ${Date.now()}`;
+  const itemLink = `https://example.com/battery-chemistry-${Date.now()}`;
   await page.goto("/calendar");
 
   await expect(page.getByRole("link", { name: "Calendar" })).toHaveAttribute(
@@ -68,25 +67,24 @@ test("moves between Calendar and Library", async ({ page }, testInfo) => {
   await expect(page.getByRole("heading", { name: "Library", exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "Add to library" }).click();
-  await page.getByRole("button", { name: "Category" }).click();
-  const categoryForm = page.getByRole("form", { name: "Create category" });
-  await categoryForm.getByLabel("Name").fill(categoryName);
-  await categoryForm.getByRole("button", { name: "Create category" }).click();
-  await expect(categoryForm.getByText("Category created.")).toBeVisible();
-  await page.getByRole("button", { name: "Close" }).click();
-  await expect(page.getByRole("heading", { name: categoryName })).toBeVisible();
-
-  await page.getByRole("button", { name: "Add to library" }).click();
   const itemForm = page.getByRole("form", { name: "Create library item" });
-  await itemForm.getByLabel("Category").selectOption({ label: categoryName });
-  await itemForm.getByLabel("Name").fill(itemName);
+  await itemForm.getByLabel("Title").fill(itemName);
   await itemForm.getByLabel("Description").fill("How solid-state cells change the grid.");
-  await itemForm.getByLabel("Link").fill("https://example.com/battery-chemistry");
+  await itemForm.getByLabel("Link").fill(itemLink);
+  await itemForm.getByRole("checkbox", { name: "Article" }).check();
+  await itemForm.getByRole("checkbox", { name: "Science" }).check();
   await itemForm.getByRole("button", { name: "Add item" }).click();
   await expect(itemForm.getByText("Item added.")).toBeVisible();
   await page.getByRole("button", { name: "Close" }).click();
   await expect(page.getByRole("link", { name: new RegExp(itemName) })).toBeVisible();
   await expect(page).toHaveTitle("Library — SS");
+
+  const search = page.getByRole("form", { name: "Search library" });
+  await search.getByLabel(/describe what you remember/i).fill("solid-state grid");
+  await search.getByRole("checkbox", { name: "Science" }).check();
+  await search.getByRole("button", { name: "Search" }).click();
+  await expect(page).toHaveURL(/q=solid-state(?:\+|%20)grid.*tag=Science/);
+  await expect(page.getByRole("link", { name: new RegExp(itemName) })).toBeVisible();
 
   expect(
     await page.evaluate(

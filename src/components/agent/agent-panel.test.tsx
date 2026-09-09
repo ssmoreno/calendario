@@ -66,10 +66,9 @@ function renderPanel(
   });
   render(
     <AgentPanel
-      connected
       mode="docked"
       onBusyChange={vi.fn()}
-      onCalendarChanged={vi.fn()}
+      onDataChanged={vi.fn()}
       onModeChange={vi.fn()}
       userId={USER_ID}
     />,

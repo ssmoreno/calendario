@@ -97,10 +97,9 @@ function activeTurnId(
 }
 
 function HydratedAgentPanel({
-  connected,
   mode,
   onBusyChange,
-  onCalendarChanged,
+  onDataChanged,
   onModeChange,
   userId,
 }: AgentPanelProps) {
@@ -132,7 +131,7 @@ function HydratedAgentPanel({
         session: snapshot.session,
       };
       writeSavedAgent(userId, next);
-      onCalendarChanged();
+      onDataChanged();
     },
   });
 
@@ -182,7 +181,7 @@ function HydratedAgentPanel({
 
   function send() {
     const message = draft.trim();
-    if (!message || !connected || isBusy) return;
+    if (!message || isBusy) return;
     setDraft("");
     onModeChange("docked");
     void agent.send(message);
@@ -317,11 +316,9 @@ function HydratedAgentPanel({
         >
           <input
             ref={inputRef}
-            aria-label="Ask the calendar agent"
-            disabled={!connected || isBusy}
-            placeholder={
-              connected ? "Ask SS to manage your calendar…" : "Connect Google Calendar first"
-            }
+            aria-label="Ask SS"
+            disabled={isBusy}
+            placeholder="Ask SS to schedule something or save a link…"
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
           />
@@ -338,7 +335,7 @@ function HydratedAgentPanel({
             <button
               className={styles.sendButton}
               type="submit"
-              disabled={!connected || !draft.trim()}
+              disabled={!draft.trim()}
               aria-label="Send"
             >
               <PaperPlaneTilt size={18} aria-hidden="true" />
@@ -357,10 +354,9 @@ function HydratedAgentPanel({
 export type AgentMode = "closed" | "docked";
 
 interface AgentPanelProps {
-  connected: boolean;
   mode: AgentMode;
   onBusyChange(busy: boolean): void;
-  onCalendarChanged(): void;
+  onDataChanged(): void;
   onModeChange(mode: AgentMode): void;
   userId: string;
 }
