@@ -7,7 +7,6 @@ import { prisma } from "../../src/server/db";
 import { listLibrary } from "../../src/server/library-store";
 import {
   ensureLibraryEvalUser,
-  isStandaloneRead,
   LIBRARY_EVAL_USER_ID,
 } from "./helpers";
 
@@ -22,25 +21,26 @@ const itemFilter = {
 
 function isUsefulBook(value: unknown): boolean {
   const item = value as LibraryItemRecord | undefined;
-  const summary = item?.summary?.toLowerCase();
+  const content = [item?.title, item?.description, item?.note]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
   return Boolean(
     item?.link === null &&
       item.title.toLowerCase().includes("mockingbird") &&
       item.tags.includes("Book") &&
-      isStandaloneRead(item.summary) &&
-      summary &&
-      ["scout", "finch", "justice", "race"].some((term) =>
-        summary.includes(term),
+      ["harper", "lee", "scout", "finch", "justice", "race"].some((term) =>
+        content.includes(term),
       ) &&
       !/\b(?:image|cover|photo|picture) (?:shows|contains|depicts)\b/iu.test(
-        summary,
+        content,
       ),
   );
 }
 
 export default defineEval({
   description:
-    "A book-cover image becomes a researched Book entry, not a description of the pixels or a stored attachment.",
+    "A book-cover image becomes a researched Book entry without forcing an unsolicited long read.",
   async test(t) {
     await ensureLibraryEvalUser();
     await prisma.libraryItem.deleteMany({ where: itemFilter });

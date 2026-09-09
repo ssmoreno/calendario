@@ -23,7 +23,7 @@ describe("LibraryControls", () => {
     expect(screen.getByRole("dialog", { name: "Add to your library" })).toBeDefined();
     expect(screen.getByRole("form", { name: "Create library item" })).toBeDefined();
     expect(screen.getByRole("group", { name: "Tags" })).toBeDefined();
-    expect(screen.getByRole("textbox", { name: "The read (optional)" })).toBeDefined();
+    expect(screen.getByRole("textbox", { name: "Note (optional)" })).toBeDefined();
     expect(
       screen
         .getByRole("textbox", { name: "Link (optional)" })
@@ -45,7 +45,7 @@ const items = [
     id: "one",
     title: "Prisma guide",
     description: "Type-safe queries.",
-    summary: null,
+    note: null,
     link: "https://prisma.io",
     tags: ["Coding"],
     createdAt: "2026-09-01T00:00:00.000Z",
@@ -54,7 +54,7 @@ const items = [
     id: "two",
     title: "Sourdough",
     description: "Bread that takes days.",
-    summary: "Feed the starter twice a day.",
+    note: "Feed the starter twice a day.",
     link: null,
     tags: ["Recipe", "Food"],
     createdAt: "2026-09-02T00:00:00.000Z",
@@ -63,7 +63,7 @@ const items = [
     id: "three",
     title: "Type-safe forms",
     description: "Validation without duplication.",
-    summary: null,
+    note: null,
     link: null,
     tags: ["Coding", "Article"],
     createdAt: "2026-09-03T00:00:00.000Z",
@@ -85,6 +85,8 @@ describe("LibraryBrowser", () => {
 
     expect(screen.queryByRole("button", { name: "Search" })).toBeNull();
     expect(screen.getAllByRole("link")).toHaveLength(3);
+    expect(screen.getByText("Note")).toBeDefined();
+    expect(screen.getAllByText("View")).toHaveLength(2);
 
     await userEvent.type(screen.getByRole("searchbox"), "type-safe");
     expect(visibleTitles().some((text) => text.includes("Prisma guide"))).toBe(
@@ -99,7 +101,7 @@ describe("LibraryBrowser", () => {
     expect(screen.getByText("2 of 3 items")).toBeDefined();
   });
 
-  it("matches the read, and shows nothing when no item matches", async () => {
+  it("matches the note, and shows nothing when no item matches", async () => {
     render(<LibraryBrowser items={items} availableTags={availableTags} />);
 
     await userEvent.type(screen.getByRole("searchbox"), "starter");

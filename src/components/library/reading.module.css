@@ -134,7 +134,7 @@
   text-wrap: pretty;
 }
 
-.body p:first-child::first-letter {
+.body[data-long-read] p:first-child::first-letter {
   float: left;
   margin: 6px 10px 0 0;
   color: var(--ink);
@@ -182,7 +182,7 @@
     line-height: 30px;
   }
 
-  .body p:first-child::first-letter {
+  .body[data-long-read] p:first-child::first-letter {
     font-size: 52px;
     line-height: 40px;
   }

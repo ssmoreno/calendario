@@ -43,7 +43,7 @@ export default defineEval({
           (value) => {
             const item = value as LibraryItemRecord | undefined;
             return Boolean(
-              item?.title && item.summary && item.tags.includes("Video"),
+              item?.title && item.note && item.tags.includes("Video"),
             );
           },
           "saved grounded video metadata",

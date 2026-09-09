@@ -8,7 +8,7 @@ const item = {
   userId: "user-a",
   title: "Prisma guide",
   description: "Database reference",
-  summary: "A short read about type-safe queries.",
+  note: "A short read about type-safe queries.",
   link: "https://example.com/prisma",
   tags: [
     { tag: { name: "Documentation" } },
@@ -123,7 +123,7 @@ describe("listLibrary", () => {
           id: "item-1",
           title: "Prisma guide",
           description: "Database reference",
-          summary: "A short read about type-safe queries.",
+          note: "A short read about type-safe queries.",
           link: "https://example.com/prisma",
           tags: ["Coding", "Documentation"],
           createdAt: createdAt.toISOString(),
@@ -200,7 +200,7 @@ describe("saveLibraryItem", () => {
   const input: LibraryItemInput = {
     title: item.title,
     description: item.description,
-    summary: item.summary,
+    note: item.note,
     link: item.link,
     tags: ["Documentation", "Coding"],
   };
@@ -225,7 +225,7 @@ describe("saveLibraryItem", () => {
         data: expect.objectContaining({
           userId: "user-a",
           title: item.title,
-          summary: item.summary,
+          note: item.note,
           tags: {
             createMany: {
               data: [
@@ -250,7 +250,7 @@ describe("saveLibraryItem", () => {
     expect(db.libraryItem.create).not.toHaveBeenCalled();
   });
 
-  it("creates an attachment-derived item without looking up a link", async () => {
+  it("creates an unlinked item without looking up a link", async () => {
     const unlinked = { ...item, link: null, tags: [{ tag: { name: "Book" } }] };
     db.libraryItem.create.mockResolvedValueOnce(unlinked);
 
@@ -258,7 +258,7 @@ describe("saveLibraryItem", () => {
       saveLibraryItem("user-a", {
         title: "To Kill a Mockingbird",
         description: "A novel about justice and moral courage.",
-        summary: "A useful reading note. ".repeat(20),
+        note: "A useful reading note. ".repeat(20),
         tags: ["Book"],
       }),
     ).resolves.toMatchObject({
@@ -273,7 +273,7 @@ describe("saveLibraryItem", () => {
     );
   });
 
-  it("deduplicates attachment-derived items by their normalized title", async () => {
+  it("deduplicates agent-created unlinked items by normalized title", async () => {
     const unlinked = { ...item, link: null, tags: [{ tag: { name: "Book" } }] };
     db.libraryItem.findUnique.mockResolvedValueOnce(unlinked);
 
@@ -283,7 +283,7 @@ describe("saveLibraryItem", () => {
         {
           title: "  To Kill a   Mockingbird ",
           description: "A novel about justice and moral courage.",
-          summary: "A useful reading note. ".repeat(20),
+          note: "A useful reading note. ".repeat(20),
           tags: ["Book"],
         },
         { dedupeUnlinkedByTitle: true },
@@ -294,9 +294,9 @@ describe("saveLibraryItem", () => {
     });
     expect(db.libraryItem.findUnique).toHaveBeenCalledWith({
       where: {
-        userId_attachmentIdentity: {
+        userId_unlinkedIdentity: {
           userId: "user-a",
-          attachmentIdentity: "to kill a mockingbird",
+          unlinkedIdentity: "to kill a mockingbird",
         },
       },
       include: expect.any(Object),
@@ -324,7 +324,7 @@ describe("library item mutations", () => {
     await expect(
       updateLibraryItem("user-a", item.id, {
         title: "Updated guide",
-        summary: null,
+        note: null,
         tags: ["Reference"],
       }),
     ).resolves.toMatchObject({ id: item.id });
@@ -347,7 +347,7 @@ describe("library item mutations", () => {
         data: {
           title: "Updated guide",
           description: undefined,
-          summary: null,
+          note: null,
           link: undefined,
         },
       }),

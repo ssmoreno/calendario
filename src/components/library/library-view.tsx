@@ -18,7 +18,7 @@ import {
   createLibraryItemAction,
   type LibraryActionState,
 } from "@/app/(app)/library/actions";
-import { readingMinutes } from "@/library/reading";
+import { isLongLibraryNote, readingMinutes } from "@/library/reading";
 import {
   DEFAULT_LIBRARY_TAGS,
   normalizeLibraryTagName,
@@ -83,12 +83,12 @@ function ItemForm({ availableTags }: { availableTags: string[] }) {
         />
       </label>
       <label className={styles.field}>
-        <span>The read (optional)</span>
+        <span>Note (optional)</span>
         <textarea
           className={styles.readField}
-          name="summary"
+          name="note"
           maxLength={2_600}
-          placeholder="About one book page, in your own words."
+          placeholder="Source text, a useful read, or anything worth remembering."
         />
       </label>
       <label className={styles.field}>
@@ -168,10 +168,15 @@ interface LibraryBrowserProps {
 }
 
 function searchText(item: LibraryItemRecord): string {
-  return [item.title, item.description, item.summary, item.link, ...item.tags]
+  return [item.title, item.description, item.note, item.link, ...item.tags]
     .filter(Boolean)
     .join("\n")
     .toLowerCase();
+}
+
+function itemNoteLabel(note: string | null): string {
+  if (!note) return "View";
+  return isLongLibraryNote(note) ? `${readingMinutes(note)} min read` : "Note";
 }
 
 /**
@@ -294,9 +299,7 @@ export function LibraryBrowser({ items, availableTags }: LibraryBrowserProps) {
                   </span>
                 </span>
                 <span className={styles.itemMeta}>
-                  {item.summary
-                    ? `${readingMinutes(item.summary)} min read`
-                    : "Read"}
+                  {itemNoteLabel(item.note)}
                   <ArrowRight size={13} aria-hidden="true" />
                 </span>
               </Link>
@@ -314,7 +317,7 @@ export function LibraryBrowser({ items, availableTags }: LibraryBrowserProps) {
             ) : (
               <>
                 <strong>No saved items yet</strong>
-                <span>Send SS a link, image, or PDF, or add one manually.</span>
+                <span>Send SS anything worth keeping, or add a note manually.</span>
               </>
             )}
           </div>

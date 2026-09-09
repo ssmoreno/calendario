@@ -4,6 +4,8 @@ export const DEFAULT_LIBRARY_TAGS = [
   "Article",
   "Book",
   "Recipe",
+  "Post",
+  "Music",
   "Paper",
   "Coding",
   "Video",
@@ -54,15 +56,11 @@ export const libraryItemIdSchema = z.string().trim().min(1);
 
 export const libraryTagIdSchema = z.string().trim().min(1);
 
-/**
- * The read: what the library shows instead of sending someone to the source.
- * Roughly one book page, so it stays a quick sit-down rather than an article.
- */
-export const librarySummarySchema = z
+export const libraryNoteSchema = z
   .string()
   .trim()
-  .min(200, "Write a fuller read.")
-  .max(2_600, "Keep the read to about one book page.");
+  .min(1, "Write a note or leave it empty.")
+  .max(2_600, "Keep the note concise.");
 
 export const libraryLinkSchema = z
   .string()
@@ -77,20 +75,20 @@ export const libraryLinkSchema = z
 export const libraryItemSchema = z.object({
   title: z.string().trim().min(1).max(160),
   description: z.string().trim().min(1).max(240),
-  summary: librarySummarySchema.optional(),
+  note: libraryNoteSchema.optional(),
   link: libraryLinkSchema.optional(),
   tags: libraryTagsSchema,
 });
 
 export const libraryLinkItemSchema = libraryItemSchema.extend({
   link: libraryLinkSchema,
+  note: libraryNoteSchema,
   tags: automaticLibraryTagsSchema,
 });
 
-export const libraryAttachmentItemSchema = libraryItemSchema
+export const libraryAgentItemSchema = libraryItemSchema
   .omit({ link: true })
   .extend({
-    summary: librarySummarySchema,
     tags: automaticLibraryTagsSchema,
   });
 
@@ -99,7 +97,7 @@ export const linkCurationSchema = z.discriminatedUnion("status", [
     status: z.literal("ok"),
     title: libraryItemSchema.shape.title,
     description: libraryItemSchema.shape.description,
-    summary: librarySummarySchema,
+    note: libraryNoteSchema,
     tags: automaticLibraryTagsSchema,
   }),
   z.object({
@@ -134,7 +132,7 @@ export const libraryItemChangesSchema = libraryItemSchema
   .partial()
   .extend({
     link: libraryLinkSchema.nullable().optional(),
-    summary: librarySummarySchema.nullable().optional(),
+    note: libraryNoteSchema.nullable().optional(),
   })
   .refine(
     (changes) => Object.values(changes).some((value) => value !== undefined),
@@ -162,7 +160,7 @@ export interface LibraryItemRecord {
   id: string;
   title: string;
   description: string;
-  summary: string | null;
+  note: string | null;
   link: string | null;
   tags: string[];
   createdAt: string;

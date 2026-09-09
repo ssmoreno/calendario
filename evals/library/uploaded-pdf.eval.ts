@@ -21,14 +21,14 @@ const itemFilter = {
 
 function isUsefulUploadedPaper(value: unknown): boolean {
   const item = value as LibraryItemRecord | undefined;
-  const summary = item?.summary?.toLowerCase();
+  const note = item?.note?.toLowerCase();
   return Boolean(
     item?.link === null &&
       item.tags.includes("Paper") &&
-      isStandaloneRead(item.summary) &&
-      summary?.includes("attention") &&
+      isStandaloneRead(item.note) &&
+      note?.includes("attention") &&
       ["encoder", "decoder", "translation", "bleu", "recurrent"].some(
-        (term) => summary.includes(term),
+        (term) => note.includes(term),
       ),
   );
 }

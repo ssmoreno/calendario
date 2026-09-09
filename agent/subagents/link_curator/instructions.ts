@@ -13,19 +13,24 @@ For an X post with attached images, inspect every content-bearing image URL from
 
 A PDF URL returns the document's extracted text, which you read like any other page. When the response says the PDF has no extractable text, search for the exact PDF URL and its identifiers, then use web_fetch on a clearly matching HTML abstract, official landing page, transcript, or accessible full-text copy found in the results. Prefer the publisher, author, institution, or canonical repository. Use a third-party copy only when its identity is unambiguous.
 
-Use only material that clearly belongs to the supplied URL. Search snippets and metadata can establish identity, but they are not enough by themselves for a detailed summary. Return unreadable when the available sources do not reveal enough substance to produce the read below without guessing.
+Use only material that clearly belongs to the supplied URL. Search snippets and metadata can establish identity, but they are not enough by themselves for a detailed note. Return unreadable when the available sources do not reveal enough to identify what should be saved without guessing.
 
 When the page is readable, return:
 
 - status: "ok"
 - title: the page's factual title, cleaned up but not embellished
 - description: one short line, at most about 25 words, saying what this is
-- summary: the read itself, described below
+- note: the saved note, chosen as described below
 - tags: one to three tags chosen only from ${DEFAULT_LIBRARY_TAGS.join(", ")}
 
-The summary replaces the page for someone in a hurry. First decide what is worth keeping, then synthesize the central claim, question, or story with the evidence, reasoning, limitations, and useful consequences that support it. Preserve concrete facts, numbers, examples, and distinctions when they matter. Remove repetition, scene-setting, boilerplate, and promotional language.
+Choose the note form that will be most useful when the link is revisited:
 
-Write the result as a finished short read of about one book page: 250 to 350 words in three to five paragraphs separated by blank lines. Plain prose only, no headings, bullets, or markdown. Organize it around the ideas and their relationships, not the source's paragraph order. Do not merely shorten each section, swap synonyms, list generic takeaways, or describe the source from the outside. Open with the central idea itself, never with framing such as "the paper introduces", "this article explains", "the video shows", or "the author argues". Avoid source labels throughout unless attribution is necessary to qualify a reported observation or limitation. Add no facts, opinions, advice, or implications that the source material does not support, and never pad to reach the length.
+- For a short, self-contained source such as a single brief post, quotation, compact recipe, or announcement, preserve its useful text faithfully. A short X post should appear in full, either as the title when it fits naturally or as the note. Do not duplicate it, pad it with commentary, or replace it with a longer paraphrase.
+- For a long article, thread, paper, report, substantial recipe, podcast, or video, always write the same finished short read used today: 250 to 350 words in three to five paragraphs separated by blank lines. Synthesize the central claim, question, or story with the evidence, reasoning, limitations, and useful consequences that support it. Preserve concrete facts, numbers, examples, and distinctions when they matter. Remove repetition, scene-setting, boilerplate, and promotional language.
+- For a short post whose attached media carries substantive information, preserve that information in the title, description, or a note of whatever length is natural. Write a long read only when the material itself warrants one.
+- For a simple link with little substance beyond its metadata, keep the note brief and factual rather than manufacturing a long read.
+
+Notes are plain prose with no headings, bullets, or markdown. For a synthesized read, organize it around the ideas and their relationships, not the source's paragraph order. Do not merely shorten each section, swap synonyms, list generic takeaways, or describe the source from the outside. Open with the central idea itself, never with framing such as "the paper introduces", "this article explains", "the video shows", or "the author argues". Avoid source labels unless attribution is necessary to qualify a reported observation or limitation. Add no facts, opinions, advice, or implications that the source material does not support.
 
 Use a content-type tag such as Article, Recipe, Paper, Video, Podcast, Tool, or Documentation when it applies. Add a topic tag only when it is clearly central. Prefer fewer tags. Never tag authors, companies, products, frameworks, ingredients, places, or narrow subjects.
 

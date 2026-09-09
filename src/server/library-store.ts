@@ -39,7 +39,7 @@ interface LibraryItemRow {
   id: string;
   title: string;
   description: string;
-  summary: string | null;
+  note: string | null;
   link: string | null;
   tags: Array<{ tag: { name: string } }>;
   createdAt: Date;
@@ -59,7 +59,7 @@ function toItemRecord(row: LibraryItemRow): LibraryItemRecord {
     id: row.id,
     title: row.title,
     description: row.description,
-    summary: row.summary,
+    note: row.note,
     link: row.link,
     tags: row.tags.map(({ tag }) => tag.name).sort((a, b) => a.localeCompare(b)),
     createdAt: row.createdAt.toISOString(),
@@ -102,7 +102,7 @@ function searchFilter(term: string) {
     OR: [
       { title: { contains: term, mode: "insensitive" as const } },
       { description: { contains: term, mode: "insensitive" as const } },
-      { summary: { contains: term, mode: "insensitive" as const } },
+      { note: { contains: term, mode: "insensitive" as const } },
       { link: { contains: term, mode: "insensitive" as const } },
       {
         tags: {
@@ -208,7 +208,7 @@ export async function saveLibraryItem(
   input: LibraryItemInput,
   { dedupeUnlinkedByTitle = false }: SaveLibraryItemOptions = {},
 ): Promise<{ created: boolean; item: LibraryItemRecord }> {
-  const attachmentIdentity =
+  const unlinkedIdentity =
     !input.link && dedupeUnlinkedByTitle
       ? normalizeLibraryItemTitle(input.title)
       : null;
@@ -219,10 +219,10 @@ export async function saveLibraryItem(
             where: { userId_link: { userId, link: input.link } },
             include: { tags: itemTags },
           })
-        : attachmentIdentity
+        : unlinkedIdentity
           ? await tx.libraryItem.findUnique({
               where: {
-                userId_attachmentIdentity: { userId, attachmentIdentity },
+                userId_unlinkedIdentity: { userId, unlinkedIdentity },
               },
               include: { tags: itemTags },
             })
@@ -235,9 +235,9 @@ export async function saveLibraryItem(
           userId,
           title: input.title,
           description: input.description,
-          summary: input.summary,
+          note: input.note,
           link: input.link,
-          attachmentIdentity,
+          unlinkedIdentity,
           tags: {
             createMany: { data: tags.map(({ id: tagId }) => ({ tagId })) },
           },
@@ -253,10 +253,10 @@ export async function saveLibraryItem(
           where: { userId_link: { userId, link: input.link } },
           include: { tags: itemTags },
         })
-      : attachmentIdentity
+      : unlinkedIdentity
         ? await prisma.libraryItem.findUnique({
             where: {
-              userId_attachmentIdentity: { userId, attachmentIdentity },
+              userId_unlinkedIdentity: { userId, unlinkedIdentity },
             },
             include: { tags: itemTags },
           })
@@ -294,7 +294,7 @@ export async function updateLibraryItem(
         data: {
           title: changes.title,
           description: changes.description,
-          summary: changes.summary,
+          note: changes.note,
           link: changes.link,
         },
         include: { tags: itemTags },
