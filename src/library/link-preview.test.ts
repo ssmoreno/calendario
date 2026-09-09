@@ -1,10 +1,16 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { parseLinkPreview } from "./link-preview";
+import { fetchLinkPreview, parseLinkPreview } from "./link-preview";
+
+vi.mock("./public-url", () => ({
+  assertPublicUrl: (url: string) => new URL(url),
+}));
 
 const PAGE = "https://example.com/posts/solid-state";
 
 describe("parseLinkPreview", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
   it("reads the Open Graph tags of a page", () => {
     const preview = parseLinkPreview(
       `<html><head>
@@ -71,6 +77,33 @@ describe("parseLinkPreview", () => {
       image: null,
       icon: "https://example.com/favicon.ico",
       siteName: null,
+    });
+  });
+
+  it("derives a thumbnail for a YouTube short link without preview tags", () => {
+    expect(
+      parseLinkPreview(
+        "<head><title>A saved video</title></head>",
+        "https://youtu.be/dQw4w9WgXcQ",
+      ),
+    ).toEqual({
+      title: "A saved video",
+      description: null,
+      image: "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
+      icon: "https://www.youtube.com/favicon.ico",
+      siteName: "YouTube",
+    });
+  });
+
+  it("keeps the YouTube thumbnail when the source page cannot be fetched", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("blocked")));
+
+    await expect(fetchLinkPreview("https://youtu.be/dQw4w9WgXcQ")).resolves.toEqual({
+      title: null,
+      description: null,
+      image: "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
+      icon: "https://www.youtube.com/favicon.ico",
+      siteName: "YouTube",
     });
   });
 });

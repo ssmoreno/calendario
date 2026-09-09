@@ -59,7 +59,10 @@ export default async function Reading({ params }: ReadingPageProps) {
 
   return (
     <article className={styles.reading} aria-labelledby="reading-title">
-      <div className={styles.readingInner}>
+      <div
+        className={styles.readingInner}
+        data-with-preview={item.link ? true : undefined}
+      >
         <nav className={styles.topBar} aria-label="Reading">
           <Link className={styles.back} href="/library">
             <ArrowLeft size={14} aria-hidden="true" />
@@ -78,28 +81,43 @@ export default async function Reading({ params }: ReadingPageProps) {
           ) : null}
         </nav>
 
-        <header className={styles.header}>
-          <p className={styles.eyebrow}>
-            <span>{host ?? "Saved item"}</span>
-            <span aria-hidden="true">·</span>
-            <span>{savedOn.format(new Date(item.createdAt))}</span>
-            {item.summary ? (
-              <>
-                <span aria-hidden="true">·</span>
-                <span>{readingMinutes(item.summary)} min read</span>
-              </>
-            ) : null}
-          </p>
-          <h1 id="reading-title">{item.title}</h1>
-          <p className={styles.lede}>{item.description}</p>
-          {item.tags.length ? (
-            <p className={styles.tags} aria-label="Tags">
-              {item.tags.map((tag) => (
-                <span key={tag}>{tag}</span>
-              ))}
+        <div
+          className={styles.hero}
+          data-with-preview={item.link ? true : undefined}
+        >
+          <header className={styles.header}>
+            <p className={styles.eyebrow}>
+              <span>{host ?? "Saved item"}</span>
+              <span aria-hidden="true">·</span>
+              <span>{savedOn.format(new Date(item.createdAt))}</span>
+              {item.summary ? (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span>{readingMinutes(item.summary)} min read</span>
+                </>
+              ) : null}
             </p>
+            <h1 id="reading-title">{item.title}</h1>
+            <p className={styles.lede}>{item.description}</p>
+            {item.tags.length ? (
+              <p className={styles.tags} aria-label="Tags">
+                {item.tags.map((tag) => (
+                  <span key={tag}>{tag}</span>
+                ))}
+              </p>
+            ) : null}
+          </header>
+
+          {item.link ? (
+            <aside className={styles.preview} aria-label="Original source">
+              <Suspense
+                fallback={<LinkCardFallback link={item.link} title={item.title} />}
+              >
+                <LinkPreviewCard link={item.link} title={item.title} />
+              </Suspense>
+            </aside>
           ) : null}
-        </header>
+        </div>
 
         {body.length ? (
           <div className={styles.body}>
@@ -114,14 +132,6 @@ export default async function Reading({ params }: ReadingPageProps) {
               : "This item was saved without a read."}
           </p>
         )}
-
-        {item.link ? (
-          <Suspense
-            fallback={<LinkCardFallback link={item.link} title={item.title} />}
-          >
-            <LinkPreviewCard link={item.link} title={item.title} />
-          </Suspense>
-        ) : null}
       </div>
     </article>
   );

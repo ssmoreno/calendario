@@ -8,6 +8,7 @@ const MAX_REDIRECTS = 3;
 const PREVIEW_MAX_AGE_SECONDS = 60 * 60 * 24;
 const MAX_TITLE_CHARS = 160;
 const MAX_DESCRIPTION_CHARS = 280;
+const YOUTUBE_VIDEO_ID = /^[\w-]{11}$/u;
 
 const ENTITIES: Record<string, string> = {
   amp: "&",
@@ -24,6 +25,61 @@ export interface LinkPreview {
   image: string | null;
   icon: string | null;
   siteName: string | null;
+}
+
+function youtubeVideoId(link: string): string | null {
+  try {
+    const url = new URL(link);
+    const host = url.hostname.toLowerCase();
+    let id: string | null = null;
+
+    if (host === "youtu.be" || host === "www.youtu.be") {
+      id = url.pathname.split("/").filter(Boolean)[0] ?? null;
+    } else if (
+      host === "youtube.com" ||
+      host.endsWith(".youtube.com") ||
+      host === "youtube-nocookie.com" ||
+      host.endsWith(".youtube-nocookie.com")
+    ) {
+      const [kind, pathId] = url.pathname.split("/").filter(Boolean);
+      if (kind === "watch") id = url.searchParams.get("v");
+      if (["embed", "live", "shorts", "v"].includes(kind ?? "")) {
+        id = pathId ?? null;
+      }
+    }
+
+    return id && YOUTUBE_VIDEO_ID.test(id) ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+function knownProviderPreview(link: string): LinkPreview | null {
+  const videoId = youtubeVideoId(link);
+  if (!videoId) return null;
+
+  return {
+    title: null,
+    description: null,
+    image: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+    icon: "https://www.youtube.com/favicon.ico",
+    siteName: "YouTube",
+  };
+}
+
+function fillPreview(
+  preview: LinkPreview,
+  fallback: LinkPreview | null,
+): LinkPreview {
+  if (!fallback) return preview;
+
+  return {
+    title: preview.title ?? fallback.title,
+    description: preview.description ?? fallback.description,
+    image: preview.image ?? fallback.image,
+    icon: preview.icon ?? fallback.icon,
+    siteName: preview.siteName ?? fallback.siteName,
+  };
 }
 
 function decodeEntities(value: string): string {
@@ -70,6 +126,7 @@ function absoluteUrl(value: string | null, pageUrl: string): string | null {
 
 export function parseLinkPreview(html: string, pageUrl: string): LinkPreview {
   const head = html.split(/<\/head\s*>/iu)[0] ?? html;
+  const provider = knownProviderPreview(pageUrl);
 
   const meta = new Map<string, string>();
   for (const [tag] of head.matchAll(/<meta\b[^>]*>/giu)) {
@@ -89,30 +146,36 @@ export function parseLinkPreview(html: string, pageUrl: string): LinkPreview {
   const first = (...keys: string[]) => keys.map((key) => meta.get(key)).find(Boolean);
   const documentTitle = /<title\b[^>]*>([\s\S]*?)<\/title\s*>/iu.exec(head)?.[1];
 
-  return {
-    title:
-      clean(first("og:title", "twitter:title"), MAX_TITLE_CHARS) ??
-      clean(documentTitle, MAX_TITLE_CHARS),
-    description: clean(
-      first("og:description", "twitter:description", "description"),
-      MAX_DESCRIPTION_CHARS,
-    ),
-    image: absoluteUrl(
-      clean(
-        first(
-          "og:image",
-          "og:image:url",
-          "og:image:secure_url",
-          "twitter:image",
-          "twitter:image:src",
-        ),
-        2_048,
+  return fillPreview(
+    {
+      title:
+        clean(first("og:title", "twitter:title"), MAX_TITLE_CHARS) ??
+        clean(documentTitle, MAX_TITLE_CHARS),
+      description: clean(
+        first("og:description", "twitter:description", "description"),
+        MAX_DESCRIPTION_CHARS,
       ),
-      pageUrl,
-    ),
-    icon: absoluteUrl(clean(icon, 2_048) ?? "/favicon.ico", pageUrl),
-    siteName: clean(first("og:site_name"), 80),
-  };
+      image: absoluteUrl(
+        clean(
+          first(
+            "og:image",
+            "og:image:url",
+            "og:image:secure_url",
+            "twitter:image",
+            "twitter:image:src",
+          ),
+          2_048,
+        ),
+        pageUrl,
+      ),
+      icon: absoluteUrl(
+        clean(icon, 2_048) ?? provider?.icon ?? "/favicon.ico",
+        pageUrl,
+      ),
+      siteName: clean(first("og:site_name"), 80),
+    },
+    provider,
+  );
 }
 
 /** Follows redirects by hand so every hop is checked against the private address guard. */
@@ -136,9 +199,11 @@ async function fetchPage(url: string, hops = MAX_REDIRECTS): Promise<Response | 
 
 /** Reads the source page's own preview tags. Returns null whenever the page will not give them up. */
 export async function fetchLinkPreview(link: string): Promise<LinkPreview | null> {
+  const fallback = knownProviderPreview(link);
+
   try {
     const response = await fetchPage(link);
-    if (!response) return null;
+    if (!response) return fallback;
 
     const contentType = response.headers.get("content-type") ?? "";
     const length = Number(response.headers.get("content-length") ?? 0);
@@ -148,12 +213,12 @@ export async function fetchLinkPreview(link: string): Promise<LinkPreview | null
       length > MAX_HTML_BYTES
     ) {
       await response.body?.cancel();
-      return null;
+      return fallback;
     }
 
     const html = (await response.text()).slice(0, MAX_HTML_CHARS);
-    return parseLinkPreview(html, response.url || link);
+    return fillPreview(parseLinkPreview(html, response.url || link), fallback);
   } catch {
-    return null;
+    return fallback;
   }
 }

@@ -5,7 +5,6 @@
   border-radius: var(--radius-sheet);
   background: var(--surface);
   color: var(--ink);
-  grid-template-columns: 224px minmax(0, 1fr);
   text-decoration: none;
   transition: border-color var(--duration-fast) var(--ease-fluid);
 }
@@ -17,10 +16,10 @@
 .frame {
   position: relative;
   display: grid;
-  min-height: 152px;
   overflow: hidden;
-  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
   background: var(--surface-2);
+  aspect-ratio: 16 / 9;
   place-items: center;
 }
 
@@ -142,17 +141,6 @@
 }
 
 @media (max-width: 600px) {
-  .card {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .frame {
-    min-height: 0;
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
-    aspect-ratio: 16 / 9;
-  }
-
   .monogram {
     font-size: 44px;
   }

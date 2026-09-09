@@ -11,6 +11,13 @@
   gap: 34px;
 }
 
+.hero {
+  display: grid;
+  padding-bottom: 30px;
+  border-bottom: 1px solid var(--line);
+  gap: 28px;
+}
+
 .topBar {
   display: flex;
   align-items: center;
@@ -53,9 +60,11 @@
 
 .header {
   display: grid;
-  padding-bottom: 30px;
-  border-bottom: 1px solid var(--line);
   gap: 18px;
+}
+
+.preview {
+  min-width: 0;
 }
 
 .eyebrow {
@@ -140,6 +149,23 @@
   color: var(--muted);
   font-size: var(--text-lg);
   line-height: var(--leading-lg);
+}
+
+@media (min-width: 901px) {
+  .readingInner[data-with-preview] {
+    width: min(100%, 1120px);
+  }
+
+  .hero[data-with-preview] {
+    grid-template-columns: minmax(0, 660px) minmax(300px, 380px);
+    align-items: start;
+    gap: clamp(40px, 6vw, 80px);
+  }
+
+  .body,
+  .noRead {
+    width: min(100%, 660px);
+  }
 }
 
 @media (max-width: 600px) {
