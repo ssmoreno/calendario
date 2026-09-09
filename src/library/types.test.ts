@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   automaticLibraryTagsSchema,
+  libraryAgentItemSchema,
   libraryItemSchema,
   libraryLinkItemSchema,
   libraryTagsSchema,
@@ -59,6 +60,46 @@ describe("library schemas", () => {
       libraryLinkItemSchema.safeParse({ ...input, note: "Keep this directly." })
         .success,
     ).toBe(true);
+  });
+
+  it("links a book to Amazon and music to Spotify, and nothing else", () => {
+    const book = {
+      title: "To Kill a Mockingbird",
+      description: "A novel about justice and moral courage.",
+      tags: ["Book"],
+    };
+    const album = {
+      title: "Kind of Blue",
+      description: "Miles Davis's 1959 modal jazz album.",
+      tags: ["Music"],
+    };
+    expect(libraryAgentItemSchema.safeParse(book).success).toBe(true);
+    expect(
+      libraryAgentItemSchema.safeParse({
+        ...book,
+        link: "https://www.amazon.com/dp/0060935464",
+      }).success,
+    ).toBe(true);
+    expect(
+      libraryAgentItemSchema.safeParse({
+        ...album,
+        link: "https://open.spotify.com/album/1weenld61qoidwYuZ1GESA",
+      }).success,
+    ).toBe(true);
+    expect(
+      libraryAgentItemSchema.safeParse({
+        ...book,
+        link: "https://open.spotify.com/album/1weenld61qoidwYuZ1GESA",
+      }).success,
+    ).toBe(false);
+    expect(
+      libraryAgentItemSchema.safeParse({
+        title: "Roast chicken",
+        description: "A weeknight roast.",
+        tags: ["Recipe"],
+        link: "https://www.amazon.com/dp/0060935464",
+      }).success,
+    ).toBe(false);
   });
 
   it("allows an understood item without storing its attachment or a link", () => {

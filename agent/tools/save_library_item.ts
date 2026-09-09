@@ -6,11 +6,11 @@ import { requireUserId } from "../lib/auth";
 
 export default defineTool({
   description:
-    "Save one unlinked note or identified subject, including a book, album, recipe, image, or PDF. Never store an attachment path or fabricate a link.",
+    "Save one note or identified subject, including a book, album, recipe, image, or PDF. A Book may link to its Amazon page and Music to its Spotify page; everything else keeps no link. Never store an attachment path or fabricate a link.",
   inputSchema: libraryAgentItemSchema,
   execute: async (input, ctx) => {
     const result = await saveLibraryItem(requireUserId(ctx), input, {
-      dedupeUnlinkedByTitle: true,
+      dedupeByTitle: true,
     });
     return { saved: result.item };
   },

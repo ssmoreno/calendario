@@ -1,6 +1,7 @@
 import { defineEval } from "eve/evals";
 import { equals, satisfies } from "eve/evals/expect";
 
+import { storeLinkFor } from "../../src/library/store-link";
 import type { LibraryItemRecord } from "../../src/library/types";
 import { prisma } from "../../src/server/db";
 import { listLibrary } from "../../src/server/library-store";
@@ -11,14 +12,14 @@ import {
 
 const itemFilter = {
   userId: LIBRARY_EVAL_USER_ID,
-  link: null,
   title: { contains: "Kind of Blue", mode: "insensitive" as const },
 };
 
 function isGroundedAlbum(value: unknown): boolean {
   const item = value as LibraryItemRecord | undefined;
+  if (!item?.link) return false;
   return Boolean(
-    item?.link === null &&
+    storeLinkFor(item.link)?.tag === "Music" &&
       item.title.toLowerCase().includes("kind of blue") &&
       item.description.toLowerCase().includes("miles davis") &&
       item.tags.includes("Music"),
@@ -27,7 +28,7 @@ function isGroundedAlbum(value: unknown): boolean {
 
 export default defineEval({
   description:
-    "A named work can be researched and saved without a URL or an unsolicited long read.",
+    "A named album is researched, linked to Spotify, and saved without an unsolicited long read.",
   async test(t) {
     await ensureLibraryEvalUser();
     await prisma.libraryItem.deleteMany({ where: itemFilter });
@@ -44,7 +45,10 @@ export default defineEval({
       t.calledTool("save_library_item", { count: 1 });
       t.notCalledTool("save_library_link");
       t.check(t.reply, equals("✅")).label("confirmation");
-      t.check(saved, satisfies(isGroundedAlbum, "saved a grounded Music item"));
+      t.check(
+        saved,
+        satisfies(isGroundedAlbum, "saved a grounded Music item on Spotify"),
+      );
       t.check(
         saved?.note?.split(/\s+/u).length ?? 0,
         satisfies((words: number) => words < 160, "did not invent a long read"),

@@ -2,6 +2,7 @@ import { Buffer } from "node:buffer";
 import { defineEval } from "eve/evals";
 import { equals, satisfies } from "eve/evals/expect";
 
+import { storeLinkFor } from "../../src/library/store-link";
 import type { LibraryItemRecord } from "../../src/library/types";
 import { prisma } from "../../src/server/db";
 import { listLibrary } from "../../src/server/library-store";
@@ -15,7 +16,6 @@ const COVER_URL =
 
 const itemFilter = {
   userId: LIBRARY_EVAL_USER_ID,
-  link: null,
   title: { contains: "Mockingbird", mode: "insensitive" as const },
 };
 
@@ -25,8 +25,9 @@ function isUsefulBook(value: unknown): boolean {
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
+  if (!item?.link) return false;
   return Boolean(
-    item?.link === null &&
+    storeLinkFor(item.link)?.tag === "Book" &&
       item.title.toLowerCase().includes("mockingbird") &&
       item.tags.includes("Book") &&
       ["harper", "lee", "scout", "finch", "justice", "race"].some((term) =>
@@ -40,7 +41,7 @@ function isUsefulBook(value: unknown): boolean {
 
 export default defineEval({
   description:
-    "A book-cover image becomes a researched Book entry without forcing an unsolicited long read.",
+    "A book-cover image becomes a researched Book entry on Amazon without forcing an unsolicited long read.",
   async test(t) {
     await ensureLibraryEvalUser();
     await prisma.libraryItem.deleteMany({ where: itemFilter });

@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { storeLinkFor } from "./store-link";
+
 export const DEFAULT_LIBRARY_TAGS = [
   "Article",
   "Book",
@@ -90,7 +92,17 @@ export const libraryAgentItemSchema = libraryItemSchema
   .omit({ link: true })
   .extend({
     tags: automaticLibraryTagsSchema,
-  });
+    link: libraryLinkSchema
+      .optional()
+      .describe(
+        "Where the work itself lives: an Amazon page for a Book, a Spotify page for Music. Leave it out for anything else.",
+      ),
+  })
+  .refine(({ link, tags }) => {
+    if (!link) return true;
+    const store = storeLinkFor(link);
+    return Boolean(store && tags.includes(store.tag));
+  }, "Link a Book to Amazon and Music to Spotify, or save no link at all.");
 
 export const linkCurationSchema = z.discriminatedUnion("status", [
   z.object({
