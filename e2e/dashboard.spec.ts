@@ -82,11 +82,12 @@ test("moves between Calendar and Library", async ({ page }, testInfo) => {
   await expect(page.getByRole("link", { name: new RegExp(itemName) })).toBeVisible();
   await expect(page).toHaveTitle("Library — SS");
 
-  const search = page.getByRole("form", { name: "Search library" });
-  await search.getByLabel(/describe what you remember/i).fill("solid-state grid");
-  await search.getByRole("checkbox", { name: "Science" }).check();
-  await search.getByRole("button", { name: "Search" }).click();
-  await expect(page).toHaveURL(/q=solid-state(?:\+|%20)grid.*tag=Science/);
+  await page
+    .getByRole("searchbox", { name: "Search the library" })
+    .fill("solid-state grid");
+  const scienceFilter = page.getByRole("button", { name: "Science" });
+  await scienceFilter.click();
+  await expect(scienceFilter).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByRole("link", { name: new RegExp(itemName) })).toBeVisible();
 
   expect(
@@ -98,12 +99,22 @@ test("moves between Calendar and Library", async ({ page }, testInfo) => {
 
   await page.getByRole("link", { name: new RegExp(itemName) }).click();
   await expect(page).toHaveURL(/\/library\/[^/]+$/);
-  await expect(page.getByRole("heading", { name: itemName })).toBeVisible();
+  const readingHeading = page.getByRole("heading", { name: itemName });
+  const sourceCard = page.getByRole("link", { name: /Read the original/ });
+  await expect(readingHeading).toBeVisible();
   await expect(page.getByText(theRead.trim())).toBeVisible();
   /* The card names itself from whatever preview the source page yields, so match its one fixed line. */
-  await expect(
-    page.getByRole("link", { name: /Read the original/ }),
-  ).toHaveAttribute("href", itemLink);
+  await expect(sourceCard).toHaveAttribute("href", itemLink);
+
+  const headingBox = await readingHeading.boundingBox();
+  const cardBox = await sourceCard.boundingBox();
+  if (!headingBox || !cardBox) throw new Error("Reading hero was not laid out.");
+  if (agentIsModal) {
+    expect(cardBox.y).toBeGreaterThan(headingBox.y + headingBox.height);
+  } else {
+    expect(cardBox.x).toBeGreaterThan(headingBox.x + headingBox.width);
+  }
+
   await expect(page).toHaveTitle(`${itemName} — SS`);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   await page.getByRole("link", { name: "Library", exact: true }).first().click();
