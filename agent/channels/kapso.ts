@@ -4,6 +4,7 @@ import type { Message, Thread } from "chat";
 import { chatSdkChannel } from "eve/channels/chat-sdk";
 
 import { messages } from "../../src/calendar/messages";
+import { recordInboundMessage } from "../../src/server/whatsapp-inbound-store";
 import {
   linkedUserId,
   redeemPairingCode,
@@ -37,6 +38,7 @@ bot.onDirectMessage(async (thread: Thread, message: Message) => {
       await thread.post(messages.whatsapp.unsupportedContent);
       return;
     }
+    await recordInboundMessage(thread.id, message.id);
     await send(content, {
       thread,
       auth: {

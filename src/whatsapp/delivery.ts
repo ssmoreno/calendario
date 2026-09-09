@@ -1,6 +1,7 @@
 import type { Thread } from "chat";
 
 import { SAVED_ITEM_REACTION } from "@/library/constants";
+import { latestInboundMessageId } from "@/server/whatsapp-inbound-store";
 
 export { SAVED_ITEM_REACTION } from "@/library/constants";
 
@@ -13,8 +14,8 @@ async function post(thread: Thread, message: string) {
   await thread.post({ markdown: message });
 }
 
-async function reactToCurrentMessage(thread: Thread): Promise<boolean> {
-  const messageId = thread.toJSON().currentMessage?.id;
+async function reactToInboundMessage(thread: Thread): Promise<boolean> {
+  const messageId = await latestInboundMessageId(thread.id);
   if (!messageId) return false;
 
   try {
@@ -36,7 +37,7 @@ export async function deliverWhatsAppMessage(
   if (event.finishReason === "tool-calls" || !event.message || !thread) return;
   if (
     event.message === SAVED_ITEM_REACTION &&
-    (await reactToCurrentMessage(thread))
+    (await reactToInboundMessage(thread))
   ) {
     return;
   }
