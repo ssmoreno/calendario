@@ -1,0 +1,159 @@
+.card {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sheet);
+  background: var(--surface);
+  color: var(--ink);
+  grid-template-columns: 224px minmax(0, 1fr);
+  text-decoration: none;
+  transition: border-color var(--duration-fast) var(--ease-fluid);
+}
+
+.card:hover {
+  border-color: var(--line-strong);
+}
+
+.frame {
+  position: relative;
+  display: grid;
+  min-height: 152px;
+  overflow: hidden;
+  border-right: 1px solid var(--line);
+  background: var(--surface-2);
+  place-items: center;
+}
+
+.frame[data-pending] {
+  animation: previewPulse 1.6s var(--ease-in-out) infinite;
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--duration-base) var(--ease-fluid);
+}
+
+.card:hover .image {
+  transform: scale(1.04);
+}
+
+/* Without an image the source still gets a face: its own initial, set large. */
+.monogram {
+  color: var(--line-strong);
+  font-family: var(--font-mono), monospace;
+  font-size: 56px;
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.body {
+  display: grid;
+  padding: 18px 20px;
+  align-content: center;
+  gap: 8px;
+}
+
+.source {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  color: var(--muted);
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  font-weight: 500;
+  gap: 7px;
+  letter-spacing: 0.08em;
+  line-height: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.mark {
+  display: grid;
+  width: 17px;
+  height: 17px;
+  flex: none;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--muted);
+  place-items: center;
+}
+
+.mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.title {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 17px;
+  font-weight: 550;
+  letter-spacing: -0.02em;
+  line-height: 24px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  text-wrap: pretty;
+}
+
+.description {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  text-wrap: pretty;
+}
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 4px;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  font-weight: 500;
+  gap: 6px;
+  letter-spacing: 0.08em;
+  line-height: 16px;
+  text-transform: uppercase;
+}
+
+.cta svg {
+  transition: transform var(--duration-fast) var(--ease-fluid);
+}
+
+.card:hover .cta svg {
+  transform: translate(2px, -2px);
+}
+
+@keyframes previewPulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@media (max-width: 600px) {
+  .card {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .frame {
+    min-height: 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    aspect-ratio: 16 / 9;
+  }
+
+  .monogram {
+    font-size: 44px;
+  }
+}

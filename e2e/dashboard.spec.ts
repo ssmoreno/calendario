@@ -100,8 +100,9 @@ test("moves between Calendar and Library", async ({ page }, testInfo) => {
   await expect(page).toHaveURL(/\/library\/[^/]+$/);
   await expect(page.getByRole("heading", { name: itemName })).toBeVisible();
   await expect(page.getByText(theRead.trim())).toBeVisible();
+  /* The card names itself from whatever preview the source page yields, so match its one fixed line. */
   await expect(
-    page.getByRole("link", { name: "Read the original example.com" }),
+    page.getByRole("link", { name: /Read the original/ }),
   ).toHaveAttribute("href", itemLink);
   await expect(page).toHaveTitle(`${itemName} — SS`);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
