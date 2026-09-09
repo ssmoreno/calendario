@@ -224,24 +224,13 @@ export function LibraryBrowser({ items, availableTags }: LibraryBrowserProps) {
           <p className={styles.eyebrow}>Personal library</p>
           <h2 id="library-heading">Library</h2>
         </div>
-        <div className={styles.headingActions}>
-          <span className={styles.headingMeta} aria-live="polite">
-            {filtering
-              ? `${visible.length} of ${items.length} ${itemLabel}`
-              : `${items.length} ${itemLabel}`}
-          </span>
-          <LibraryControls availableTags={availableTags} />
-        </div>
-      </header>
-
-      {items.length ? (
-        <>
-          <div className={styles.filters}>
-            <label className={styles.searchField}>
-              <span className={styles.eyebrow}>Describe what you remember</span>
+        <div className={styles.headingTools}>
+          <div className={styles.headingActions}>
+            {items.length ? (
               <span className={styles.searchInput}>
                 <MagnifyingGlass size={17} aria-hidden="true" />
                 <input
+                  aria-label="Search the library"
                   maxLength={160}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="e.g. database guide for type-safe queries"
@@ -249,84 +238,85 @@ export function LibraryBrowser({ items, availableTags }: LibraryBrowserProps) {
                   value={query}
                 />
               </span>
-            </label>
-            {availableTags.length ? (
-              <div
-                className={styles.filterTags}
-                role="group"
-                aria-label="Filter by every selected tag"
-              >
-                <span className={styles.filterTagsLabel}>
-                  Filter by every selected tag
-                </span>
-                <div>
-                  {availableTags.map((tag) => (
-                    <button
-                      key={tag}
-                      aria-pressed={selectedTags.includes(tag)}
-                      onClick={() => toggleTag(tag)}
-                      type="button"
-                    >
-                      {tag}
-                    </button>
-                  ))}
-                </div>
-              </div>
             ) : null}
             {filtering ? (
-              <div className={styles.filterActions}>
+              <button
+                className={styles.clearButton}
+                onClick={() => {
+                  setQuery("");
+                  setSelectedTags([]);
+                }}
+                type="button"
+              >
+                Clear filters
+              </button>
+            ) : null}
+            <span className={styles.headingMeta} aria-live="polite">
+              {filtering
+                ? `${visible.length} of ${items.length} ${itemLabel}`
+                : `${items.length} ${itemLabel}`}
+            </span>
+            <LibraryControls availableTags={availableTags} />
+          </div>
+          {items.length && availableTags.length ? (
+            <div
+              className={styles.filterTags}
+              role="group"
+              aria-label="Filter by every selected tag"
+            >
+              {availableTags.map((tag) => (
                 <button
-                  className={styles.clearButton}
-                  onClick={() => {
-                    setQuery("");
-                    setSelectedTags([]);
-                  }}
+                  key={tag}
+                  aria-pressed={selectedTags.includes(tag)}
+                  onClick={() => toggleTag(tag)}
                   type="button"
                 >
-                  Clear filters
+                  {tag}
                 </button>
-              </div>
-            ) : null}
-          </div>
-
-          {visible.length ? (
-            <ul className={styles.items}>
-              {visible.map((item) => (
-                <li key={item.id}>
-                  <Link className={styles.itemLink} href={`/library/${item.id}`}>
-                    <span className={styles.itemCopy}>
-                      <strong>{item.title}</strong>
-                      <span>{item.description}</span>
-                      <span className={styles.itemTags} aria-label="Tags">
-                        {item.tags.map((tag) => (
-                          <span key={tag}>{tag}</span>
-                        ))}
-                      </span>
-                    </span>
-                    <span className={styles.itemMeta}>
-                      {item.summary
-                        ? `${readingMinutes(item.summary)} min read`
-                        : "Read"}
-                      <ArrowRight size={13} aria-hidden="true" />
-                    </span>
-                  </Link>
-                </li>
               ))}
-            </ul>
-          ) : (
-            <div className={styles.emptyLibrary}>
-              <div>
-                <strong>No matching items</strong>
-                <span>Try fewer words or remove a tag filter.</span>
-              </div>
             </div>
-          )}
-        </>
+          ) : null}
+        </div>
+      </header>
+
+      {visible.length ? (
+        <ul className={styles.items}>
+          {visible.map((item) => (
+            <li key={item.id}>
+              <Link className={styles.itemLink} href={`/library/${item.id}`}>
+                <span className={styles.itemCopy}>
+                  <strong>{item.title}</strong>
+                  <span>{item.description}</span>
+                  <span className={styles.itemTags} aria-label="Tags">
+                    {item.tags.map((tag) => (
+                      <span key={tag}>{tag}</span>
+                    ))}
+                  </span>
+                </span>
+                <span className={styles.itemMeta}>
+                  {item.summary
+                    ? `${readingMinutes(item.summary)} min read`
+                    : "Read"}
+                  <ArrowRight size={13} aria-hidden="true" />
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
       ) : (
         <div className={styles.emptyLibrary}>
           <div>
-            <strong>No saved items yet</strong>
-            <span>Send SS a link, image, or PDF, or add one manually.</span>
+            {items.length ? (
+              <>
+                <strong>No matching items</strong>
+                <span>Try fewer words or remove a tag filter.</span>
+              </>
+            ) : (
+              <>
+                <strong>No saved items yet</strong>
+                <span>Send SS a link, image, or PDF, or add one manually.</span>
+              </>
+            )}
           </div>
         </div>
       )}
