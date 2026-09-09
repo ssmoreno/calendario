@@ -11,6 +11,7 @@ import {
   LinkPreviewCard,
 } from "@/components/library/link-card";
 import {
+  isLongLibraryNote,
   readingMinutes,
   readingParagraphs,
   sourceHost,
@@ -54,7 +55,8 @@ export async function generateMetadata({
 export default async function Reading({ params }: ReadingPageProps) {
   const { id } = await params;
   const item = await loadItem(id);
-  const body = item.summary ? readingParagraphs(item.summary) : [];
+  const body = item.note ? readingParagraphs(item.note) : [];
+  const isLongRead = item.note ? isLongLibraryNote(item.note) : false;
   const host = item.link ? sourceHost(item.link) : null;
 
   return (
@@ -90,10 +92,14 @@ export default async function Reading({ params }: ReadingPageProps) {
               <span>{host ?? "Saved item"}</span>
               <span aria-hidden="true">·</span>
               <span>{savedOn.format(new Date(item.createdAt))}</span>
-              {item.summary ? (
+              {item.note ? (
                 <>
                   <span aria-hidden="true">·</span>
-                  <span>{readingMinutes(item.summary)} min read</span>
+                  <span>
+                    {isLongRead
+                      ? `${readingMinutes(item.note)} min read`
+                      : "Note"}
+                  </span>
                 </>
               ) : null}
             </p>
@@ -120,7 +126,7 @@ export default async function Reading({ params }: ReadingPageProps) {
         </div>
 
         {body.length ? (
-          <div className={styles.body}>
+          <div className={styles.body} data-long-read={isLongRead || undefined}>
             {body.map((paragraph, index) => (
               <p key={index}>{paragraph}</p>
             ))}
@@ -128,8 +134,8 @@ export default async function Reading({ params }: ReadingPageProps) {
         ) : (
           <p className={styles.noRead}>
             {item.link
-              ? "This one was saved without a read. The original is a tap away."
-              : "This item was saved without a read."}
+              ? "This one was saved without a note. The original is a tap away."
+              : "This item was saved without a note."}
           </p>
         )}
       </div>

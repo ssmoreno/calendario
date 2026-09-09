@@ -37,13 +37,13 @@ export async function attachLinkCuratorSession(
   return t.target.attachSession(sessionIds[0]!);
 }
 
-export function isStandaloneRead(summary: string | null | undefined): boolean {
-  if (!summary) return false;
+export function isStandaloneRead(note: string | null | undefined): boolean {
+  if (!note) return false;
 
-  const wordCount = summary.split(/\s+/u).length;
+  const wordCount = note.split(/\s+/u).length;
   const describesSource =
     /\b(?:this|the) (?:image|pdf|paper|article|document|report) (?:explains|describes|discusses|presents|introduces|argues|shows)\b/iu.test(
-      summary,
+      note,
     );
 
   return wordCount >= 200 && wordCount <= 380 && !describesSource;

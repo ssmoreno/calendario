@@ -80,18 +80,17 @@ model LibraryItem {
   user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   title              String
   description        String
-  /// A one-page read of the source, written at save time by the agent.
-  /// Optional: manual entries and items saved before the reading view have none.
-  summary            String?
+  /// Useful source text, a synthesized read, or a user-authored note.
+  note               String?
   link               String?
-  /// Stable identity for attachment-derived entries so workflow retries do not duplicate them.
-  attachmentIdentity String?
+  /// Stable identity for agent-created unlinked entries so workflow retries do not duplicate them.
+  unlinkedIdentity   String?
   tags               LibraryItemTag[]
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
 
   @@unique([userId, link])
-  @@unique([userId, attachmentIdentity])
+  @@unique([userId, unlinkedIdentity])
   @@unique([id, userId])
   @@index([userId, createdAt])
   @@map("library_item")

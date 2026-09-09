@@ -11,6 +11,7 @@ import type {
   UseEveAgentSnapshot,
 } from "eve/react";
 
+import { SAVED_ITEM_REACTION } from "@/library/constants";
 import {
   clearSavedAgent,
   readSavedAgent,
@@ -39,12 +40,42 @@ function pendingRequests(data: EveMessageData): readonly EveMessageInputRequest[
     });
 }
 
-function Message({ children, role }: { children: ReactNode; role: EveMessage["role"] }) {
+function Message({
+  children,
+  reacted = false,
+  role,
+}: {
+  children: ReactNode;
+  reacted?: boolean;
+  role: EveMessage["role"];
+}) {
   return (
     <article className={styles.message} data-role={role}>
       <span>{role === "user" ? "You" : "SS"}</span>
       {children}
+      {reacted ? (
+        <span
+          aria-label="SS reacted with a check mark"
+          className={styles.reaction}
+          role="img"
+        >
+          {SAVED_ITEM_REACTION}
+        </span>
+      ) : null}
     </article>
+  );
+}
+
+function savedReactionTurnIds(messages: readonly EveMessage[]): Set<string> {
+  return new Set(
+    messages.flatMap((message) => {
+      const turnId = message.metadata?.turnId;
+      return message.role === "assistant" &&
+        turnId &&
+        messageText(message) === SAVED_ITEM_REACTION
+        ? [turnId]
+        : [];
+    }),
   );
 }
 
@@ -155,6 +186,7 @@ function HydratedAgentPanel({
   const unshownFailures = [...failedTurns(agent.events)].filter(
     (turnId) => !turnsWithMessage.has(turnId),
   );
+  const savedReactions = savedReactionTurnIds(agent.data.messages);
 
   useEffect(() => {
     const transcript = transcriptRef.current;
@@ -236,13 +268,23 @@ function HydratedAgentPanel({
           {agent.data.messages.map((message) => {
             if (isRunning(message)) return <WorkingMessage key={message.id} />;
             const text = messageText(message);
+            if (message.role === "assistant" && text === SAVED_ITEM_REACTION) {
+              return null;
+            }
             if (!text) {
               return message.role === "assistant" ? (
                 <FailedMessage key={message.id} />
               ) : null;
             }
             return (
-              <Message key={message.id} role={message.role}>
+              <Message
+                key={message.id}
+                reacted={
+                  message.role === "user" &&
+                  savedReactions.has(message.metadata?.turnId ?? "")
+                }
+                role={message.role}
+              >
                 <p className={styles.messageText}>{text}</p>
               </Message>
             );
@@ -318,7 +360,7 @@ function HydratedAgentPanel({
             ref={inputRef}
             aria-label="Ask SS"
             disabled={isBusy}
-            placeholder="Ask SS to schedule something or save a link…"
+            placeholder="Ask SS to schedule something or save anything…"
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
           />

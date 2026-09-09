@@ -72,7 +72,7 @@ test("moves between Calendar and Library", async ({ page }, testInfo) => {
   const itemForm = page.getByRole("form", { name: "Create library item" });
   await itemForm.getByLabel("Title").fill(itemName);
   await itemForm.getByLabel("Description").fill("How solid-state cells change the grid.");
-  await itemForm.getByLabel("The read (optional)").fill(theRead);
+  await itemForm.getByLabel("Note (optional)").fill(theRead);
   await itemForm.getByLabel("Link").fill(itemLink);
   await itemForm.getByRole("checkbox", { name: "Article" }).check();
   await itemForm.getByRole("checkbox", { name: "Science" }).check();

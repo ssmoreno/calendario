@@ -49,16 +49,20 @@ export default defineEval({
           link: LINK,
           title: curation.title,
           description: curation.description,
-          summary: curation.summary,
+          note: curation.note,
           tags: curation.tags,
         }),
       ).label("curator handoff");
       t.check(first.message, equals("✅")).label("first confirmation");
       t.check(second.message, equals("✅")).label("duplicate confirmation");
       t.check(saved.length, equals(1)).label("saved links");
-      t.check(libraryItemSchema.safeParse(saved[0]).success, equals(true)).label(
-        "saved metadata",
-      );
+      t.check(
+        libraryItemSchema.safeParse({
+          ...saved[0],
+          note: saved[0]?.note ?? undefined,
+        }).success,
+        equals(true),
+      ).label("saved metadata");
     } finally {
       await prisma.libraryItem.deleteMany({
         where: { userId: LIBRARY_EVAL_USER_ID, link: LINK },

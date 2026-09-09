@@ -7,31 +7,25 @@ import { listLibrary } from "../../src/server/library-store";
 import {
   attachLinkCuratorSession,
   ensureLibraryEvalUser,
-  isStandaloneRead,
   LIBRARY_EVAL_USER_ID,
 } from "./helpers";
 
-const LINK = "https://arxiv.org/pdf/1706.03762";
+const LINK = "https://x.com/jack/status/20";
 
-function isUsefulPaper(value: unknown): boolean {
+function preservesShortPost(value: unknown): boolean {
   const item = value as LibraryItemRecord | undefined;
   const note = item?.note?.toLowerCase();
-
-  if (!item?.title || !note || !item.tags.includes("Paper")) {
-    return false;
-  }
-
-  const hasPaperSubstance =
-    note.includes("attention") &&
-    ["encoder", "decoder", "translation", "bleu", "recurrent"].some(
-      (term) => note.includes(term),
-    );
-  return isStandaloneRead(note) && hasPaperSubstance;
+  return Boolean(
+    item?.link === LINK &&
+      item.tags.includes("Post") &&
+      note?.includes("just setting up my twttr") &&
+      note.split(/\s+/u).length < 50,
+  );
 }
 
 export default defineEval({
   description:
-    "A PDF URL is read as extracted text and saved as a substantive standalone read.",
+    "A short X post is stored as its own text instead of being inflated into a summary.",
   async test(t) {
     await ensureLibraryEvalUser();
     await prisma.libraryItem.deleteMany({
@@ -54,7 +48,10 @@ export default defineEval({
       curator.calledTool("web_fetch", { count: (count) => count >= 1 });
       curator.calledTool("web_search", { count: (count) => count >= 1 });
       t.check(t.reply, equals("✅")).label("confirmation");
-      t.check(saved, satisfies(isUsefulPaper, "saved a useful paper read"));
+      t.check(
+        saved,
+        satisfies(preservesShortPost, "saved the post text directly"),
+      );
     } finally {
       await prisma.libraryItem.deleteMany({
         where: { userId: LIBRARY_EVAL_USER_ID, link: LINK },

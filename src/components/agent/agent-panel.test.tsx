@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { ClientSessionState, MessageStreamEvent } from "eve/client";
 import type { EveMessage } from "eve/react";
 
+import { SAVED_ITEM_REACTION } from "@/library/constants";
 import { writeSavedAgent } from "./agent-storage";
 import { AgentPanel } from "./agent-panel";
 
@@ -77,6 +78,15 @@ function renderPanel(
 
 const NOTICE = /Something went wrong on my end/;
 
+function assistantMessage(turnId: string, text: string): EveMessage {
+  return {
+    id: `${turnId}:assistant`,
+    metadata: { status: "complete", turnId },
+    parts: [{ state: "done", text, type: "text" }],
+    role: "assistant",
+  };
+}
+
 describe("AgentPanel", () => {
   it("says a settled turn failed instead of showing the user nothing", () => {
     renderPanel(
@@ -97,15 +107,23 @@ describe("AgentPanel", () => {
   it("stays quiet when the turn replied", () => {
     renderPanel([
       userMessage("turn_1", "do you know my name?"),
-      {
-        id: "turn_1:assistant",
-        metadata: { status: "complete", turnId: "turn_1" },
-        parts: [{ state: "done", text: "You're Santi.", type: "text" }],
-        role: "assistant",
-      },
+      assistantMessage("turn_1", "You're Santi."),
     ]);
 
     expect(screen.getByText("You're Santi.")).toBeDefined();
     expect(screen.queryByText(NOTICE)).toBeNull();
+  });
+
+  it("shows a save confirmation as a reaction on the user's message", () => {
+    renderPanel([
+      userMessage("turn_1", "Save Kind of Blue."),
+      assistantMessage("turn_1", SAVED_ITEM_REACTION),
+    ]);
+
+    expect(screen.getAllByRole("article")).toHaveLength(1);
+    expect(screen.getByText("Save Kind of Blue.")).toBeDefined();
+    expect(
+      screen.getByRole("img", { name: "SS reacted with a check mark" }),
+    ).toBeDefined();
   });
 });

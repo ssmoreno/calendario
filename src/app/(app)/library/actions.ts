@@ -15,12 +15,12 @@ export async function createLibraryItemAction(
   _state: LibraryActionState,
   formData: FormData,
 ): Promise<LibraryActionState> {
-  const summary = String(formData.get("summary") ?? "").trim();
+  const note = String(formData.get("note") ?? "").trim();
   const link = String(formData.get("link") ?? "").trim();
   const parsed = libraryItemSchema.safeParse({
     title: formData.get("title"),
     description: formData.get("description"),
-    summary: summary || undefined,
+    note: note || undefined,
     link: link || undefined,
     tags: formData.getAll("tags"),
   });

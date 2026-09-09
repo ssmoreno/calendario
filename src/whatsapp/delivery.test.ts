@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Thread } from "chat";
 
-import { deliverWhatsAppMessage, SAVED_LINK_ACK } from "./delivery";
+import { deliverWhatsAppMessage, SAVED_ITEM_REACTION } from "./delivery";
 
 function threadWith(messageId: string | undefined) {
   const addReaction = vi.fn().mockResolvedValue(undefined);
@@ -35,23 +35,51 @@ describe("deliverWhatsAppMessage", () => {
     expect(addReaction).not.toHaveBeenCalled();
   });
 
-  it("posts saved-link confirmations so they remain visible in the chat", async () => {
+  it("reacts to the saved item without posting a separate reply", async () => {
     const { addReaction, post, thread } = threadWith("message-1");
 
     await deliverWhatsAppMessage(
-      { finishReason: "stop", message: SAVED_LINK_ACK },
+      { finishReason: "stop", message: SAVED_ITEM_REACTION },
       thread,
     );
 
-    expect(post).toHaveBeenCalledWith({ markdown: SAVED_LINK_ACK });
+    expect(addReaction).toHaveBeenCalledWith(
+      "kapso:phone:user",
+      "message-1",
+      SAVED_ITEM_REACTION,
+    );
+    expect(post).not.toHaveBeenCalled();
+  });
+
+  it("posts the confirmation when the inbound message cannot be resolved", async () => {
+    const { addReaction, post, thread } = threadWith(undefined);
+
+    await deliverWhatsAppMessage(
+      { finishReason: "stop", message: SAVED_ITEM_REACTION },
+      thread,
+    );
+
     expect(addReaction).not.toHaveBeenCalled();
+    expect(post).toHaveBeenCalledWith({ markdown: SAVED_ITEM_REACTION });
+  });
+
+  it("posts the confirmation when the platform rejects the reaction", async () => {
+    const { addReaction, post, thread } = threadWith("message-1");
+    addReaction.mockRejectedValueOnce(new Error("reaction unavailable"));
+
+    await deliverWhatsAppMessage(
+      { finishReason: "stop", message: SAVED_ITEM_REACTION },
+      thread,
+    );
+
+    expect(post).toHaveBeenCalledWith({ markdown: SAVED_ITEM_REACTION });
   });
 
   it("ignores intermediate tool-call messages", async () => {
     const { addReaction, post, thread } = threadWith("message-1");
 
     await deliverWhatsAppMessage(
-      { finishReason: "tool-calls", message: SAVED_LINK_ACK },
+      { finishReason: "tool-calls", message: SAVED_ITEM_REACTION },
       thread,
     );
 

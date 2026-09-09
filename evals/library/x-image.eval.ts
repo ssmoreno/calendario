@@ -7,7 +7,6 @@ import { listLibrary } from "../../src/server/library-store";
 import {
   attachLinkCuratorSession,
   ensureLibraryEvalUser,
-  isStandaloneRead,
   LIBRARY_EVAL_USER_ID,
 } from "./helpers";
 
@@ -15,21 +14,23 @@ const LINK = "https://x.com/NASA/status/2040059770237849635/photo/1";
 
 function isUsefulImagePost(value: unknown): boolean {
   const item = value as LibraryItemRecord | undefined;
-  const summary = item?.summary?.toLowerCase();
+  const content = [item?.title, item?.description, item?.note]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
 
   return Boolean(
     item?.link === LINK &&
-      isStandaloneRead(item.summary) &&
-      summary?.includes("earth") &&
+      content.includes("earth") &&
       ["aurora", "moon", "blue", "brown"].some((term) =>
-        summary.includes(term),
+        content.includes(term),
       ),
   );
 }
 
 export default defineEval({
   description:
-    "An X post with a substantive image is visually inspected and saved as a useful read.",
+    "An X post with a substantive image is visually inspected and saved without forcing a long read.",
   async test(t) {
     await ensureLibraryEvalUser();
     await prisma.libraryItem.deleteMany({

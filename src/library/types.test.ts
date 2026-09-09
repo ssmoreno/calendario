@@ -3,12 +3,13 @@ import { describe, expect, it } from "vitest";
 import {
   automaticLibraryTagsSchema,
   libraryItemSchema,
+  libraryLinkItemSchema,
   libraryTagsSchema,
   normalizeLibraryTagName,
   updateLibraryItemSchema,
 } from "./types";
 
-const summary = "Prisma types your queries end to end. ".repeat(8);
+const note = "Prisma types your queries end to end. ".repeat(8);
 
 describe("library schemas", () => {
   it("trims item text and cleans tag whitespace", () => {
@@ -16,20 +17,20 @@ describe("library schemas", () => {
       libraryItemSchema.parse({
         title: "  Guide  ",
         description: "  Useful reference  ",
-        summary: `  ${summary}  `,
+        note: `  ${note}  `,
         link: "https://example.com/guide",
         tags: ["  Documentation  ", "Reading   List"],
       }),
     ).toEqual({
       title: "Guide",
       description: "Useful reference",
-      summary: summary.trim(),
+      note: note.trim(),
       link: "https://example.com/guide",
       tags: ["Documentation", "Reading List"],
     });
   });
 
-  it("keeps the read optional but long enough to be one", () => {
+  it("keeps a note optional and accepts faithful short source text", () => {
     const input = {
       title: "Guide",
       description: "Reference",
@@ -38,12 +39,26 @@ describe("library schemas", () => {
     };
     expect(libraryItemSchema.safeParse(input).success).toBe(true);
     expect(
-      libraryItemSchema.safeParse({ ...input, summary: "Too short." }).success,
-    ).toBe(false);
+      libraryItemSchema.safeParse({ ...input, note: "Too short." }).success,
+    ).toBe(true);
     expect(
-      libraryItemSchema.safeParse({ ...input, summary: summary.repeat(20) })
+      libraryItemSchema.safeParse({ ...input, note: note.repeat(20) })
         .success,
     ).toBe(false);
+  });
+
+  it("requires every curated link to keep a note", () => {
+    const input = {
+      title: "A short post",
+      description: "One useful sentence.",
+      link: "https://example.com/post",
+      tags: ["Post"],
+    };
+    expect(libraryLinkItemSchema.safeParse(input).success).toBe(false);
+    expect(
+      libraryLinkItemSchema.safeParse({ ...input, note: "Keep this directly." })
+        .success,
+    ).toBe(true);
   });
 
   it("allows an understood item without storing its attachment or a link", () => {
@@ -51,7 +66,7 @@ describe("library schemas", () => {
       libraryItemSchema.safeParse({
         title: "To Kill a Mockingbird",
         description: "A novel about justice and moral courage.",
-        summary,
+        note,
         tags: ["Book"],
       }).success,
     ).toBe(true);
@@ -96,7 +111,9 @@ describe("library schemas", () => {
   });
 
   it("keeps agent-generated tags within the standard broad set", () => {
-    expect(automaticLibraryTagsSchema.safeParse(["Book"]).success).toBe(true);
+    expect(
+      automaticLibraryTagsSchema.safeParse(["Book", "Music", "Post"]).success,
+    ).toBe(true);
     expect(automaticLibraryTagsSchema.safeParse(["Books"]).success).toBe(
       false,
     );
@@ -117,7 +134,7 @@ describe("library schemas", () => {
     expect(
       updateLibraryItemSchema.safeParse({
         itemId: "item-1",
-        changes: { summary: null },
+        changes: { note: null },
       }).success,
     ).toBe(true);
     expect(
