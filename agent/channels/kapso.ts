@@ -10,6 +10,7 @@ import {
 } from "../../src/server/whatsapp-link-store";
 import { extractPairingCode } from "../../src/whatsapp/pairing";
 import { deliverWhatsAppMessage } from "../../src/whatsapp/delivery";
+import { whatsAppMessageContent } from "../../src/whatsapp/inbound";
 
 const adapter = createKapsoAdapter();
 
@@ -31,11 +32,12 @@ bot.onDirectMessage(async (thread: Thread, message: Message) => {
   const userId = await linkedUserId(waId);
 
   if (userId) {
-    if (!text) {
-      await thread.post(messages.whatsapp.textOnly);
+    const content = await whatsAppMessageContent(message);
+    if (!content) {
+      await thread.post(messages.whatsapp.unsupportedContent);
       return;
     }
-    await send(text, {
+    await send(content, {
       thread,
       auth: {
         attributes: { waId },

@@ -51,7 +51,7 @@ export default async function Reading({ params }: ReadingPageProps) {
   const { id } = await params;
   const item = await loadItem(id);
   const body = item.summary ? readingParagraphs(item.summary) : [];
-  const host = sourceHost(item.link);
+  const host = item.link ? sourceHost(item.link) : null;
 
   return (
     <article className={styles.reading} aria-labelledby="reading-title">
@@ -61,20 +61,22 @@ export default async function Reading({ params }: ReadingPageProps) {
             <ArrowLeft size={14} aria-hidden="true" />
             {messages.views.library}
           </Link>
-          <a
-            className={styles.sourceLink}
-            href={item.link}
-            target="_blank"
-            rel="noreferrer"
-          >
-            {host}
-            <ArrowUpRight size={13} aria-hidden="true" />
-          </a>
+          {item.link && host ? (
+            <a
+              className={styles.sourceLink}
+              href={item.link}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {host}
+              <ArrowUpRight size={13} aria-hidden="true" />
+            </a>
+          ) : null}
         </nav>
 
         <header className={styles.header}>
           <p className={styles.eyebrow}>
-            <span>{host}</span>
+            <span>{host ?? "Saved item"}</span>
             <span aria-hidden="true">·</span>
             <span>{savedOn.format(new Date(item.createdAt))}</span>
             {item.summary ? (
@@ -103,22 +105,26 @@ export default async function Reading({ params }: ReadingPageProps) {
           </div>
         ) : (
           <p className={styles.noRead}>
-            This one was saved without a read. The original is a tap away.
+            {item.link
+              ? "This one was saved without a read. The original is a tap away."
+              : "This item was saved without a read."}
           </p>
         )}
 
-        <a
-          className={styles.original}
-          href={item.link}
-          target="_blank"
-          rel="noreferrer"
-        >
-          <span>
-            <span className={styles.originalLabel}>Read the original</span>
-            <span className={styles.originalHost}>{host}</span>
-          </span>
-          <ArrowUpRight size={18} aria-hidden="true" />
-        </a>
+        {item.link && host ? (
+          <a
+            className={styles.original}
+            href={item.link}
+            target="_blank"
+            rel="noreferrer"
+          >
+            <span>
+              <span className={styles.originalLabel}>Read the original</span>
+              <span className={styles.originalHost}>{host}</span>
+            </span>
+            <ArrowUpRight size={18} aria-hidden="true" />
+          </a>
+        ) : null}
       </div>
     </article>
   );

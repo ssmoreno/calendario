@@ -15,7 +15,10 @@ import {
   createLibraryItemAction,
   type LibraryActionState,
 } from "@/app/(app)/library/actions";
-import { LIBRARY_TAGS } from "@/library/types";
+import {
+  DEFAULT_LIBRARY_TAGS,
+  normalizeLibraryTagName,
+} from "@/library/types";
 import styles from "./library.module.css";
 
 const INITIAL_STATE: LibraryActionState = {};
@@ -34,7 +37,7 @@ function FormStatus({ state }: { state: LibraryActionState }) {
   );
 }
 
-function ItemForm() {
+function ItemForm({ availableTags }: { availableTags: string[] }) {
   const form = useRef<HTMLFormElement>(null);
   const [state, createItem, pending] = useActionState(
     createLibraryItemAction,
@@ -44,6 +47,15 @@ function ItemForm() {
   useEffect(() => {
     if (state.success) form.current?.reset();
   }, [state]);
+
+  const tags = [
+    ...new Map(
+      [...DEFAULT_LIBRARY_TAGS, ...availableTags].map((tag) => [
+        normalizeLibraryTagName(tag),
+        tag,
+      ]),
+    ).values(),
+  ];
 
   return (
     <form
@@ -75,19 +87,18 @@ function ItemForm() {
         />
       </label>
       <label className={styles.field}>
-        <span>Link</span>
+        <span>Link (optional)</span>
         <input
           name="link"
           type="url"
           maxLength={2_048}
           placeholder="https://"
-          required
         />
       </label>
       <fieldset className={styles.tagPicker}>
         <legend>Tags</legend>
         <div>
-          {LIBRARY_TAGS.map((tag) => (
+          {tags.map((tag) => (
             <label key={tag}>
               <input name="tags" type="checkbox" value={tag} />
               <span>{tag}</span>
@@ -103,7 +114,7 @@ function ItemForm() {
   );
 }
 
-function CreateDialog() {
+function CreateDialog({ availableTags }: { availableTags: string[] }) {
   return (
     <DialogTrigger>
       <Button className={styles.addButton}>
@@ -130,9 +141,9 @@ function CreateDialog() {
                   </button>
                 </header>
                 <p className={styles.dialogDescription}>
-                  Save a link with a short description and broad tags.
+                  Save something worth returning to, with or without a link.
                 </p>
-                <ItemForm />
+                <ItemForm availableTags={availableTags} />
               </>
             )}
           </Dialog>
@@ -142,6 +153,6 @@ function CreateDialog() {
   );
 }
 
-export function LibraryControls() {
-  return <CreateDialog />;
+export function LibraryControls({ availableTags }: { availableTags: string[] }) {
+  return <CreateDialog availableTags={availableTags} />;
 }

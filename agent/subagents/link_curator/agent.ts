@@ -4,7 +4,7 @@ import { linkCurationSchema } from "../../../src/library/types";
 
 export default defineAgent({
   description:
-    "Open one web link and return a grounded title, concise description, and broad library tags.",
+    "Research one web link and return grounded metadata plus a useful standalone read.",
   model: "openai/gpt-5.6-luna",
   reasoning: "medium",
   outputSchema: linkCurationSchema,

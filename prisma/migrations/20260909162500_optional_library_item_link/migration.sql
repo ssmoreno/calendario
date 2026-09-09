@@ -1,0 +1,1 @@
+ALTER TABLE "library_item" ALTER COLUMN "link" DROP NOT NULL;

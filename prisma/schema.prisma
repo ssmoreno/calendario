@@ -8,16 +8,17 @@ datasource db {
 }
 
 model User {
-  id            String        @id
+  id            String               @id
   name          String
   email         String
-  emailVerified Boolean       @default(false)
+  emailVerified Boolean              @default(false)
   image         String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
   sessions      Session[]
   accounts      Account[]
   libraryItems  LibraryItem[]
+  libraryTags   LibraryTag[]
   whatsAppLink  WhatsAppLink?
   whatsAppCode  WhatsAppPairingCode?
 
@@ -74,23 +75,54 @@ model Verification {
 }
 
 model LibraryItem {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title       String
-  description String
-  /// A one-page read of the link, written at save time by the link curator.
+  id                 String           @id @default(cuid())
+  userId             String
+  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title              String
+  description        String
+  /// A one-page read of the source, written at save time by the agent.
   /// Optional: manual entries and items saved before the reading view have none.
-  summary     String?
-  link        String
-  tags        String[] @default([])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  summary            String?
+  link               String?
+  /// Stable identity for attachment-derived entries so workflow retries do not duplicate them.
+  attachmentIdentity String?
+  tags               LibraryItemTag[]
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
 
   @@unique([userId, link])
+  @@unique([userId, attachmentIdentity])
+  @@unique([id, userId])
   @@index([userId, createdAt])
-  @@index([tags], type: Gin)
   @@map("library_item")
+}
+
+model LibraryTag {
+  id             String           @id @default(cuid())
+  userId         String
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name           String
+  normalizedName String
+  items          LibraryItemTag[]
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@unique([userId, normalizedName])
+  @@unique([id, userId])
+  @@index([userId, createdAt])
+  @@map("library_tag")
+}
+
+model LibraryItemTag {
+  userId String
+  itemId String
+  tagId  String
+  item   LibraryItem @relation(fields: [itemId, userId], references: [id, userId], onDelete: Cascade)
+  tag    LibraryTag  @relation(fields: [tagId, userId], references: [id, userId], onDelete: Cascade)
+
+  @@id([itemId, tagId])
+  @@index([tagId, userId])
+  @@map("library_item_tag")
 }
 
 /// Eve does not enforce session ownership, so the channel checks this table on
