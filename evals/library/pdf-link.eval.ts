@@ -31,7 +31,7 @@ function isUsefulPaper(value: unknown): boolean {
 
 export default defineEval({
   description:
-    "A PDF URL is researched beyond its binary response and saved as a substantive standalone read.",
+    "A PDF URL is read as extracted text and saved as a substantive standalone read.",
   async test(t) {
     await ensureLibraryEvalUser();
     await prisma.libraryItem.deleteMany({
@@ -51,7 +51,7 @@ export default defineEval({
       t.calledTool("save_library_link", { count: 1, input: { link: LINK } });
       curator.succeeded();
       curator.noFailedActions();
-      curator.calledTool("web_fetch", { count: (count) => count >= 2 });
+      curator.calledTool("web_fetch", { count: (count) => count >= 1 });
       curator.calledTool("web_search", { count: (count) => count >= 1 });
       t.check(t.reply, equals("✅")).label("confirmation");
       t.check(saved, satisfies(isUsefulPaper, "saved a useful paper read"));
