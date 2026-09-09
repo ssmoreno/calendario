@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
-import { cache } from "react";
+import { cache, Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "@phosphor-icons/react/dist/ssr/ArrowLeft";
 import { ArrowUpRight } from "@phosphor-icons/react/dist/ssr/ArrowUpRight";
 
 import { messages } from "@/calendar/messages";
+import {
+  LinkCardFallback,
+  LinkPreviewCard,
+} from "@/components/library/link-card";
 import {
   readingMinutes,
   readingParagraphs,
@@ -111,19 +115,12 @@ export default async function Reading({ params }: ReadingPageProps) {
           </p>
         )}
 
-        {item.link && host ? (
-          <a
-            className={styles.original}
-            href={item.link}
-            target="_blank"
-            rel="noreferrer"
+        {item.link ? (
+          <Suspense
+            fallback={<LinkCardFallback link={item.link} title={item.title} />}
           >
-            <span>
-              <span className={styles.originalLabel}>Read the original</span>
-              <span className={styles.originalHost}>{host}</span>
-            </span>
-            <ArrowUpRight size={18} aria-hidden="true" />
-          </a>
+            <LinkPreviewCard link={item.link} title={item.title} />
+          </Suspense>
         ) : null}
       </div>
     </article>

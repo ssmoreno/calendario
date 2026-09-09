@@ -142,49 +142,6 @@
   line-height: var(--leading-lg);
 }
 
-.original {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sheet);
-  background: var(--surface);
-  color: var(--ink);
-  gap: 16px;
-  text-decoration: none;
-  transition:
-    background-color var(--duration-fast) var(--ease-fluid),
-    border-color var(--duration-fast) var(--ease-fluid);
-}
-
-.original:hover {
-  border-color: var(--line-strong);
-  background: var(--surface-2);
-}
-
-.original > span {
-  display: grid;
-  min-width: 0;
-  gap: 5px;
-}
-
-.originalLabel {
-  font-size: var(--text-sm);
-  font-weight: 600;
-  line-height: var(--leading-sm);
-}
-
-.originalHost {
-  overflow: hidden;
-  color: var(--muted);
-  font-family: var(--font-mono), monospace;
-  font-size: 12px;
-  line-height: 16px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 @media (max-width: 600px) {
   .reading {
     padding: 20px 16px 40px;
