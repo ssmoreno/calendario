@@ -1,0 +1,8 @@
+.context
+.eve
+.git
+.next
+.vercel
+node_modules
+src/generated
+*.tsbuildinfo

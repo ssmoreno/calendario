@@ -19,6 +19,7 @@ model User {
   accounts      Account[]
   libraryItems  LibraryItem[]
   libraryTags   LibraryTag[]
+  reminders     Reminder[]
   whatsAppLink  WhatsAppLink?
   whatsAppCode  WhatsAppPairingCode?
 
@@ -122,6 +123,32 @@ model LibraryItemTag {
   @@id([itemId, tagId])
   @@index([tagId, userId])
   @@map("library_item_tag")
+}
+
+/// A one-off nudge the agent texts back at `remindAt`. The dispatcher claims a
+/// row by taking a short lease, so two overlapping ticks cannot both send it.
+model Reminder {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// What to say, already phrased by the agent in the user's own language.
+  body        String
+  remindAt    DateTime
+  /// The IANA zone it was resolved in, so it reads back in local time.
+  timeZone    String
+  deliveredAt DateTime?
+  /// Held while a send is in flight. An expired lease is retried.
+  leaseUntil  DateTime?
+  /// Identifies the dispatcher tick holding the lease, so a claim can read back
+  /// exactly the rows it won.
+  leaseToken  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId, remindAt])
+  @@index([deliveredAt, remindAt])
+  @@index([leaseToken])
+  @@map("reminder")
 }
 
 /// Eve does not enforce session ownership, so the channel checks this table on

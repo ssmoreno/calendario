@@ -28,7 +28,7 @@ async function cleanUp() {
 
 export default defineEval({
   description:
-    "The agent creates and renames tags, updates an item, and requests approval before deletions.",
+    "The agent creates and renames tags, updates an item, and deletes an item and a tag without prompting.",
   async test(t) {
     await ensureLibraryEvalUser();
     await cleanUp();
@@ -62,18 +62,12 @@ export default defineEval({
       const deleteItem = await t.send(
         "Delete the Prisma handbook from my library.",
       );
-      deleteItem.parked();
-      deleteItem.calledTool("list_library_items", { count: 1 });
-      t.requireInputRequest({ toolName: "delete_library_item" });
-      const deletedItem = await t.respondAll("approve");
-      deletedItem.succeeded();
+      deleteItem.succeeded();
+      deleteItem.toolOrder(["list_library_items", "delete_library_item"]);
 
       const deleteTag = await t.send("Delete the To Read tag.");
-      deleteTag.parked();
-      deleteTag.calledTool("list_library_tags", { count: 1 });
-      t.requireInputRequest({ toolName: "delete_library_tag" });
-      const deletedTag = await t.respondAll("approve");
-      deletedTag.succeeded();
+      deleteTag.succeeded();
+      deleteTag.toolOrder(["list_library_tags", "delete_library_tag"]);
 
       t.noFailedActions();
       t.calledTool("delete_library_item", { count: 1 });
