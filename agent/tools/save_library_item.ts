@@ -2,7 +2,8 @@ import { defineTool } from "eve/tools";
 
 import { libraryAgentItemSchema } from "../../src/library/types";
 import { saveLibraryItem } from "../../src/server/library-store";
-import { requireUserId } from "../lib/auth";
+import { recordLibrarySave } from "../../src/server/whatsapp-inbound-store";
+import { maybeThreadId, requireUserId } from "../lib/auth";
 
 export default defineTool({
   description:
@@ -12,6 +13,8 @@ export default defineTool({
     const result = await saveLibraryItem(requireUserId(ctx), input, {
       dedupeByTitle: true,
     });
+    const threadId = maybeThreadId(ctx);
+    if (threadId) await recordLibrarySave(threadId);
     return { saved: result.item };
   },
 });

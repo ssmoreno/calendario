@@ -2,7 +2,8 @@ import { defineTool } from "eve/tools";
 
 import { libraryLinkItemSchema } from "../../src/library/types";
 import { saveLibraryItem } from "../../src/server/library-store";
-import { requireUserId } from "../lib/auth";
+import { recordLibrarySave } from "../../src/server/whatsapp-inbound-store";
+import { maybeThreadId, requireUserId } from "../lib/auth";
 
 export default defineTool({
   description:
@@ -10,6 +11,8 @@ export default defineTool({
   inputSchema: libraryLinkItemSchema,
   execute: async (input, ctx) => {
     const result = await saveLibraryItem(requireUserId(ctx), input);
+    const threadId = maybeThreadId(ctx);
+    if (threadId) await recordLibrarySave(threadId);
     return result.created
       ? { saved: result.item }
       : { alreadySaved: result.item };

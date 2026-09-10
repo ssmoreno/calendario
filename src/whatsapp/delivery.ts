@@ -1,5 +1,6 @@
 import type { Thread } from "chat";
 
+import { messages } from "@/calendar/messages";
 import { SAVED_ITEM_REACTION } from "@/library/constants";
 import {
   clearShownInboundMessages,
@@ -51,7 +52,15 @@ export async function deliverWhatsAppMessage(
     return;
   }
 
-  const batch = await shownInboundBatch(thread.id);
+  const { messages: batch, saved } = await shownInboundBatch(thread.id);
+  if (batch.length && !saved) {
+    // A tick claims an item was saved. Nothing was, so the marks would confirm
+    // work that never happened and the user would never learn it was lost.
+    await post(thread, acknowledgement.reply || messages.whatsapp.notSaved);
+    await clearShownInboundMessages(thread.id);
+    return;
+  }
+
   const reacted = await Promise.all(
     ticked(batch, acknowledgement.positions).map((message) =>
       react(thread, message.messageId),

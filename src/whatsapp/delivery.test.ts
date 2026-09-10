@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Thread } from "chat";
 
+import { messages } from "@/calendar/messages";
 import type { InboundMessage } from "@/server/whatsapp-inbound-store";
 
 const storeMocks = vi.hoisted(() => ({
@@ -19,10 +20,10 @@ function batchOf(...messageIds: string[]): InboundMessage[] {
   return messageIds.map((messageId) => ({ messageId, preview: messageId }));
 }
 
-function threadWith(batch: InboundMessage[]) {
+function threadWith(batch: InboundMessage[], saved = true) {
   const addReaction = vi.fn().mockResolvedValue(undefined);
   const post = vi.fn().mockResolvedValue(undefined);
-  storeMocks.shownInboundBatch.mockResolvedValue(batch);
+  storeMocks.shownInboundBatch.mockResolvedValue({ messages: batch, saved });
   storeMocks.clearShownInboundMessages.mockResolvedValue(undefined);
   const thread = {
     adapter: { addReaction },
@@ -153,6 +154,46 @@ describe("deliverWhatsAppMessage", () => {
     );
 
     expect(post).toHaveBeenCalledWith({ markdown: SAVED_ITEM_REACTION });
+  });
+
+  it("refuses to tick a turn that saved nothing", async () => {
+    const { addReaction, post, thread } = threadWith(
+      batchOf("message-1", "message-2"),
+      false,
+    );
+
+    await deliverWhatsAppMessage(
+      { finishReason: "stop", message: `${SAVED_ITEM_REACTION} 1 2` },
+      thread,
+    );
+
+    expect(addReaction).not.toHaveBeenCalled();
+    expect(post).toHaveBeenCalledWith({
+      markdown: messages.whatsapp.notSaved,
+    });
+    expect(storeMocks.clearShownInboundMessages).toHaveBeenCalledWith(
+      "kapso:phone:user",
+    );
+  });
+
+  it("keeps the written reply of a turn that saved nothing", async () => {
+    const { addReaction, post, thread } = threadWith(
+      batchOf("message-1"),
+      false,
+    );
+
+    await deliverWhatsAppMessage(
+      {
+        finishReason: "stop",
+        message: `${SAVED_ITEM_REACTION} 1\nNo pude leer ese enlace.`,
+      },
+      thread,
+    );
+
+    expect(addReaction).not.toHaveBeenCalled();
+    expect(post).toHaveBeenCalledWith({
+      markdown: "No pude leer ese enlace.",
+    });
   });
 
   it("ignores intermediate tool-call messages", async () => {

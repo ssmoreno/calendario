@@ -36,5 +36,6 @@ export const messages = {
       "I don't know whose calendar this is yet. Connect WhatsApp in the web app and text me the pairing code.",
     unsupportedContent:
       "Send text, an image, or a PDF and I'll take it from there.",
+    notSaved: "That did not save. Send it again and I'll give it another go.",
   },
 } as const;
