@@ -9,19 +9,21 @@ export interface InboundMessage {
 /** What the reply needs about the batch its turn was shown. */
 export interface ShownBatch {
   messages: InboundMessage[];
-  /** Whether a library save succeeded while that turn was running. */
-  saved: boolean;
+  /** Messages whose saved state was proven before the reply arrived. */
+  savedMessageIds: string[];
 }
 
 export async function recordInboundMessage(
   threadId: string,
   messageId: string,
   preview: string,
+  { alreadySaved = false }: { alreadySaved?: boolean } = {},
 ): Promise<void> {
+  const savedAt = alreadySaved ? new Date() : null;
   await prisma.whatsAppInboundMessage.upsert({
     where: { threadId_messageId: { threadId, messageId } },
-    create: { threadId, messageId, preview },
-    update: { preview },
+    create: { threadId, messageId, preview, savedAt },
+    update: alreadySaved ? { preview, savedAt } : { preview },
   });
 }
 
@@ -71,13 +73,15 @@ export async function shownInboundBatch(
   // A turn that died before replying can leave an older batch behind, and its
   // rows would shift the numbering the model was given.
   const claimedAt = rows[0]?.shownAt;
-  if (!claimedAt) return { messages: [], saved: false };
+  if (!claimedAt) return { messages: [], savedMessageIds: [] };
   const batch = rows.filter(
     (row) => row.shownAt?.getTime() === claimedAt.getTime(),
   );
   return {
     messages: batch.map(({ messageId, preview }) => ({ messageId, preview })),
-    saved: batch.some((row) => row.savedAt !== null),
+    savedMessageIds: batch.flatMap((row) =>
+      row.savedAt === null ? [] : [row.messageId],
+    ),
   };
 }
 

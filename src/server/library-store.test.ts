@@ -58,6 +58,7 @@ import {
   deleteLibraryItem,
   deleteLibraryTag,
   findLibraryItem,
+  isLibraryLinkSaved,
   LibraryItemNotFoundError,
   LibraryLinkTakenError,
   LibraryTagNameTakenError,
@@ -112,6 +113,32 @@ describe("findLibraryItem", () => {
 
   it("returns null when no owned item exists", async () => {
     await expect(findLibraryItem("user-a", "missing")).resolves.toBeNull();
+  });
+});
+
+describe("isLibraryLinkSaved", () => {
+  it("finds an exact saved link for the authenticated user", async () => {
+    db.libraryItem.findUnique.mockResolvedValueOnce({ id: "item-1" });
+
+    await expect(
+      isLibraryLinkSaved("user-a", " https://example.com/prisma "),
+    ).resolves.toBe(true);
+    expect(db.libraryItem.findUnique).toHaveBeenCalledWith({
+      where: {
+        userId_link: {
+          userId: "user-a",
+          link: "https://example.com/prisma",
+        },
+      },
+      select: { id: true },
+    });
+  });
+
+  it("rejects non-link messages without querying the library", async () => {
+    await expect(isLibraryLinkSaved("user-a", "save this note")).resolves.toBe(
+      false,
+    );
+    expect(db.libraryItem.findUnique).not.toHaveBeenCalled();
   });
 });
 

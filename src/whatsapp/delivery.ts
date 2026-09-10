@@ -52,19 +52,22 @@ export async function deliverWhatsAppMessage(
     return;
   }
 
-  const { messages: batch, saved } = await shownInboundBatch(thread.id);
-  if (batch.length && !saved) {
-    // A tick claims an item was saved. Nothing was, so the marks would confirm
-    // work that never happened and the user would never learn it was lost.
+  const { messages: batch, savedMessageIds } = await shownInboundBatch(
+    thread.id,
+  );
+  const acknowledged = ticked(batch, acknowledgement.positions);
+  const savedMessageIdSet = new Set(savedMessageIds);
+  if (acknowledged.some(({ messageId }) => !savedMessageIdSet.has(messageId))) {
+    // A tick claims that message is saved, and at least one ticked message has
+    // no proof of it. Marking any of them would confirm work that may never
+    // have happened, and the user would never learn it was lost.
     await post(thread, acknowledgement.reply || messages.whatsapp.notSaved);
     await clearShownInboundMessages(thread.id);
     return;
   }
 
   const reacted = await Promise.all(
-    ticked(batch, acknowledgement.positions).map((message) =>
-      react(thread, message.messageId),
-    ),
+    acknowledged.map((message) => react(thread, message.messageId)),
   );
   if (acknowledgement.reply) {
     await post(thread, acknowledgement.reply);
