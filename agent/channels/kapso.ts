@@ -13,7 +13,7 @@ import { extractPairingCode } from "../../src/whatsapp/pairing";
 import { deliverWhatsAppMessage } from "../../src/whatsapp/delivery";
 import { whatsAppMessageContent } from "../../src/whatsapp/inbound";
 
-const adapter = createKapsoAdapter();
+export const adapter = createKapsoAdapter();
 
 export const { bot, channel, send } = chatSdkChannel({
   adapters: { kapso: adapter },

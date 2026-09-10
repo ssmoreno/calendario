@@ -674,7 +674,7 @@ export function createEveTools(
 
   const deleteEvent = calendarTool({
     description:
-      "Remove an event from the user's calendar. First resolve the target with list_events and pass its eventId and occurrenceStart exactly. For repeating events, scope controls how much is removed; confirm with the user before deleting a whole series.",
+      "Remove an event from the user's calendar. First resolve the target with list_events and pass its eventId and occurrenceStart exactly. For repeating events, scope controls how much is removed.",
     inputSchema: z.object({
       ...targetFields,
       scope: scopeSchema,
