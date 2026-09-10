@@ -11,7 +11,10 @@ import {
 } from "../../src/server/whatsapp-link-store";
 import { extractPairingCode } from "../../src/whatsapp/pairing";
 import { deliverWhatsAppMessage } from "../../src/whatsapp/delivery";
-import { whatsAppMessageContent } from "../../src/whatsapp/inbound";
+import {
+  inboundMessagePreview,
+  whatsAppMessageContent,
+} from "../../src/whatsapp/inbound";
 
 export const adapter = createKapsoAdapter();
 
@@ -38,11 +41,15 @@ bot.onDirectMessage(async (thread: Thread, message: Message) => {
       await thread.post(messages.whatsapp.unsupportedContent);
       return;
     }
-    await recordInboundMessage(thread.id, message.id);
+    await recordInboundMessage(
+      thread.id,
+      message.id,
+      inboundMessagePreview(message),
+    );
     await send(content, {
       thread,
       auth: {
-        attributes: { waId },
+        attributes: { threadId: thread.id, waId },
         authenticator: "kapso",
         principalId: userId,
         principalType: "user",

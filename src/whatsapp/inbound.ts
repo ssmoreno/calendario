@@ -71,6 +71,25 @@ async function attachmentPart(
   };
 }
 
+const PREVIEW_MAX_LENGTH = 80;
+
+/**
+ * A one-line stand-in for an inbound message, used only to tell the messages
+ * of one batch apart when the agent is asked which ones it finished.
+ */
+export function inboundMessagePreview(
+  message: Pick<Message, "attachments" | "text">,
+): string {
+  const text = message.text.trim().replace(/\s+/g, " ");
+  if (text) {
+    return text.length > PREVIEW_MAX_LENGTH
+      ? `${text.slice(0, PREVIEW_MAX_LENGTH - 1).trimEnd()}…`
+      : text;
+  }
+  const kinds = [...new Set(message.attachments.map(({ type }) => type))];
+  return kinds.length ? `(${kinds.join(", ")})` : "(empty message)";
+}
+
 export async function whatsAppMessageContent(
   message: Pick<Message, "attachments" | "text">,
 ): Promise<UserContent | null> {

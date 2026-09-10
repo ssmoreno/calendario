@@ -2,7 +2,7 @@ import { Buffer } from "node:buffer";
 import type { Attachment } from "chat";
 import { describe, expect, it, vi } from "vitest";
 
-import { whatsAppMessageContent } from "./inbound";
+import { inboundMessagePreview, whatsAppMessageContent } from "./inbound";
 
 function message(text: string, attachments: Attachment[] = []) {
   return { attachments, text };
@@ -69,5 +69,28 @@ describe("whatsAppMessageContent", () => {
         message("", [{ type: "audio", mimeType: "audio/ogg" }]),
       ),
     ).resolves.toBeNull();
+  });
+});
+
+describe("inboundMessagePreview", () => {
+  it("collapses a message onto one line", () => {
+    expect(inboundMessagePreview(message(" Artaud\n  el disco "))).toBe(
+      "Artaud el disco",
+    );
+  });
+
+  it("truncates a long message", () => {
+    const preview = inboundMessagePreview(message("a".repeat(200)));
+
+    expect(preview).toHaveLength(80);
+    expect(preview.endsWith("…")).toBe(true);
+  });
+
+  it("names the attachments of a message with no text", () => {
+    expect(
+      inboundMessagePreview(
+        message("", [{ type: "image" }, { type: "image" }, { type: "file" }]),
+      ),
+    ).toBe("(image, file)");
   });
 });

@@ -184,14 +184,23 @@ model WhatsAppPairingCode {
   @@map("whatsapp_pairing_code")
 }
 
-/// The newest inbound message of a WhatsApp thread. Eve only persists the Chat
-/// SDK thread when it creates the session, so the thread the agent replies
-/// through keeps naming the message that opened the conversation; reactions
-/// read their target from here instead.
+/// One inbound WhatsApp message still waiting to be acknowledged. Eve only
+/// persists the Chat SDK thread when it creates the session, so the thread the
+/// agent replies through keeps naming the message that opened the
+/// conversation; reactions read their targets from here instead. A turn is
+/// told about the messages it can tick, and its reply retires the whole batch.
 model WhatsAppInboundMessage {
-  threadId  String   @id
-  messageId String
-  updatedAt DateTime @updatedAt
+  id         String    @id @default(cuid())
+  threadId   String
+  messageId  String
+  /// A short excerpt, so the agent can tell the numbered messages apart.
+  preview    String
+  receivedAt DateTime  @default(now())
+  /// Set when a turn was shown this message, which is also what makes it a
+  /// target that turn's reply may tick.
+  shownAt    DateTime?
 
+  @@unique([threadId, messageId])
+  @@index([threadId, receivedAt])
   @@map("whatsapp_inbound_message")
 }
