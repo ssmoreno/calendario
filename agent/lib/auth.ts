@@ -25,6 +25,16 @@ export function maybeUserId(ctx: AuthAwareContext): string | null {
   return null;
 }
 
+/**
+ * The WhatsApp thread this turn is answering, when it came from WhatsApp. A
+ * reminder dispatched into the same session inherits the initiator, so only
+ * the current caller names a thread that is waiting on a reply.
+ */
+export function maybeThreadId(ctx: AuthAwareContext): string | null {
+  const threadId = ctx.session.auth.current?.attributes.threadId;
+  return typeof threadId === "string" ? threadId : null;
+}
+
 export function maybePrincipalId(ctx: AuthAwareContext): string | null {
   const caller = ctx.session.auth.current ?? ctx.session.auth.initiator;
   return caller?.principalId ?? null;

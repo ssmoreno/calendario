@@ -199,6 +199,10 @@ model WhatsAppInboundMessage {
   /// Set when a turn was shown this message, which is also what makes it a
   /// target that turn's reply may tick.
   shownAt    DateTime?
+  /// Set when a library save succeeded during the turn that claimed this
+  /// batch. A tick confirms a save, so a reply that ticks without one would
+  /// confirm work that never happened.
+  savedAt    DateTime?
 
   @@unique([threadId, messageId])
   @@index([threadId, receivedAt])
