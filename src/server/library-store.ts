@@ -7,6 +7,7 @@ import {
   type LibraryItemRecord,
   type LibraryResult,
   type LibraryTagRecord,
+  libraryLinkSchema,
 } from "@/library/types";
 
 import { prisma } from "./db";
@@ -164,6 +165,24 @@ export async function findLibraryItem(
     include: { tags: itemTags },
   });
   return item ? toItemRecord(item) : null;
+}
+
+/** Whether a message consists solely of an exact link this user already saved. */
+export async function isLibraryLinkSaved(
+  userId: string,
+  text: string,
+): Promise<boolean> {
+  const candidate = text.trim();
+  if (!URL.canParse(candidate)) return false;
+
+  const link = libraryLinkSchema.safeParse(candidate);
+  if (!link.success) return false;
+
+  const item = await prisma.libraryItem.findUnique({
+    where: { userId_link: { userId, link: link.data } },
+    select: { id: true },
+  });
+  return item !== null;
 }
 
 export async function listLibraryTags(

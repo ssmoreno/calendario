@@ -4,6 +4,7 @@ import type { Message, Thread } from "chat";
 import { chatSdkChannel } from "eve/channels/chat-sdk";
 
 import { messages } from "../../src/calendar/messages";
+import { isLibraryLinkSaved } from "../../src/server/library-store";
 import { recordInboundMessage } from "../../src/server/whatsapp-inbound-store";
 import {
   linkedUserId,
@@ -41,10 +42,14 @@ bot.onDirectMessage(async (thread: Thread, message: Message) => {
       await thread.post(messages.whatsapp.unsupportedContent);
       return;
     }
+    const alreadySaved =
+      typeof content === "string" &&
+      (await isLibraryLinkSaved(userId, content));
     await recordInboundMessage(
       thread.id,
       message.id,
       inboundMessagePreview(message),
+      { alreadySaved },
     );
     await send(content, {
       thread,

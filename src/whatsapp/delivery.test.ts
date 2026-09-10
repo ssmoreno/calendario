@@ -20,10 +20,16 @@ function batchOf(...messageIds: string[]): InboundMessage[] {
   return messageIds.map((messageId) => ({ messageId, preview: messageId }));
 }
 
-function threadWith(batch: InboundMessage[], saved = true) {
+function threadWith(
+  batch: InboundMessage[],
+  savedMessageIds = batch.map(({ messageId }) => messageId),
+) {
   const addReaction = vi.fn().mockResolvedValue(undefined);
   const post = vi.fn().mockResolvedValue(undefined);
-  storeMocks.shownInboundBatch.mockResolvedValue({ messages: batch, saved });
+  storeMocks.shownInboundBatch.mockResolvedValue({
+    messages: batch,
+    savedMessageIds,
+  });
   storeMocks.clearShownInboundMessages.mockResolvedValue(undefined);
   const thread = {
     adapter: { addReaction },
@@ -159,7 +165,7 @@ describe("deliverWhatsAppMessage", () => {
   it("refuses to tick a turn that saved nothing", async () => {
     const { addReaction, post, thread } = threadWith(
       batchOf("message-1", "message-2"),
-      false,
+      [],
     );
 
     await deliverWhatsAppMessage(
@@ -177,10 +183,7 @@ describe("deliverWhatsAppMessage", () => {
   });
 
   it("keeps the written reply of a turn that saved nothing", async () => {
-    const { addReaction, post, thread } = threadWith(
-      batchOf("message-1"),
-      false,
-    );
+    const { addReaction, post, thread } = threadWith(batchOf("message-1"), []);
 
     await deliverWhatsAppMessage(
       {
@@ -194,6 +197,21 @@ describe("deliverWhatsAppMessage", () => {
     expect(post).toHaveBeenCalledWith({
       markdown: "No pude leer ese enlace.",
     });
+  });
+
+  it("does not let one duplicate confirm another unsaved message", async () => {
+    const { addReaction, post, thread } = threadWith(
+      batchOf("duplicate", "unsaved"),
+      ["duplicate"],
+    );
+
+    await deliverWhatsAppMessage(
+      { finishReason: "stop", message: SAVED_ITEM_REACTION },
+      thread,
+    );
+
+    expect(addReaction).not.toHaveBeenCalled();
+    expect(post).toHaveBeenCalledWith({ markdown: messages.whatsapp.notSaved });
   });
 
   it("ignores intermediate tool-call messages", async () => {
