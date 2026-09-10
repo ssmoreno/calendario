@@ -16,7 +16,7 @@ const LINK = "https://www.rfc-editor.org/rfc/rfc2606.html";
 
 export default defineEval({
   description:
-    "A link is curated by the specialist, saved once, and acknowledged with only a checkmark.",
+    "A repeated link is revalidated, kept as one item, and acknowledged each time.",
   async test(t) {
     await ensureLibraryEvalUser();
     await prisma.libraryItem.deleteMany({
@@ -41,8 +41,13 @@ export default defineEval({
 
       t.succeeded();
       t.noFailedActions();
-      t.calledSubagent("link_curator", { count: 1 });
-      t.calledTool("save_library_link", { count: 1, input: { link: LINK } });
+      t.calledSubagent("link_curator", { count: 2 });
+      t.calledTool("save_library_link", { count: 2, input: { link: LINK } });
+      second.calledSubagent("link_curator", { count: 1 });
+      second.calledTool("save_library_link", {
+        count: 1,
+        input: { link: LINK },
+      });
       t.check(
         firstSave.input,
         equals({
