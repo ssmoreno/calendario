@@ -1,6 +1,7 @@
 import { defineChannel, POST } from "eve/channels";
 
 import { isDispatchAuthorized } from "../../src/reminders/dispatch-auth";
+import { cleanupExpiredChatState } from "../../src/server/chat-state-store";
 import { deliverDueReminders } from "../lib/deliver-reminders";
 
 /**
@@ -20,7 +21,9 @@ export default defineChannel({
         return new Response("Not found", { status: 404 });
       }
       // Answer Supabase immediately; the sends outlive the response.
-      waitUntil(deliverDueReminders(to));
+      waitUntil(
+        Promise.all([deliverDueReminders(to), cleanupExpiredChatState()]),
+      );
       return Response.json({ dispatched: true });
     }),
   ],

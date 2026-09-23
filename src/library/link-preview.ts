@@ -1,3 +1,5 @@
+import { readResponseBytes } from "@/lib/response-body";
+
 import { assertPublicUrl } from "./public-url";
 
 const REQUEST_TIMEOUT_MS = 8_000;
@@ -206,17 +208,13 @@ export async function fetchLinkPreview(link: string): Promise<LinkPreview | null
     if (!response) return fallback;
 
     const contentType = response.headers.get("content-type") ?? "";
-    const length = Number(response.headers.get("content-length") ?? 0);
-    if (
-      !response.ok ||
-      !contentType.toLowerCase().includes("html") ||
-      length > MAX_HTML_BYTES
-    ) {
+    if (!response.ok || !contentType.toLowerCase().includes("html")) {
       await response.body?.cancel();
       return fallback;
     }
 
-    const html = (await response.text()).slice(0, MAX_HTML_CHARS);
+    const bytes = await readResponseBytes(response, MAX_HTML_BYTES);
+    const html = new TextDecoder().decode(bytes).slice(0, MAX_HTML_CHARS);
     return fillPreview(parseLinkPreview(html, response.url || link), fallback);
   } catch {
     return fallback;

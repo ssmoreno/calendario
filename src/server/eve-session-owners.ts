@@ -1,10 +1,9 @@
 import { prisma } from "./db";
 
-export async function getEveSessionOwner(
-  sessionId: string,
-): Promise<string | null> {
-  const row = await prisma.eveSessionOwner.findUnique({ where: { sessionId } });
-  return row?.userId ?? null;
+export class EveSessionOwnershipError extends Error {
+  constructor() {
+    super("Eve session ownership is already claimed.");
+  }
 }
 
 export async function claimEveSession(
@@ -18,6 +17,6 @@ export async function claimEveSession(
     select: { userId: true },
   });
   if (owner.userId !== userId) {
-    throw new Error("Eve session ownership is already claimed.");
+    throw new EveSessionOwnershipError();
   }
 }

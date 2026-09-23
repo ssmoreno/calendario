@@ -12,7 +12,10 @@ vi.mock("./db", () => ({
   },
 }));
 
-import { claimEveSession } from "./eve-session-owners";
+import {
+  claimEveSession,
+  EveSessionOwnershipError,
+} from "./eve-session-owners";
 
 describe("claimEveSession", () => {
   beforeEach(() => dbMocks.upsert.mockReset());
@@ -26,9 +29,9 @@ describe("claimEveSession", () => {
   it("rejects a conflicting owner without overwriting the existing row", async () => {
     dbMocks.upsert.mockResolvedValue({ userId: "user-a" });
 
-    await expect(claimEveSession("session-a", "user-b")).rejects.toThrow(
-      "already claimed",
-    );
+    await expect(
+      claimEveSession("session-a", "user-b"),
+    ).rejects.toBeInstanceOf(EveSessionOwnershipError);
     expect(dbMocks.upsert).toHaveBeenCalledWith(
       expect.objectContaining({ update: {} }),
     );

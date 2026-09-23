@@ -16,7 +16,6 @@ const db = vi.hoisted(() => ({
     findMany: vi.fn(),
     findFirst: vi.fn(),
     delete: vi.fn(),
-    update: vi.fn(),
     updateMany: vi.fn(),
   },
 }));
@@ -150,7 +149,7 @@ describe("claimDueReminders", () => {
     expect(db.reminder.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { leaseToken: token } }),
     );
-    expect(claimed).toEqual([row]);
+    expect(claimed).toEqual([{ ...row, leaseToken: token }]);
   });
 
   it("uses a fresh token per tick so ticks cannot read each other's rows", async () => {
@@ -174,10 +173,14 @@ describe("claimDueReminders", () => {
 
 describe("finishing a delivery", () => {
   it("clears the lease when the send lands", async () => {
-    await markReminderDelivered("reminder-1");
+    await markReminderDelivered("reminder-1", "lease-a");
 
-    const [call] = db.reminder.update.mock.calls;
-    expect(call[0].where).toEqual({ id: "reminder-1" });
+    const [call] = db.reminder.updateMany.mock.calls;
+    expect(call[0].where).toEqual({
+      id: "reminder-1",
+      leaseToken: "lease-a",
+      deliveredAt: null,
+    });
     expect(call[0].data.deliveredAt).toBeInstanceOf(Date);
     expect(call[0].data.leaseUntil).toBeNull();
     expect(call[0].data.leaseToken).toBeNull();
@@ -186,10 +189,14 @@ describe("finishing a delivery", () => {
   it("holds a failed send back until the retry time", async () => {
     const retryAt = new Date("2026-09-12T11:05:00.000Z");
 
-    await releaseReminder("reminder-1", retryAt);
+    await releaseReminder("reminder-1", "lease-a", retryAt);
 
-    expect(db.reminder.update).toHaveBeenCalledWith({
-      where: { id: "reminder-1" },
+    expect(db.reminder.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: "reminder-1",
+        leaseToken: "lease-a",
+        deliveredAt: null,
+      },
       data: { leaseUntil: retryAt, leaseToken: null },
     });
   });

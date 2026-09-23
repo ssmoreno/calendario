@@ -1,7 +1,8 @@
-import { createMemoryState } from "@chat-adapter/state-memory";
+import { createPostgresState } from "@chat-adapter/state-pg";
 import { createKapsoAdapter } from "@kapso/chat-adapter";
 import type { Message, Thread } from "chat";
 import { chatSdkChannel } from "eve/channels/chat-sdk";
+import { Pool } from "pg";
 
 import { messages } from "../../src/calendar/messages";
 import { isLibraryLinkSaved } from "../../src/server/library-store";
@@ -19,9 +20,22 @@ import {
 
 export const adapter = createKapsoAdapter();
 
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) {
+  throw new Error("DATABASE_URL is not configured.");
+}
+const chatStatePool = new Pool({
+  connectionString: databaseUrl,
+  max: 2,
+});
+
 export const { bot, channel, send } = chatSdkChannel({
   adapters: { kapso: adapter },
-  state: createMemoryState(),
+  state: createPostgresState({
+    client: chatStatePool,
+    keyPrefix: "calendario-kapso",
+  }),
+  concurrency: "concurrent",
   streaming: false,
   turnPolicy: "queue",
   userName: "SS",
