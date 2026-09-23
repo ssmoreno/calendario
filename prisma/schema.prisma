@@ -208,3 +208,60 @@ model WhatsAppInboundMessage {
   @@index([threadId, receivedAt])
   @@map("whatsapp_inbound_message")
 }
+
+model ChatStateSubscription {
+  keyPrefix String   @map("key_prefix")
+  threadId  String   @map("thread_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@id([keyPrefix, threadId])
+  @@map("chat_state_subscriptions")
+}
+
+model ChatStateLock {
+  keyPrefix String   @map("key_prefix")
+  threadId  String   @map("thread_id")
+  token     String
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  @@id([keyPrefix, threadId])
+  @@index([expiresAt])
+  @@map("chat_state_locks")
+}
+
+model ChatStateCache {
+  keyPrefix String    @map("key_prefix")
+  cacheKey  String    @map("cache_key")
+  value     String
+  expiresAt DateTime? @map("expires_at") @db.Timestamptz(6)
+  updatedAt DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  @@id([keyPrefix, cacheKey])
+  @@index([expiresAt])
+  @@map("chat_state_cache")
+}
+
+model ChatStateList {
+  keyPrefix String    @map("key_prefix")
+  listKey   String    @map("list_key")
+  seq       BigInt    @default(autoincrement())
+  value     String
+  expiresAt DateTime? @map("expires_at") @db.Timestamptz(6)
+
+  @@id([keyPrefix, listKey, seq])
+  @@index([expiresAt])
+  @@map("chat_state_lists")
+}
+
+model ChatStateQueue {
+  keyPrefix String   @map("key_prefix")
+  threadId  String   @map("thread_id")
+  seq       BigInt   @default(autoincrement())
+  value     String
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+
+  @@id([keyPrefix, threadId, seq])
+  @@index([expiresAt])
+  @@map("chat_state_queues")
+}

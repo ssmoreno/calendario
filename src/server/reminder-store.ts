@@ -28,6 +28,7 @@ export interface ClaimedReminder {
   body: string;
   timeZone: string;
   remindAt: Date;
+  leaseToken: string;
 }
 
 interface ReminderRow {
@@ -113,7 +114,7 @@ export async function claimDueReminders(options: {
   });
   if (count === 0) return [];
 
-  return await prisma.reminder.findMany({
+  const reminders = await prisma.reminder.findMany({
     where: { leaseToken },
     select: {
       id: true,
@@ -123,11 +124,15 @@ export async function claimDueReminders(options: {
       remindAt: true,
     },
   });
+  return reminders.map((reminder) => ({ ...reminder, leaseToken }));
 }
 
-export async function markReminderDelivered(id: string): Promise<void> {
-  await prisma.reminder.update({
-    where: { id },
+export async function markReminderDelivered(
+  id: string,
+  leaseToken: string,
+): Promise<void> {
+  await prisma.reminder.updateMany({
+    where: { id, leaseToken, deliveredAt: null },
     data: { deliveredAt: new Date(), leaseUntil: null, leaseToken: null },
   });
 }
@@ -135,10 +140,11 @@ export async function markReminderDelivered(id: string): Promise<void> {
 /** Hand a failed send back to a later tick. */
 export async function releaseReminder(
   id: string,
+  leaseToken: string,
   retryAt: Date,
 ): Promise<void> {
-  await prisma.reminder.update({
-    where: { id },
+  await prisma.reminder.updateMany({
+    where: { id, leaseToken, deliveredAt: null },
     data: { leaseUntil: retryAt, leaseToken: null },
   });
 }

@@ -7,21 +7,25 @@ import {
 import { eveChannel } from "eve/channels/eve";
 
 import { auth } from "../../src/server/auth";
-import { getEveSessionOwner } from "../../src/server/eve-session-owners";
+import {
+  claimEveSession,
+  EveSessionOwnershipError,
+} from "../../src/server/eve-session-owners";
 
 const SESSION_PATH = /\/session\/([^/]+)/;
 
 /**
  * eve decides access at the HTTP boundary and does not enforce session
- * ownership, so a signed-in caller may only touch sessions their own account
- * started. A session with no recorded owner is one that is being created, or
- * one whose id only its creator knows.
+ * ownership, so a signed-in caller atomically claims a new session and may
+ * only touch it again when the recorded owner matches.
  */
 async function assertSessionOwnership(request: Request, userId: string) {
   const sessionId = SESSION_PATH.exec(new URL(request.url).pathname)?.[1];
   if (!sessionId) return;
-  const owner = await getEveSessionOwner(sessionId);
-  if (owner !== null && owner !== userId) {
+  try {
+    await claimEveSession(sessionId, userId);
+  } catch (error) {
+    if (!(error instanceof EveSessionOwnershipError)) throw error;
     throw new ForbiddenError({ message: "That conversation is not yours." });
   }
 }

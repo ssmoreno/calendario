@@ -28,7 +28,7 @@ async function deliver(
   if (!waId) {
     // The account unpaired WhatsApp after setting this, so there is nowhere
     // left to send it. Retiring the row beats retrying it every tick forever.
-    await markReminderDelivered(reminder.id);
+    await markReminderDelivered(reminder.id, reminder.leaseToken);
     return;
   }
 
@@ -45,9 +45,13 @@ async function deliver(
         subject: reminder.userId,
       },
     });
-    await markReminderDelivered(reminder.id);
+    await markReminderDelivered(reminder.id, reminder.leaseToken);
   } catch {
-    await releaseReminder(reminder.id, new Date(Date.now() + RETRY_AFTER_MS));
+    await releaseReminder(
+      reminder.id,
+      reminder.leaseToken,
+      new Date(Date.now() + RETRY_AFTER_MS),
+    );
   }
 }
 

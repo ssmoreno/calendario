@@ -4,9 +4,8 @@ import { claimEveSession } from "../../src/server/eve-session-owners";
 import { maybePrincipalId } from "../lib/auth";
 
 /**
- * Records who started each Eve session. The channel's auth walk reads this back
- * on every later request, because eve itself does not enforce session
- * ownership.
+ * Records the principal for sessions started through non-app auth paths too.
+ * The app channel independently claims a session at the HTTP boundary.
  */
 export default defineHook({
   events: {

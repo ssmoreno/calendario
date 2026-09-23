@@ -2,6 +2,8 @@ import { Buffer } from "node:buffer";
 import { defineTool, toolOutput, toolOutputPart } from "eve/tools";
 import { z } from "zod";
 
+import { readResponseBytes } from "../../../../src/lib/response-body";
+
 const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
 
 const inputSchema = z.object({
@@ -33,10 +35,7 @@ export default defineTool({
       throw new Error("The X media URL did not return an image.");
     }
 
-    const bytes = Buffer.from(await response.arrayBuffer());
-    if (bytes.byteLength > MAX_IMAGE_BYTES) {
-      throw new Error("The X image is too large to inspect.");
-    }
+    const bytes = Buffer.from(await readResponseBytes(response, MAX_IMAGE_BYTES));
 
     return { base64: bytes.toString("base64"), mediaType, url };
   },

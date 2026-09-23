@@ -1,5 +1,7 @@
 import { extractText, getDocumentProxy } from "unpdf";
 
+import { readResponseBytes } from "@/lib/response-body";
+
 import { assertPublicUrl } from "./public-url";
 
 const MAX_PDF_BYTES = 5 * 1024 * 1024;
@@ -37,10 +39,6 @@ export async function readPdfText(
     throw new Error(`PDF request failed with status ${response.status}.`);
   }
 
-  const bytes = new Uint8Array(await response.arrayBuffer());
-  if (bytes.byteLength > MAX_PDF_BYTES) {
-    throw new Error("PDF is too large to read.");
-  }
-
+  const bytes = await readResponseBytes(response, MAX_PDF_BYTES);
   return extractPdfText(bytes);
 }
